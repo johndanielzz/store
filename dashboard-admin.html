@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MatrixMarket - Admin User Control</title>
+    <title>MatrixMarket Admin Dashboard</title>
     <style>
         body {
             font-family: "Poppins", sans-serif;
@@ -70,20 +70,57 @@
             text-shadow: 0 0 10px #06b6d4;
         }
 
-        input[type="text"] {
-            width: 100%;
-            padding: 10px;
-            border: none;
-            border-radius: 10px;
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        .card {
             background: rgba(255, 255, 255, 0.1);
-            color: white;
-            margin-bottom: 15px;
+            border-radius: 15px;
+            padding: 25px;
+            text-align: center;
+            transition: 0.3s;
+            box-shadow: 0 0 15px rgba(6, 182, 212, 0.2);
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 0 25px rgba(6, 182, 212, 0.4);
+        }
+
+        .card h2 {
+            font-size: 2.2rem;
+            margin: 10px 0;
+            color: #06b6d4;
+        }
+
+        .card p {
+            font-size: 1rem;
+            color: #ddd;
+        }
+
+        footer {
+            text-align: center;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.08);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            margin-top: 40px;
+        }
+
+        .section-title {
+            text-align: center;
+            margin-top: 50px;
+            text-shadow: 0 0 10px #06b6d4;
+            font-size: 1.3rem;
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 10px;
+            margin-top: 15px;
         }
 
         th,
@@ -97,93 +134,16 @@
             background: rgba(6, 182, 212, 0.3);
         }
 
-        img.proof {
-            width: 80px;
-            height: 80px;
-            border-radius: 10px;
-            border: 2px solid rgba(6, 182, 212, 0.4);
-            object-fit: cover;
-            cursor: pointer;
-            transition: 0.3s;
-        }
-
-        img.proof:hover {
-            transform: scale(1.2);
-        }
-
-        .btn {
-            padding: 6px 12px;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            color: white;
-            margin: 2px;
-            font-weight: 500;
-        }
-
-        .approve {
-            background: #06b6d4;
-        }
-
-        .approve:hover {
-            background: #0891b2;
-        }
-
-        .decline {
-            background: #ef4444;
-        }
-
-        .decline:hover {
-            background: #b91c1c;
-        }
-
-        .status {
-            padding: 5px 10px;
-            border-radius: 8px;
-            font-weight: bold;
-        }
-
         .pending {
-            background: rgba(245, 158, 11, 0.2);
-            color: #f59e0b;
+            color: #fbbf24;
         }
 
         .approved {
-            background: rgba(34, 197, 94, 0.2);
             color: #22c55e;
         }
 
         .declined {
-            background: rgba(239, 68, 68, 0.2);
             color: #ef4444;
-        }
-
-        footer {
-            text-align: center;
-            padding: 15px;
-            background: rgba(255, 255, 255, 0.08);
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
-            margin-top: 40px;
-        }
-
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 999;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.7);
-            justify-content: center;
-            align-items: center;
-        }
-
-        .modal img {
-            max-width: 90%;
-            max-height: 80%;
-            border-radius: 15px;
-            border: 3px solid #06b6d4;
         }
     </style>
 </head>
@@ -195,20 +155,41 @@
             <a href="dashboard-admin.html">Dashboard</a>
             <a href="admin-sellers.html">Sellers</a>
             <a href="admin-users.html">Users</a>
+            <a href="admin-accept-payment.html">Accept payment</a>
+            <a href="admin-edit-user-seller.html">Edit</a>
+            <a href="admin-code.html">Codes</a>
         </nav>
     </header>
 
     <div class="container">
-        <h1>👥 Manage Buyers & Payments</h1>
-        <input type="text" id="searchBox" placeholder="Search user by name or email...">
-        <table id="userTable"></table>
+        <h1>📊 Admin Control Dashboard</h1>
+        <div class="stats">
+            <div class="card">
+                <h2 id="totalUsers">0</h2>
+                <p>Total Users</p>
+            </div>
+            <div class="card">
+                <h2 id="totalSellers">0</h2>
+                <p>Total Sellers</p>
+            </div>
+            <div class="card">
+                <h2 id="pendingPayments">0</h2>
+                <p>Pending Payments</p>
+            </div>
+            <div class="card">
+                <h2 id="approvedPayments">0</h2>
+                <p>Approved Payments</p>
+            </div>
+        </div>
+
+        <div class="section-title">Recent Seller Registrations</div>
+        <table id="recentSellers"></table>
+
+        <div class="section-title">Recent User Payments</div>
+        <table id="recentUsers"></table>
     </div>
 
-    <div class="modal" id="imageModal" onclick="this.style.display='none'">
-        <img id="modalImg" src="">
-    </div>
-
-    <footer>© 2025 MatrixMarket | Admin User Control</footer>
+    <footer>© 2025 MatrixMarket | Admin Dashboard</footer>
 
     <!-- Firebase -->
     <script src="https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js"></script>
@@ -226,68 +207,59 @@
         };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
+
         const usersRef = db.ref('users');
+        const sellersRef = db.ref('sellers');
 
-        function viewProof(src) {
-            document.getElementById("modalImg").src = src;
-            document.getElementById("imageModal").style.display = "flex";
-        }
-
-        function updateUser(id, action) {
-            const updates = {
-                status: action,
-                paymentStatus: action === "Approved" ? "Paid" : "Unpaid",
-                subscription: action === "Approved" ? "Active" : "Inactive"
-            };
-            usersRef.child(id).update(updates).then(() => {
-                alert(`${action === 'Approved' ? '✅ User approved' : '❌ User declined'} successfully!`);
-            });
-        }
-
-        function renderUsersTable(users) {
-            const search = document.getElementById("searchBox").value.toLowerCase();
-            const filtered = users.filter(u => u.email?.toLowerCase().includes(search) || u.name?.toLowerCase().includes(search));
-            const table = document.getElementById("userTable");
+        function renderRecent(tableId, list, type) {
+            const table = document.getElementById(tableId);
             table.innerHTML = `
         <tr>
-            <th>Name</th><th>Email</th><th>Country</th><th>Balance</th><th>Status</th><th>Proof</th><th>Action</th>
+          <th>${type} Name</th>
+          <th>Email</th>
+          <th>Status</th>
+          <th>Country</th>
         </tr>
     `;
-            if (!filtered.length) { table.innerHTML += `<tr><td colspan="7">No users found.</td></tr>`; return; }
-            filtered.forEach(u => {
-                const statusClass = u.paymentStatus === "Paid" || u.status === "Approved" ? "approved" :
-                    u.paymentStatus === "Declined" || u.status === "Declined" ? "declined" : "pending";
-                const proofHTML = u.proof ? `<img src="${u.proof}" class="proof" onclick="viewProof('${u.proof}')">` : "No proof";
+            if (list.length === 0) {
+                table.innerHTML += `<tr><td colspan="4">No ${type.toLowerCase()} records found.</td></tr>`;
+                return;
+            }
+            list.slice(-5).reverse().forEach(item => {
+                const statusClass = item.status === "Approved" ? "approved" : item.status === "Declined" ? "declined" : "pending";
                 table.innerHTML += `
-            <tr>
-                <td>${u.name || "-"}</td>
-                <td>${u.email}</td>
-                <td>${u.country || "Unknown"}</td>
-                <td>${u.balance || 0} GMD</td>
-                <td><span class="status ${statusClass}">${u.paymentStatus || u.status || "Pending"}</span></td>
-                <td>${proofHTML}</td>
-                <td>
-                    <button class="btn approve" onclick="updateUser('${u.id}','Approved')">Approve</button>
-                    <button class="btn decline" onclick="updateUser('${u.id}','Declined')">Decline</button>
-                </td>
-            </tr>
+          <tr>
+            <td>${item.name || "N/A"}</td>
+            <td>${item.email || "N/A"}</td>
+            <td class="${statusClass}">${item.status || "Pending"}</td>
+            <td>${item.country || "Unknown"}</td>
+          </tr>
         `;
             });
         }
 
-        // Real-time listener
-        usersRef.on('value', snapshot => {
-            const usersObj = snapshot.val() || {};
-            renderUsersTable(Object.values(usersObj));
-        });
-
-        // Live search
-        document.getElementById("searchBox").addEventListener('input', () => {
-            usersRef.once('value').then(snapshot => {
+        // Real-time dashboard
+        function updateDashboard() {
+            usersRef.on('value', snapshot => {
                 const usersObj = snapshot.val() || {};
-                renderUsersTable(Object.values(usersObj));
+                const users = Object.values(usersObj);
+                document.getElementById("totalUsers").textContent = users.length;
+                const pending = users.filter(u => u.paymentStatus === "Pending" || u.status === "Pending").length;
+                const approved = users.filter(u => u.paymentStatus === "Paid" || u.status === "Approved").length;
+                document.getElementById("pendingPayments").textContent = pending;
+                document.getElementById("approvedPayments").textContent = approved;
+                renderRecent("recentUsers", users, "User");
             });
-        });
+
+            sellersRef.on('value', snapshot => {
+                const sellersObj = snapshot.val() || {};
+                const sellers = Object.values(sellersObj);
+                document.getElementById("totalSellers").textContent = sellers.length;
+                renderRecent("recentSellers", sellers, "Seller");
+            });
+        }
+
+        window.onload = updateDashboard;
     </script>
 </body>
 
