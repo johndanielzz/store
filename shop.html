@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MatrixMarket - Shop</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        /* ==========================
+           Global Styles
+        ========================== */
+        body {
+            margin: 0;
+            font-family: "Poppins", sans-serif;
+            background: linear-gradient(-45deg, #0f172a, #1e293b, #4f46e5, #06b6d4);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+            color: #fff;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        @keyframes gradientBG {
+
+            0%,
+            100% {
+                background-position: 0% 50%;
+            }
+
+            50% {
+                background-position: 100% 50%;
+            }
+        }
+
+        header {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(5px);
+        }
+
+        header .logo {
+            font-size: 1.6rem;
+            font-weight: bold;
+            color: #06b6d4;
+            text-shadow: 0 0 10px #4f46e5;
+        }
+
+        nav a {
+            margin: 0 10px;
+            color: #fff;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s;
+        }
+
+        nav a:hover,
+        nav a.active {
+            color: #06b6d4;
+        }
+
+        .shop-container {
+            flex: 1;
+            padding: 30px;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2rem;
+            text-shadow: 0 0 12px #06b6d4, 0 0 20px #4f46e5;
+        }
+
+        .product-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 20px;
+        }
+
+        .product-card {
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(12px);
+            border-radius: 16px;
+            padding: 15px;
+            text-align: center;
+            transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+            box-shadow: 0 0 20px rgba(6, 182, 212, 0.3);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .product-card:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 25px #06b6d4;
+        }
+
+        .product-card img {
+            width: 100%;
+            height: 180px;
+            object-fit: cover;
+            border-radius: 12px;
+            margin-bottom: 12px;
+        }
+
+        .product-card h3 {
+            margin: 8px 0;
+            font-size: 1.1rem;
+            min-height: 40px;
+        }
+
+        .product-card p {
+            color: #06b6d4;
+            font-weight: bold;
+            margin: 6px 0;
+        }
+
+        .product-card .btn {
+            background: #4f46e5;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 8px;
+            margin: 5px 0;
+            cursor: pointer;
+            font-weight: 500;
+            transition: 0.3s;
+        }
+
+        .product-card .btn:hover {
+            background: #06b6d4;
+        }
+
+        .empty-msg {
+            text-align: center;
+            font-size: 1.2rem;
+            padding: 20px;
+            color: #ccc;
+        }
+
+        footer {
+            text-align: center;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(5px);
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <div class="logo">MatrixMarket</div>
+        <nav>
+            <a href="index.html">Home</a>
+            <a href="shop.html" class="active">Shop</a>
+            <a href="seller-login.html">Sellers</a>
+            <a href="cart.html">Cart</a>
+            <a href="chat.html">Chat</a>
+        </nav>
+    </header>
+
+    <div class="shop-container">
+        <h1>🛍️ Welcome to MatrixMarket Shop</h1>
+        <div id="productList" class="product-grid"></div>
+    </div>
+
+    <footer>
+        <p>© 2025 MatrixMarket | Shop</p>
+    </footer>
+
+    <script>
+        // ==========================
+        // Load products dynamically
+        // ==========================
+        function loadProducts() {
+            const products = JSON.parse(localStorage.getItem("products")) || [];
+            const productList = document.getElementById("productList");
+            productList.innerHTML = "";
+
+            if (!products.length) {
+                productList.innerHTML = "<p class='empty-msg'>🚀 No products yet. Sellers will upload soon.</p>";
+                return;
+            }
+
+            products.forEach(p => {
+                const div = document.createElement("div");
+                div.className = "product-card";
+                div.innerHTML = `
+                    <img src="${p.image || 'placeholder.png'}" alt="${p.name || 'Product'}">
+                    <h3>${p.name}</h3>
+                    <p><strong>${p.price} GMD</strong></p>
+                    <button class="btn" onclick="addToCart('${p.name}', ${p.price}, '${p.image}', '${p.seller}')">🛒 Add to Cart</button>
+                    <button class="btn" onclick="buyNow('${p.name}', ${p.price}, '${p.image}', '${p.seller}')">💳 Buy Now</button>
+                    <button class="btn" onclick="startChat('${p.seller}')">💬 Chat</button>
+                `;
+                productList.appendChild(div);
+            });
+        }
+
+        // ==========================
+        // Cart functions
+        // ==========================
+        function addToCart(name, price, image, seller) {
+            const cart = JSON.parse(localStorage.getItem("cartItems")) || [];
+            const exists = cart.some(item => item.name === name && item.seller === seller);
+
+            if (exists) {
+                alert(`${name} is already in your cart.`);
+                return;
+            }
+
+            cart.push({ name, price, image, seller });
+            localStorage.setItem("cartItems", JSON.stringify(cart));
+            alert(`${name} added to cart!`);
+        }
+
+        function buyNow(name, price, image, seller) {
+            addToCart(name, price, image, seller);
+            window.location.href = "checkout.html";
+        }
+
+        // ==========================
+        // Chat function
+        // ==========================
+        function startChat(seller) {
+            const chats = JSON.parse(localStorage.getItem("chats")) || {};
+            if (!chats[seller]) chats[seller] = [];
+            localStorage.setItem("chats", JSON.stringify(chats));
+            localStorage.setItem("chatWith", seller);
+            window.location.href = "chat.html";
+        }
+
+        window.onload = loadProducts;
+    </script>
+</body>
+
+</html>

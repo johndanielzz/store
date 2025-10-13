@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MatrixMarket - Checkout</title>
+  <link rel="stylesheet" href="style.css">
+
+  <style>
+    body {
+      font-family: "Poppins", sans-serif;
+      background: #0f172a;
+      color: white;
+      margin: 0;
+      padding: 0;
+    }
+
+    header {
+      background: #1e1e1e;
+      padding: 15px 40px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    nav a {
+      color: white;
+      margin: 0 12px;
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    nav a:hover {
+      color: #06b6d4;
+    }
+
+    h2 {
+      text-align: center;
+      margin: 20px 0;
+      color: #06b6d4;
+    }
+
+    .container {
+      width: 90%;
+      max-width: 850px;
+      margin: auto;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 0 15px rgba(6, 182, 212, 0.3);
+    }
+
+    .section {
+      margin-bottom: 25px;
+    }
+
+    .cart-item {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+
+    .checkout-btn {
+      width: 100%;
+      padding: 14px;
+      background: #06b6d4;
+      border: none;
+      border-radius: 10px;
+      color: white;
+      font-size: 1rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: 0.3s;
+      margin-top: 15px;
+    }
+
+    .checkout-btn:hover {
+      background: #4f46e5;
+    }
+
+    .msg {
+      margin-top: 15px;
+      padding: 12px;
+      border-radius: 10px;
+      display: none;
+    }
+
+    .success {
+      background: rgba(34, 197, 94, 0.2);
+      color: #22c55e;
+    }
+
+    .error {
+      background: rgba(239, 68, 68, 0.2);
+      color: #ef4444;
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <div class="logo">MatrixMarket</div>
+    <nav>
+      <a href="index.html">Home</a>
+      <a href="shop.html">Shop</a>
+      <a href="cart.html">Cart</a>
+      <a href="chat.html">Chat</a>
+    </nav>
+  </header>
+
+  <h2>✅ Confirm Your Order</h2>
+
+  <div class="container">
+    <div class="section" id="orderSummary">
+      <h3>🛒 Order Review</h3>
+      <p>Loading order...</p>
+    </div>
+
+    <div class="section" id="deliveryInfo">
+      <h3>📦 Delivery Information</h3>
+      <p>Loading info...</p>
+    </div>
+
+    <div class="section" id="walletInfo">
+      <h3>💰 Your Balance</h3>
+      <p>Loading...</p>
+    </div>
+
+    <button class="checkout-btn" onclick="placeOrder()">🚀 Place Order</button>
+    <div class="msg success" id="successMsg">🎉 Order placed successfully!</div>
+    <div class="msg error" id="errorMsg"></div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
+    import { getFirestore, doc, setDoc, getDoc, updateDoc, arrayUnion } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBZpLELrmplsK66YNPycGLO2Aab9jvxa9k",
+      authDomain: "matrixmarketpace.firebaseapp.com",
+      projectId: "matrixmarketpace",
+      storageBucket: "matrixmarketpace.appspot.com",
+      messagingSenderId: "200867795667",
+      appId: "1:200867795667:web:64de1ece48ddc07fa4ba26",
+      measurementId: "G-10TFPP3LDD"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    let checkoutDetails;
+    let total = 0;
+    let balance = 0;
+
+    async function loadCheckout() {
+      const buyerInfo = JSON.parse(localStorage.getItem("buyerInfo")) || null;
+      const cartItems = JSON.parse(localStorage.getItem("checkoutCart")) || [];
+      balance = parseFloat(localStorage.getItem("userBalance")) || 0;
+
+      const orderContainer = document.getElementById("orderSummary");
+      const deliveryContainer = document.getElementById("deliveryInfo");
+      const walletContainer = document.getElementById("walletInfo");
+
+      if (!buyerInfo || cartItems.length === 0) {
+        orderContainer.innerHTML = "<p>No order found. Please go back to cart.</p>";
+        return;
+      }
+
+      checkoutDetails = {
+        fullName: buyerInfo.name,
+        address: buyerInfo.address,
+        phone: buyerInfo.phone,
+        email: buyerInfo.email,
+        cart: cartItems
+      };
+
+      total = 0;
+      orderContainer.innerHTML = "<h3>🛒 Order Review</h3>";
+      cartItems.forEach(item => {
+        total += parseFloat(item.price);
+        orderContainer.innerHTML += `
+          <div class="cart-item">
+            <span>${item.name}<br><small>Seller: ${item.seller}</small></span>
+            <strong>${item.price} GMD</strong>
+          </div>`;
+      });
+      orderContainer.innerHTML += `<hr><p><b>Total:</b> ${total.toFixed(2)} GMD</p>`;
+
+      deliveryContainer.innerHTML = `
+        <h3>📦 Delivery Information</h3>
+        <p><b>Name:</b> ${buyerInfo.name}</p>
+        <p><b>Address:</b> ${buyerInfo.address}</p>
+        <p><b>Phone:</b> ${buyerInfo.phone}</p>
+        <p><b>Email:</b> ${buyerInfo.email}</p>`;
+
+      walletContainer.innerHTML = `<h3>💰 Your Balance</h3><p><b>Balance:</b> ${balance.toFixed(2)} GMD</p>`;
+    }
+
+    async function placeOrder() {
+      const errorMsg = document.getElementById("errorMsg");
+      const successMsg = document.getElementById("successMsg");
+
+      errorMsg.style.display = "none";
+      successMsg.style.display = "none";
+
+      if (!checkoutDetails) {
+        errorMsg.innerText = "⚠️ No checkout details found.";
+        errorMsg.style.display = "block";
+        return;
+      }
+
+      if (balance < total) {
+        errorMsg.innerText = "⚠️ Insufficient balance. Please top up your account.";
+        errorMsg.style.display = "block";
+        return;
+      }
+
+      balance -= total;
+      localStorage.setItem("userBalance", balance);
+
+      // Save buyer order
+      const buyerDoc = doc(db, "buyers", checkoutDetails.email);
+      await setDoc(buyerDoc, {
+        ...checkoutDetails,
+        total: total,
+        status: "pending",
+        placedAt: new Date().toISOString()
+      }, { merge: true });
+
+      // Update sellers balances and orders
+      for (let item of checkoutDetails.cart) {
+        const sellerRef = doc(db, "sellers", item.seller);
+        const sellerSnap = await getDoc(sellerRef);
+
+        if (!sellerSnap.exists()) {
+          await setDoc(sellerRef, {
+            balance: parseFloat(item.price),
+            orders: [{
+              buyer: checkoutDetails.fullName,
+              address: checkoutDetails.address,
+              phone: checkoutDetails.phone,
+              item: item.name,
+              amount: item.price,
+              status: "pending",
+              date: new Date().toISOString()
+            }]
+          });
+        } else {
+          await updateDoc(sellerRef, {
+            balance: parseFloat(sellerSnap.data().balance || 0) + parseFloat(item.price),
+            orders: arrayUnion({
+              buyer: checkoutDetails.fullName,
+              address: checkoutDetails.address,
+              phone: checkoutDetails.phone,
+              item: item.name,
+              amount: item.price,
+              status: "pending",
+              date: new Date().toISOString()
+            })
+          });
+        }
+      }
+
+      successMsg.style.display = "block";
+      setTimeout(() => {
+        window.location.href = "payment-accept-decline-users.html";
+      }, 2000);
+    }
+
+    window.onload = loadCheckout;
+  </script>
+</body>
+
+</html>

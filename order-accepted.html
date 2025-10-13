@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order Accepted - MatrixMarket</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body {
+            font-family: "Poppins", sans-serif;
+            background: #0f172a;
+            color: white;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 80px auto;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 0 20px rgba(6, 182, 212, 0.3);
+            animation: fadeIn 1s ease-in-out;
+        }
+
+        h1 {
+            color: #22c55e;
+            font-size: 2rem;
+        }
+
+        p {
+            margin: 15px 0;
+            font-size: 1.1rem;
+        }
+
+        ul {
+            list-style: none;
+            padding: 0;
+            margin: 15px 0;
+            text-align: left;
+        }
+
+        li {
+            margin: 8px 0;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 10px;
+            border-radius: 8px;
+        }
+
+        .btn {
+            display: inline-block;
+            margin: 10px 5px 0 5px;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 10px;
+            background: #06b6d4;
+            color: white;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: 0.3s;
+            text-decoration: none;
+        }
+
+        .btn:hover {
+            background: #4f46e5;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🎉 Order Accepted!</h1>
+        <p>Your order has been placed successfully.</p>
+        <p>💌 A confirmation email/SMS will be sent shortly.</p>
+
+        <div id="orderDetails">
+            <h3>🛒 Order Summary</h3>
+            <ul id="orderItems"></ul>
+            <p><b>Total:</b> <span id="orderTotal">0 GMD</span></p>
+        </div>
+
+        <a href="shop.html" class="btn">🛍 Continue Shopping</a>
+        <a href="buyer-orders.html" class="btn">📦 View My Orders</a>
+    </div>
+
+    <script type="module">
+        // Firebase initialization
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
+        import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBZpLELrmplsK66YNPycGLO2Aab9jvxa9k",
+            authDomain: "matrixmarketpace.firebaseapp.com",
+            projectId: "matrixmarketpace",
+            storageBucket: "matrixmarketpace.firebasestorage.app",
+            messagingSenderId: "200867795667",
+            appId: "1:200867795667:web:64de1ece48ddc07fa4ba26",
+            measurementId: "G-10TFPP3LDD"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // Load cart and buyer info
+        const cart = JSON.parse(localStorage.getItem("checkoutCart")) || [];
+        const buyer = JSON.parse(localStorage.getItem("buyerInfo")) || {};
+
+        const itemsList = document.getElementById("orderItems");
+        let total = 0;
+
+        cart.forEach(item => {
+            const li = document.createElement("li");
+            li.textContent = `${item.name} - ${item.price} GMD x ${item.quantity || 1}`;
+            itemsList.appendChild(li);
+            total += parseFloat(item.price) * (item.quantity || 1);
+        });
+
+        document.getElementById("orderTotal").textContent = total.toFixed(2) + " GMD";
+
+        // Save order to Firebase
+        if (cart.length > 0 && buyer.name) {
+            addDoc(collection(db, "orders"), {
+                buyer,
+                cart,
+                total,
+                status: "pending",
+                placedAt: serverTimestamp()
+            }).then(() => {
+                console.log("Order saved to Firebase!");
+            }).catch(err => console.error("Firebase error:", err));
+
+            // Clear local cart
+            localStorage.removeItem("checkoutCart");
+            localStorage.removeItem("buyerInfo");
+        }
+    </script>
+</body>
+
+</html>

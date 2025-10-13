@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MatrixMarket - Payment Status</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body {
+            font-family: "Poppins", sans-serif;
+            background: linear-gradient(135deg, #0f172a, #1e293b, #4f46e5, #06b6d4);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+            color: white;
+            margin: 0;
+            text-align: center;
+        }
+
+        @keyframes gradientBG {
+            0% {
+                background-position: 0% 50%;
+            }
+
+            50% {
+                background-position: 100% 50%;
+            }
+
+            100% {
+                background-position: 0% 50%;
+            }
+        }
+
+        .payment-status-box {
+            max-width: 500px;
+            margin: 80px auto;
+            padding: 30px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            box-shadow: 0 0 15px rgba(6, 182, 212, 0.5);
+            backdrop-filter: blur(8px);
+            animation: fadeIn 1.2s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .payment-status-box h2 {
+            margin-bottom: 20px;
+            text-shadow: 0 0 10px #06b6d4;
+        }
+
+        .status-message {
+            font-size: 20px;
+            font-weight: bold;
+            margin: 15px 0;
+            transition: all 0.4s ease;
+        }
+
+        .success {
+            color: #22c55e;
+        }
+
+        .declined {
+            color: #ef4444;
+        }
+
+        .pending {
+            color: #f59e0b;
+        }
+
+        .details {
+            margin-top: 20px;
+            font-size: 15px;
+            color: #e2e8f0;
+            text-align: left;
+        }
+
+        .details p {
+            margin: 6px 0;
+        }
+
+        .btn {
+            margin-top: 25px;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 12px;
+            background: #06b6d4;
+            color: white;
+            cursor: pointer;
+            font-size: 16px;
+            transition: 0.3s;
+        }
+
+        .btn:hover {
+            background: #4f46e5;
+        }
+
+        #redirectNotice {
+            margin-top: 10px;
+            font-size: 14px;
+            color: #cbd5e1;
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="payment-status-box">
+        <h2>💳 Payment Status</h2>
+        <p id="statusMessage" class="status-message">Loading...</p>
+
+        <div class="details" id="paymentDetails"></div>
+
+        <p id="redirectNotice"></p>
+
+        <button class="btn" onclick="window.location.href='index.html'">⬅ Back to Dashboard</button>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
+        import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBZpLELrmplsK66YNPycGLO2Aab9jvxa9k",
+            authDomain: "matrixmarketpace.firebaseapp.com",
+            projectId: "matrixmarketpace",
+            storageBucket: "matrixmarketpace.firebasestorage.app",
+            messagingSenderId: "200867795667",
+            appId: "1:200867795667:web:64de1ece48ddc07fa4ba26",
+            measurementId: "G-10TFPP3LDD"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        let countdownInterval;
+
+        async function loadPaymentStatus() {
+            // Load local data
+            const payment = JSON.parse(localStorage.getItem("lastPayment")) || {};
+            let status = (localStorage.getItem("paymentStatus") || "pending").toLowerCase();
+
+            const statusEl = document.getElementById("statusMessage");
+            const detailsEl = document.getElementById("paymentDetails");
+            const redirectNotice = document.getElementById("redirectNotice");
+
+            clearInterval(countdownInterval);
+            redirectNotice.style.display = "none";
+
+            // Optional: Fetch updated payment status from Firebase
+            if (payment.id) {
+                try {
+                    const docRef = doc(db, "payments", payment.id);
+                    const docSnap = await getDoc(docRef);
+                    if (docSnap.exists()) status = docSnap.data().status.toLowerCase();
+                } catch (err) {
+                    console.error("Firebase error:", err);
+                }
+            }
+
+            // Update status message
+            if (status === "success") {
+                statusEl.innerText = "✅ Payment Accepted!";
+                statusEl.className = "status-message success";
+
+                let countdown = 5;
+                redirectNotice.innerText = `Redirecting to your code in ${countdown} seconds...`;
+                redirectNotice.style.display = "block";
+
+                countdownInterval = setInterval(() => {
+                    countdown--;
+                    redirectNotice.innerText = `Redirecting to your code in ${countdown} seconds...`;
+                    if (countdown <= 0) {
+                        clearInterval(countdownInterval);
+                        window.location.href = "code.html";
+                    }
+                }, 1000);
+
+            } else if (status === "declined") {
+                statusEl.innerText = "❌ Payment Declined.";
+                statusEl.className = "status-message declined";
+            } else {
+                statusEl.innerText = "⌛ Payment Pending...";
+                statusEl.className = "status-message pending";
+            }
+
+            // Show payment details
+            detailsEl.innerHTML = `
+        <p><strong>👤 Name:</strong> ${payment.name || "N/A"}</p>
+        <p><strong>💰 Amount:</strong> ${payment.amount ? payment.amount + " GMD" : "0 GMD"}</p>
+        <p><strong>📦 Plan:</strong> ${payment.plan || payment.method || "N/A"}</p>
+        <p><strong>📅 Date:</strong> ${payment.date || new Date().toLocaleString()}</p>
+      `;
+        }
+
+        // Auto-refresh every 5s
+        setInterval(loadPaymentStatus, 5000);
+        window.onload = loadPaymentStatus;
+    </script>
+</body>
+
+</html>
