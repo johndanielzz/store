@@ -195,7 +195,7 @@
             <a href="dashboard-admin.html">Dashboard</a>
             <a href="admin-sellers.html">Sellers</a>
             <a href="admin-users.html">Users</a>
-            <a href="admin-code.html"> Codes</a>
+            <a href="admin-code.html">Codes</a>
         </nav>
     </header>
 
@@ -211,56 +211,74 @@
 
     <footer>© 2025 MatrixMarket | Admin Seller Control</footer>
 
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js"></script>
+
     <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyDFrctk2MZajP7OmECXe5npHAV0dODH9jk",
+            authDomain: "matrixmarketplace-1bd71.firebaseapp.com",
+            databaseURL: "https://matrixmarketplace-1bd71-default-rtdb.firebaseio.com",
+            projectId: "matrixmarketplace-1bd71",
+            storageBucket: "matrixmarketplace-1bd71.firebasestorage.app",
+            messagingSenderId: "10374416997",
+            appId: "1:10374416997:web:068ef937272b3de687548c",
+            measurementId: "G-EH1NNVS55W"
+        };
+
+        const app = firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
         function renderSellers() {
-            const sellers = JSON.parse(localStorage.getItem("sellers")) || [];
             const search = document.getElementById("searchBox").value.toLowerCase();
-            const table = document.getElementById("sellerTable");
+            db.ref('sellers').once('value').then(snapshot => {
+                const sellers = snapshot.val() || {};
+                const sellerArr = Object.values(sellers);
+                const table = document.getElementById("sellerTable");
 
-            const filtered = sellers.filter(s =>
-                s.email?.toLowerCase().includes(search) || s.name?.toLowerCase().includes(search)
-            );
+                const filtered = sellerArr.filter(s => s.email?.toLowerCase().includes(search) || s.name?.toLowerCase().includes(search));
 
-            table.innerHTML = `
-        <tr>
-          <th>Name</th>
-          <th>Email</th>
-          <th>Plan</th>
-          <th>Store</th>
-          <th>Status</th>
-          <th>Proof</th>
-          <th>Action</th>
-        </tr>
-      `;
+                table.innerHTML = `
+                    <tr>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Plan</th>
+                        <th>Store</th>
+                        <th>Status</th>
+                        <th>Proof</th>
+                        <th>Action</th>
+                    </tr>
+                `;
 
-            if (filtered.length === 0) {
-                table.innerHTML += `<tr><td colspan="7">No sellers found.</td></tr>`;
-                return;
-            }
+                if (!filtered.length) {
+                    table.innerHTML += `<tr><td colspan="7">No sellers found.</td></tr>`;
+                    return;
+                }
 
-            filtered.forEach(seller => {
-                const statusClass =
-                    seller.status === "Approved" ? "approved" :
+                filtered.forEach(seller => {
+                    const statusClass = seller.status === "Approved" ? "approved" :
                         seller.status === "Declined" ? "declined" : "pending";
 
-                const proofHTML = seller.proof
-                    ? `<img src="${seller.proof}" class="proof" onclick="viewProof('${seller.proof}')">`
-                    : "No proof";
+                    const proofHTML = seller.proof
+                        ? `<img src="${seller.proof}" class="proof" onclick="viewProof('${seller.proof}')">`
+                        : "No proof";
 
-                table.innerHTML += `
-          <tr>
-            <td>${seller.name || "-"}</td>
-            <td>${seller.email}</td>
-            <td>${seller.plan || "Free"}</td>
-            <td>${seller.store || "N/A"}</td>
-            <td><span class="status ${statusClass}">${seller.status || "Pending"}</span></td>
-            <td>${proofHTML}</td>
-            <td>
-              <button class="btn approve" onclick="approveSeller('${seller.email}')">Approve</button>
-              <button class="btn decline" onclick="declineSeller('${seller.email}')">Decline</button>
-            </td>
-          </tr>
-        `;
+                    table.innerHTML += `
+                        <tr>
+                            <td>${seller.name || "-"}</td>
+                            <td>${seller.email}</td>
+                            <td>${seller.plan || "Free"}</td>
+                            <td>${seller.store || "N/A"}</td>
+                            <td><span class="status ${statusClass}">${seller.status || "Pending"}</span></td>
+                            <td>${proofHTML}</td>
+                            <td>
+                                <button class="btn approve" onclick="updateSeller('${seller.id}', 'Approved')">Approve</button>
+                                <button class="btn decline" onclick="updateSeller('${seller.id}', 'Declined')">Decline</button>
+                            </td>
+                        </tr>
+                    `;
+                });
             });
         }
 
@@ -271,61 +289,20 @@
             modal.style.display = "flex";
         }
 
-        function approveSeller(email) {
-            let sellers = JSON.parse(localStorage.getItem("sellers")) || [];
-            sellers = sellers.map(s => {
-                if (s.email === email) {
-                    s.status = "Approved";
-                    s.paymentStatus = "Paid";
-                    s.subscription = "Active";
-                }
-                return s;
+        function updateSeller(id, action) {
+            const updates = {
+                status: action,
+                paymentStatus: action === 'Approved' ? 'Paid' : 'Unpaid',
+                subscription: action === 'Approved' ? 'Active' : 'Inactive'
+            };
+            db.ref('sellers/' + id).update(updates).then(() => {
+                alert(`${action === 'Approved' ? '✅ Seller approved' : '❌ Seller declined'} successfully!`);
+                renderSellers();
             });
-            localStorage.setItem("sellers", JSON.stringify(sellers));
-            alert("✅ Seller approved successfully!");
-            renderSellers();
-        }
-
-        function declineSeller(email) {
-            let sellers = JSON.parse(localStorage.getItem("sellers")) || [];
-            sellers = sellers.map(s => {
-                if (s.email === email) {
-                    s.status = "Declined";
-                    s.paymentStatus = "Unpaid";
-                    s.subscription = "Inactive";
-                }
-                return s;
-            });
-            localStorage.setItem("sellers", JSON.stringify(sellers));
-            alert("❌ Seller declined.");
-            renderSellers();
         }
 
         window.onload = renderSellers;
     </script>
 </body>
-<script type="module">
-  // Import the functions you need from the SDKs you need
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
-  import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-analytics.js";
-  // TODO: Add SDKs for Firebase products that you want to use
-  // https://firebase.google.com/docs/web/setup#available-libraries
-
-  // Your web app's Firebase configuration
-  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
-  const firebaseConfig = {
-    apiKey: "AIzaSyBZpLELrmplsK66YNPycGLO2Aab9jvxa9k",
-    authDomain: "matrixmarketpace.firebaseapp.com",
-    projectId: "matrixmarketpace",
-    storageBucket: "matrixmarketpace.firebasestorage.app",
-    messagingSenderId: "200867795667",
-    appId: "1:200867795667:web:64de1ece48ddc07fa4ba26",
-    measurementId: "G-10TFPP3LDD"
-  };
-
-  // Initialize Firebase
-  const app = initializeApp(firebaseConfig);
-  const analytics = getAnalytics(app);
-</script>
 
 </html>

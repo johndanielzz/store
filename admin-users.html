@@ -125,12 +125,12 @@
             background: #06b6d4;
         }
 
-        .decline {
-            background: #ef4444;
-        }
-
         .approve:hover {
             background: #0891b2;
+        }
+
+        .decline {
+            background: #ef4444;
         }
 
         .decline:hover {
@@ -210,121 +210,78 @@
 
     <footer>© 2025 MatrixMarket | Admin User Control</footer>
 
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js"></script>
     <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyDFrctk2MZajP7OmECXe5npHAV0dODH9jk",
+            authDomain: "matrixmarketplace-1bd71.firebaseapp.com",
+            databaseURL: "https://matrixmarketplace-1bd71-default-rtdb.firebaseio.com",
+            projectId: "matrixmarketplace-1bd71",
+            storageBucket: "matrixmarketplace-1bd71.firebasestorage.app",
+            messagingSenderId: "10374416997",
+            appId: "1:10374416997:web:068ef937272b3de687548c",
+            measurementId: "G-EH1NNVS55W"
+        };
+        const app = firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
         function renderUsers() {
-            const users = JSON.parse(localStorage.getItem("users")) || [];
             const search = document.getElementById("searchBox").value.toLowerCase();
-            const table = document.getElementById("userTable");
-
-            const filtered = users.filter(u =>
-                u.email?.toLowerCase().includes(search) || u.name?.toLowerCase().includes(search)
-            );
-
-            table.innerHTML = `
-        <tr>
-          <th>Name</th>
-          <th>Email</th>
-          <th>Country</th>
-          <th>Balance</th>
-          <th>Status</th>
-          <th>Proof</th>
-          <th>Action</th>
-        </tr>
-      `;
-
-            if (filtered.length === 0) {
-                table.innerHTML += `<tr><td colspan="7">No users found.</td></tr>`;
-                return;
-            }
-
-            filtered.forEach(user => {
-                const statusClass =
-                    user.paymentStatus === "Paid" || user.status === "Approved" ? "approved" :
-                        user.paymentStatus === "Declined" || user.status === "Declined" ? "declined" : "pending";
-
-                const proofHTML = user.proof
-                    ? `<img src="${user.proof}" class="proof" onclick="viewProof('${user.proof}')">`
-                    : "No proof";
-
-                table.innerHTML += `
-          <tr>
-            <td>${user.name || "-"}</td>
-            <td>${user.email}</td>
-            <td>${user.country || "Unknown"}</td>
-            <td>${user.balance || 0} GMD</td>
-            <td><span class="status ${statusClass}">${user.paymentStatus || user.status || "Pending"}</span></td>
-            <td>${proofHTML}</td>
-            <td>
-              <button class="btn approve" onclick="approveUser('${user.email}')">Approve</button>
-              <button class="btn decline" onclick="declineUser('${user.email}')">Decline</button>
-            </td>
-          </tr>
+            db.ref('users').once('value').then(snapshot => {
+                const usersObj = snapshot.val() || {};
+                const users = Object.values(usersObj);
+                const table = document.getElementById("userTable");
+                const filtered = users.filter(u => u.email?.toLowerCase().includes(search) || u.name?.toLowerCase().includes(search));
+                table.innerHTML = `
+            <tr>
+                <th>Name</th><th>Email</th><th>Country</th><th>Balance</th><th>Status</th><th>Proof</th><th>Action</th>
+            </tr>
         `;
+                if (!filtered.length) { table.innerHTML += `<tr><td colspan="7">No users found.</td></tr>`; return; }
+                filtered.forEach(u => {
+                    const statusClass = u.paymentStatus === "Paid" || u.status === "Approved" ? "approved" :
+                        u.paymentStatus === "Declined" || u.status === "Declined" ? "declined" : "pending";
+                    const proofHTML = u.proof ? `<img src="${u.proof}" class="proof" onclick="viewProof('${u.proof}')">` : "No proof";
+                    table.innerHTML += `
+                <tr>
+                    <td>${u.name || "-"}</td>
+                    <td>${u.email}</td>
+                    <td>${u.country || "Unknown"}</td>
+                    <td>${u.balance || 0} GMD</td>
+                    <td><span class="status ${statusClass}">${u.paymentStatus || u.status || "Pending"}</span></td>
+                    <td>${proofHTML}</td>
+                    <td>
+                        <button class="btn approve" onclick="updateUser('${u.id}','Approved')">Approve</button>
+                        <button class="btn decline" onclick="updateUser('${u.id}','Declined')">Decline</button>
+                    </td>
+                </tr>
+            `;
+                });
             });
         }
 
         function viewProof(src) {
             const modal = document.getElementById("imageModal");
-            const modalImg = document.getElementById("modalImg");
-            modalImg.src = src;
+            document.getElementById("modalImg").src = src;
             modal.style.display = "flex";
         }
 
-        function approveUser(email) {
-            let users = JSON.parse(localStorage.getItem("users")) || [];
-            users = users.map(u => {
-                if (u.email === email) {
-                    u.status = "Approved";
-                    u.paymentStatus = "Paid";
-                    u.subscription = "Active";
-                }
-                return u;
+        function updateUser(id, action) {
+            const updates = {
+                status: action,
+                paymentStatus: action === "Approved" ? "Paid" : "Unpaid",
+                subscription: action === "Approved" ? "Active" : "Inactive"
+            };
+            db.ref('users/' + id).update(updates).then(() => {
+                alert(`${action === 'Approved' ? '✅ User approved' : '❌ User declined'} successfully!`);
+                renderUsers();
             });
-            localStorage.setItem("users", JSON.stringify(users));
-            alert("✅ User approved successfully!");
-            renderUsers();
-        }
-
-        function declineUser(email) {
-            let users = JSON.parse(localStorage.getItem("users")) || [];
-            users = users.map(u => {
-                if (u.email === email) {
-                    u.status = "Declined";
-                    u.paymentStatus = "Unpaid";
-                    u.subscription = "Inactive";
-                }
-                return u;
-            });
-            localStorage.setItem("users", JSON.stringify(users));
-            alert("❌ User declined.");
-            renderUsers();
         }
 
         window.onload = renderUsers;
     </script>
 </body>
-<script type="module">
-  // Import the functions you need from the SDKs you need
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
-  import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-analytics.js";
-  // TODO: Add SDKs for Firebase products that you want to use
-  // https://firebase.google.com/docs/web/setup#available-libraries
-
-  // Your web app's Firebase configuration
-  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
-  const firebaseConfig = {
-    apiKey: "AIzaSyBZpLELrmplsK66YNPycGLO2Aab9jvxa9k",
-    authDomain: "matrixmarketpace.firebaseapp.com",
-    projectId: "matrixmarketpace",
-    storageBucket: "matrixmarketpace.firebasestorage.app",
-    messagingSenderId: "200867795667",
-    appId: "1:200867795667:web:64de1ece48ddc07fa4ba26",
-    measurementId: "G-10TFPP3LDD"
-  };
-
-  // Initialize Firebase
-  const app = initializeApp(firebaseConfig);
-  const analytics = getAnalytics(app);
-</script>
 
 </html>
