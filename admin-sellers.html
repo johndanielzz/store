@@ -5,11 +5,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MatrixMarket - Admin Seller Control</title>
-
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
-
     <style>
         body {
             font-family: "Poppins", sans-serif;
@@ -130,12 +125,12 @@
             background: #06b6d4;
         }
 
-        .approve:hover {
-            background: #0891b2;
-        }
-
         .decline {
             background: #ef4444;
+        }
+
+        .approve:hover {
+            background: #0891b2;
         }
 
         .decline:hover {
@@ -200,102 +195,125 @@
             <a href="dashboard-admin.html">Dashboard</a>
             <a href="admin-sellers.html">Sellers</a>
             <a href="admin-users.html">Users</a>
+            <a href="admin-code.html">Codes</a>
         </nav>
     </header>
 
     <div class="container">
         <h1>🧾 Manage Sellers & Payments</h1>
-        <input type="text" id="searchBox" placeholder="Search seller by name or email..." oninput="renderSellers()">
+        <input type="text" id="searchBox" placeholder="Search seller by name or email..." onkeyup="renderSellers()">
         <table id="sellerTable"></table>
     </div>
 
-    <div class="modal" id="imageModal" onclick="closeModal()">
+    <div class="modal" id="imageModal" onclick="this.style.display='none'">
         <img id="modalImg" src="">
     </div>
 
     <footer>© 2025 MatrixMarket | Admin Seller Control</footer>
 
-    <script>
+    <!-- Firebase (MODERN SDK) -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
+        import { getFirestore, collection, getDocs, updateDoc, doc } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore.js";
+
         const firebaseConfig = {
             apiKey: "AIzaSyDFrctk2MZajP7OmECXe5npHAV0dODH9jk",
-  authDomain: "matrixmarketplace-1bd71.firebaseapp.com",
-  databaseURL: "https://matrixmarketplace-1bd71-default-rtdb.firebaseio.com",
-  projectId: "matrixmarketplace-1bd71",
-  storageBucket: "matrixmarketplace-1bd71.firebasestorage.app",
-  messagingSenderId: "10374416997",
-  appId: "1:10374416997:web:9626c569e845c14a87548c",
-  measurementId: "G-DTC2GM9L92"
+            authDomain: "matrixmarketplace-1bd71.firebaseapp.com",
+            databaseURL: "https://matrixmarketplace-1bd71-default-rtdb.firebaseio.com",
+            projectId: "matrixmarketplace-1bd71",
+            storageBucket: "matrixmarketplace-1bd71.firebasestorage.app",
+            messagingSenderId: "10374416997",
+            appId: "1:10374416997:web:9626c569e845c14a87548c",
+            measurementId: "G-DTC2GM9L92"
         };
 
-        const app = firebase.initializeApp(firebaseConfig);
-        const db = firebase.database();
-
-        async function fetchSellers() {
-            const snapshot = await db.ref('sellers').once('value');
-            const sellers = snapshot.val() || {};
-            return Object.keys(sellers).map(key => ({ id: key, ...sellers[key] }));
-        }
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
 
         async function renderSellers() {
-            const sellers = await fetchSellers();
             const search = document.getElementById("searchBox").value.toLowerCase();
             const table = document.getElementById("sellerTable");
 
-            const filtered = sellers.filter(s =>
-                s.email?.toLowerCase().includes(search) || s.name?.toLowerCase().includes(search)
-            );
-
             table.innerHTML = `
-  <tr>
-    <th>Name</th>
-    <th>Email</th>
-    <th>Plan</th>
-    <th>Store</th>
-    <th>Status</th>
-    <th>Proof</th>
-    <th>Action</th>
-  </tr>`;
+        <tr>
+          <th>Name</th>
+          <th>Email</th>
+          <th>Plan</th>
+          <th>Store</th>
+          <th>Status</th>
+          <th>Proof</th>
+          <th>Action</th>
+        </tr>
+      `;
 
-            filtered.forEach(s => {
-                const statusClass = s.status === "Approved" ? "approved" : s.status === "Declined" ? "declined" : "pending";
-                const proofHTML = s.proof ? `<img src="${s.proof}" class="proof" onclick="viewProof('${s.proof}')">` : "No proof";
+            const querySnapshot = await getDocs(collection(db, "sellers"));
+            let hasResults = false;
 
-                table.innerHTML += `
-    <tr>
-      <td>${s.name || "-"}</td>
-      <td>${s.email}</td>
-      <td>${s.plan || "Free"}</td>
-      <td>${s.store || "N/A"}</td>
-      <td><span class="status ${statusClass}">${s.status || "Pending"}</span></td>
-      <td>${proofHTML}</td>
-      <td>
-        <button class="btn approve" onclick="updateSeller('${s.id}','Approved')">Approve</button>
-        <button class="btn decline" onclick="updateSeller('${s.id}','Declined')">Decline</button>
-      </td>
-    </tr>`;
+            querySnapshot.forEach((docSnap) => {
+                const seller = docSnap.data();
+                const id = docSnap.id;
+
+                if (
+                    seller.name?.toLowerCase().includes(search) ||
+                    seller.email?.toLowerCase().includes(search)
+                ) {
+                    hasResults = true;
+                    const statusClass =
+                        seller.status === "Approved"
+                            ? "approved"
+                            : seller.status === "Declined"
+                                ? "declined"
+                                : "pending";
+
+                    const proofHTML = seller.paymentProof
+                        ? `<img src="${seller.paymentProof}" class="proof" onclick="viewProof('${seller.paymentProof}')">`
+                        : "No proof";
+
+                    table.innerHTML += `
+            <tr>
+              <td>${seller.name || "-"}</td>
+              <td>${seller.email}</td>
+              <td>${seller.plan || "Free"}</td>
+              <td>${seller.store || "N/A"}</td>
+              <td><span class="status ${statusClass}">${seller.status || "Pending"}</span></td>
+              <td>${proofHTML}</td>
+              <td>
+                <button class="btn approve" onclick="updateSeller('${id}', 'Approved')">Approve</button>
+                <button class="btn decline" onclick="updateSeller('${id}', 'Declined')">Decline</button>
+              </td>
+            </tr>
+          `;
+                }
             });
 
-            if (filtered.length === 0) table.innerHTML += `<tr><td colspan="7">No sellers found.</td></tr>`;
+            if (!hasResults) {
+                table.innerHTML += `<tr><td colspan="7">No sellers found.</td></tr>`;
+            }
         }
 
-        async function updateSeller(id, status) {
-            await db.ref('sellers/' + id).update({ status });
-            alert(`Seller ${status}!`);
+        async function updateSeller(id, action) {
+            const sellerRef = doc(db, "sellers", id);
+            await updateDoc(sellerRef, {
+                status: action,
+                paymentStatus: action === "Approved" ? "Paid" : "Unpaid",
+                subscription: action === "Approved" ? "Active" : "Inactive",
+            });
+            alert(`Seller ${action.toLowerCase()} successfully!`);
             renderSellers();
         }
 
-        function viewProof(src) {
-            document.getElementById("modalImg").src = src;
-            document.getElementById("imageModal").style.display = "flex";
-        }
+        window.viewProof = (src) => {
+            const modal = document.getElementById("imageModal");
+            const modalImg = document.getElementById("modalImg");
+            modalImg.src = src;
+            modal.style.display = "flex";
+        };
 
-        function closeModal() {
-            document.getElementById("imageModal").style.display = "none";
-        }
+        window.updateSeller = updateSeller;
+        window.renderSellers = renderSellers;
 
         window.onload = renderSellers;
     </script>
 </body>
-
 
 </html>
