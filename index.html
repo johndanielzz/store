@@ -392,13 +392,8 @@
         // Firebase Initialization
         // ===============================
         const firebaseConfig = {
-          
-        };
-
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.database();
-
-        let currentUser = null;apiKey: "AIzaSyDFrctk2MZajP7OmECXe5npHAV0dODH9jk",
+            const firebaseConfig = {
+  apiKey: "AIzaSyDFrctk2MZajP7OmECXe5npHAV0dODH9jk",
   authDomain: "matrixmarketplace-1bd71.firebaseapp.com",
   databaseURL: "https://matrixmarketplace-1bd71-default-rtdb.firebaseio.com",
   projectId: "matrixmarketplace-1bd71",
@@ -406,6 +401,13 @@
   messagingSenderId: "10374416997",
   appId: "1:10374416997:web:9626c569e845c14a87548c",
   measurementId: "G-DTC2GM9L92"
+};
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        let currentUser = null;
 
         // ===============================
         // REFRESH USER INFO
@@ -541,6 +543,5 @@
         });
     </script>
 </body>
-
 
 </html>
