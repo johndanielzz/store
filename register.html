@@ -8,12 +8,10 @@
 
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
 
     <style>
-        /* =========================
-        Global Styles
-        ========================= */
         * {
             box-sizing: border-box;
         }
@@ -58,9 +56,6 @@
             }
         }
 
-        /* =========================
-        Register Box
-        ========================= */
         .register-box {
             background: rgba(30, 41, 59, 0.9);
             padding: 40px 30px;
@@ -172,8 +167,10 @@
             </select>
             <button type="submit">Register</button>
         </form>
+
         <div class="msg success" id="successMsg">✅ Registration successful! Redirecting...</div>
         <div class="msg error" id="errorMsg"></div>
+
         <p>Already have an account? <a href="login.html">Login here</a></p>
     </div>
 
@@ -220,11 +217,9 @@
             }
 
             try {
-                // Create Auth User
                 const userCredential = await auth.createUserWithEmailAndPassword(email, password);
                 const user = userCredential.user;
 
-                // Add user details to Realtime Database
                 await db.ref("users/" + user.uid).set({
                     fullName,
                     email,
@@ -236,10 +231,8 @@
                     createdAt: new Date().toISOString()
                 });
 
-                // If seller → Add to sellerRequests
                 if (accountType === "seller") {
-                    const sellerRef = db.ref("sellerRequests").push();
-                    await sellerRef.set({
+                    await db.ref("sellerRequests").push({
                         name: fullName,
                         email,
                         plan: "Basic",
@@ -272,7 +265,6 @@
             }
         }
     </script>
-    </body>
-    
-    </html>
-    
+</body>
+
+</html>
