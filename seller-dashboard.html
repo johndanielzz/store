@@ -6,6 +6,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MatrixMarket - Seller Dashboard</title>
     <link rel="stylesheet" href="style.css">
+    <script src="https://www.gstatic.com/firebasejs/9.24.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.24.0/firebase-database-compat.js"></script>
+
     <style>
         body {
             margin: 0;
@@ -197,6 +200,20 @@
     </footer>
 
     <script>
+        // Firebase config
+        const firebaseConfig = {
+            apiKey: "AIzaSyDFrctk2MZajP7OmECXe5npHAV0dODH9jk",
+            authDomain: "matrixmarketplace-1bd71.firebaseapp.com",
+            databaseURL: "https://matrixmarketplace-1bd71-default-rtdb.firebaseio.com",
+            projectId: "matrixmarketplace-1bd71",
+            storageBucket: "matrixmarketplace-1bd71.firebasestorage.app",
+            messagingSenderId: "10374416997",
+            appId: "1:10374416997:web:068ef937272b3de687548c",
+            measurementId: "G-EH1NNVS55W"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
         document.addEventListener("DOMContentLoaded", () => {
             const seller = JSON.parse(localStorage.getItem("currentSeller"));
             if (!seller) {
@@ -204,41 +221,44 @@
                 window.location.href = "seller-login.html";
                 return;
             }
-
             document.getElementById("sellerName").textContent = seller.name;
 
-            // Seller's Products
-            const allProducts = JSON.parse(localStorage.getItem("products")) || [];
-            const myProducts = allProducts.filter(p => p.sellerEmail === seller.email);
-            document.getElementById("productCount").textContent = myProducts.length;
-
-            // Seller's Purchases
-            const allPurchases = JSON.parse(localStorage.getItem("purchases")) || [];
-            const mySales = allPurchases.filter(p => p.sellerEmail === seller.email);
-
-            document.getElementById("salesCount").textContent = mySales.length;
-
-            const totalEarnings = mySales.reduce((sum, sale) => sum + parseFloat(sale.price), 0);
-            document.getElementById("totalEarnings").textContent = totalEarnings.toFixed(2);
-
-            // Fill Table
-            const tbody = document.querySelector("#salesTable tbody");
-            tbody.innerHTML = "";
-            if (mySales.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;">No sales yet.</td></tr>`;
-            } else {
-                mySales.sort((a, b) => new Date(b.date) - new Date(a.date));
-                mySales.forEach(sale => {
-                    const tr = document.createElement("tr");
-                    tr.innerHTML = `
-            <td>${sale.productName}</td>
-            <td>${sale.buyerEmail}</td>
-            <td>${sale.price}</td>
-            <td>${new Date(sale.date).toLocaleString()}</td>
-          `;
-                    tbody.appendChild(tr);
+            // Load Products
+            db.ref("products").orderByChild("sellerEmail").equalTo(seller.email).once("value")
+                .then(snapshot => {
+                    const products = snapshot.val() || {};
+                    const productCount = Object.keys(products).length;
+                    document.getElementById("productCount").textContent = productCount;
                 });
-            }
+
+            // Load Sales
+            db.ref("sales").orderByChild("sellerEmail").equalTo(seller.email).once("value")
+                .then(snapshot => {
+                    const sales = snapshot.val() || {};
+                    const salesCount = Object.keys(sales).length;
+                    document.getElementById("salesCount").textContent = salesCount;
+
+                    const totalEarnings = Object.values(sales).reduce((sum, sale) => sum + parseFloat(sale.price), 0);
+                    document.getElementById("totalEarnings").textContent = totalEarnings.toFixed(2);
+
+                    const tbody = document.querySelector("#salesTable tbody");
+                    tbody.innerHTML = "";
+                    if (salesCount === 0) {
+                        tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;">No sales yet.</td></tr>`;
+                    } else {
+                        const sortedSales = Object.values(sales).sort((a, b) => new Date(b.date) - new Date(a.date));
+                        sortedSales.forEach(sale => {
+                            const tr = document.createElement("tr");
+                            tr.innerHTML = `
+                <td>${sale.productName}</td>
+                <td>${sale.buyerEmail}</td>
+                <td>${sale.price}</td>
+                <td>${new Date(sale.date).toLocaleString()}</td>
+              `;
+                            tbody.appendChild(tr);
+                        });
+                    }
+                });
 
             // Logout
             document.getElementById("logout").addEventListener("click", () => {
@@ -248,29 +268,5 @@
         });
     </script>
 </body>
-<script type="module">
-  // Import the functions you need from the SDKs you need
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
-  import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-analytics.js";
-  // TODO: Add SDKs for Firebase products that you want to use
-  // https://firebase.google.com/docs/web/setup#available-libraries
 
-  // Your web app's Firebase configuration
-  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
-  const firebaseConfig = {
-    apiKey: "AIzaSyBZpLELrmplsK66YNPycGLO2Aab9jvxa9k",
-    authDomain: "matrixmarketpace.firebaseapp.com",
-    projectId: "matrixmarketpace",
-    storageBucket: "matrixmarketpace.firebasestorage.app",
-    messagingSenderId: "200867795667",
-    appId: "1:200867795667:web:64de1ece48ddc07fa4ba26",
-    measurementId: "G-10TFPP3LDD"
-  };
-
-  // Initialize Firebase
-  const app = initializeApp(firebaseConfig);
-  const analytics = getAnalytics(app);
-</script>
-<script src="product.js"></script>
-<script src="script.js"></script>
 </html>

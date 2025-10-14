@@ -2,9 +2,14 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>MatrixMarket - Payment Status</title>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+
     <style>
         body {
             margin: 0;
@@ -22,24 +27,24 @@
 
             0%,
             100% {
-                background-position: 0% 50%;
+                background-position: 0% 50%
             }
 
             50% {
-                background-position: 100% 50%;
+                background-position: 100% 50%
             }
         }
 
         header {
-            padding: 15px 30px;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.4);
             display: flex;
             justify-content: space-between;
             align-items: center;
-            background: rgba(0, 0, 0, 0.4);
         }
 
-        .logo {
-            font-size: 1.4rem;
+        header .logo {
+            font-size: 1.3rem;
             font-weight: bold;
             color: #06b6d4;
         }
@@ -49,7 +54,6 @@
             color: #fff;
             text-decoration: none;
             font-weight: 500;
-            transition: 0.3s;
         }
 
         header nav a:hover {
@@ -69,18 +73,16 @@
             backdrop-filter: blur(15px);
             border-radius: 20px;
             padding: 40px;
-            max-width: 600px;
             width: 100%;
+            max-width: 600px;
             text-align: center;
             box-shadow: 0 0 25px rgba(6, 182, 212, 0.6);
             animation: fadeIn 1s ease-in-out;
         }
 
         h1 {
-            font-size: 2rem;
+            font-size: 2.2rem;
             margin-bottom: 10px;
-            color: #06b6d4;
-            text-shadow: 0 0 8px #4f46e5;
         }
 
         .status-message {
@@ -104,21 +106,15 @@
         }
 
         .details-box {
-            display: none;
             background: rgba(255, 255, 255, 0.1);
             padding: 18px;
             border-radius: 12px;
             margin-top: 20px;
             text-align: left;
-        }
-
-        .details-box p {
-            margin: 6px 0;
-            font-size: 1rem;
+            display: none;
         }
 
         .btn {
-            display: none;
             margin-top: 25px;
             padding: 14px 24px;
             border: none;
@@ -129,6 +125,7 @@
             cursor: pointer;
             box-shadow: 0 0 12px rgba(6, 182, 212, 0.5);
             transition: all 0.3s ease-in-out;
+            display: none;
         }
 
         .btn:hover {
@@ -154,94 +151,11 @@
                 transform: translateY(0);
             }
         }
-
-        @media (max-width: 600px) {
-            .status-card {
-                padding: 25px;
-            }
-
-            h1 {
-                font-size: 1.6rem;
-            }
-        }
     </style>
-
-    <!-- Firebase -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
-        import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore.js";
-
-        const firebaseConfig = {
-            apiKey: "AIzaSyBZpLELrmplsK66YNPycGLO2Aab9jvxa9k",
-            authDomain: "matrixmarketpace.firebaseapp.com",
-            projectId: "matrixmarketpace",
-            storageBucket: "matrixmarketpace.firebasestorage.app",
-            messagingSenderId: "200867795667",
-            appId: "1:200867795667:web:64de1ece48ddc07fa4ba26"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-
-        async function fetchPaymentStatus() {
-            const currentUser = JSON.parse(localStorage.getItem("currentUser"));
-            const statusTitle = document.getElementById("statusTitle");
-            const statusMsg = document.getElementById("statusMessage");
-            const detailsBox = document.querySelector(".details-box");
-            const continueBtn = document.getElementById("continueBtn");
-
-            if (!currentUser || !currentUser.email) {
-                statusTitle.innerText = "⚠️ Not Logged In";
-                statusMsg.innerText = "Please log in to check your payment status.";
-                statusMsg.className = "status-message declined";
-                return;
-            }
-
-            const docRef = doc(db, "sellers", currentUser.email);
-            const docSnap = await getDoc(docRef);
-
-            if (!docSnap.exists()) {
-                statusTitle.innerText = "❌ No Payment Found";
-                statusMsg.innerText = "No payment record found for your account.";
-                statusMsg.className = "status-message declined";
-                return;
-            }
-
-            const data = docSnap.data();
-            const status = (data.status || "Pending").toLowerCase();
-
-            // Update UI
-            document.getElementById("detailsName").innerText = data.name;
-            document.getElementById("detailsPlan").innerText = data.plan || "Standard";
-            document.getElementById("detailsAmount").innerText = data.amount + " GMD";
-
-            detailsBox.style.display = "block";
-
-            if (status === "approved") {
-                statusTitle.innerText = "✅ Payment Approved";
-                statusMsg.innerText = "Your payment has been approved!";
-                statusMsg.className = "status-message success";
-                continueBtn.style.display = "inline-block";
-                continueBtn.onclick = () => window.location.href = "subscription-code.html";
-            } else if (status === "declined") {
-                statusTitle.innerText = "❌ Payment Declined";
-                statusMsg.innerText = "Your payment was declined by admin.";
-                statusMsg.className = "status-message declined";
-            } else {
-                statusTitle.innerText = "⌛ Payment Pending";
-                statusMsg.innerText = "Waiting for admin approval...";
-                statusMsg.className = "status-message pending";
-            }
-        }
-
-        window.onload = () => {
-            fetchPaymentStatus();
-            setInterval(fetchPaymentStatus, 5000);
-        };
-    </script>
 </head>
 
 <body>
+
     <header>
         <div class="logo">MatrixMarket</div>
         <nav>
@@ -260,15 +174,104 @@
                 <p><strong>Name:</strong> <span id="detailsName"></span></p>
                 <p><strong>Plan:</strong> <span id="detailsPlan"></span></p>
                 <p><strong>Amount:</strong> <span id="detailsAmount"></span></p>
+                <p><strong>Payment Date:</strong> <span id="detailsDate"></span></p>
             </div>
 
-            <button id="continueBtn" class="btn">Continue</button>
+            <button id="continueBtn" class="btn">Go to Subscription</button>
         </div>
     </div>
 
     <footer>
         <p>© 2025 MatrixMarket | Payment Status</p>
     </footer>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "YOUR_FIREBASE_API_KEY",
+            authDomain: "YOUR_PROJECT.firebaseapp.com",
+            databaseURL: "https://YOUR_PROJECT.firebaseio.com",
+            projectId: "YOUR_PROJECT",
+            storageBucket: "YOUR_PROJECT.appspot.com",
+            messagingSenderId: "SENDER_ID",
+            appId: "APP_ID"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        function getCurrentSeller() {
+            return JSON.parse(localStorage.getItem("currentSeller")) || null;
+        }
+
+        async function updatePaymentStatus() {
+            const seller = getCurrentSeller();
+            const title = document.getElementById("statusTitle");
+            const msg = document.getElementById("statusMessage");
+            const detailsBox = document.querySelector(".details-box");
+            const btn = document.getElementById("continueBtn");
+
+            if (!seller) {
+                title.innerText = "⚠️ No User Found";
+                msg.innerText = "Please log in to check your payment status.";
+                msg.className = "status-message declined";
+                detailsBox.style.display = "none";
+                btn.style.display = "none";
+                return;
+            }
+
+            const snapshot = await db.ref("pendingRequests").orderByChild("email").equalTo(seller.email).limitToLast(1).get();
+            if (!snapshot.exists()) {
+                title.innerText = "⌛ No Pending Payments";
+                msg.innerText = "No payment requests found.";
+                msg.className = "status-message pending";
+                detailsBox.style.display = "none";
+                btn.style.display = "none";
+                return;
+            }
+
+            const request = Object.values(snapshot.val())[0];
+            detailsBox.style.display = "block";
+            document.getElementById("detailsName").innerText = seller.name || seller.fullName || seller.email;
+            document.getElementById("detailsPlan").innerText = request.plan || "Standard";
+            document.getElementById("detailsAmount").innerText = request.amount + " GMD";
+            document.getElementById("detailsDate").innerText = request.date || "N/A";
+
+            switch (request.status) {
+                case "Approved":
+                    title.innerText = "✅ Payment Approved";
+                    msg.innerText = "Your payment has been approved!";
+                    msg.className = "status-message success";
+                    btn.style.display = "inline-block";
+                    btn.onclick = activateSubscription;
+                    break;
+                case "Declined":
+                    title.innerText = "❌ Payment Declined";
+                    msg.innerText = "Your payment was rejected by admin.";
+                    msg.className = "status-message declined";
+                    btn.style.display = "none";
+                    break;
+                default:
+                    title.innerText = "⌛ Payment Pending";
+                    msg.innerText = "Waiting for admin approval...";
+                    msg.className = "status-message pending";
+                    btn.style.display = "none";
+            }
+        }
+
+        function activateSubscription() {
+            const seller = getCurrentSeller();
+            db.ref("sellers").orderByChild("email").equalTo(seller.email).once("value", snap => {
+                const key = Object.keys(snap.val())[0];
+                db.ref("sellers/" + key).update({ subscription: "active" });
+                localStorage.setItem("currentSeller", JSON.stringify({ ...seller, subscription: "active" }));
+                window.location.href = "subscription-code.html";
+            });
+        }
+
+        window.onload = () => {
+            updatePaymentStatus();
+            setInterval(updatePaymentStatus, 5000);
+        };
+    </script>
 </body>
 
 </html>

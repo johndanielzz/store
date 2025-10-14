@@ -2,289 +2,289 @@
 <html lang="en">
 
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin - Edit Users & Sellers | MatrixMarket</title>
-  <style>
-    body {
-      background: linear-gradient(135deg, #0f172a, #1e293b, #4f46e5, #06b6d4);
-      background-size: 400% 400%;
-      animation: gradientBG 15s ease infinite;
-      font-family: "Poppins", sans-serif;
-      margin: 0;
-      color: white;
-      min-height: 100vh;
-    }
+    <meta charset="UTF-8">
+    <title>Admin - Edit Users & Sellers | MatrixMarket</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <style>
+        body {
+            background: linear-gradient(135deg, #0f172a, #1e293b, #4f46e5, #06b6d4);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+            font-family: "Poppins", sans-serif;
+            margin: 0;
+            color: white;
+            min-height: 100vh;
+        }
 
-    @keyframes gradientBG {
-      0% {
-        background-position: 0% 50%;
-      }
+        @keyframes gradientBG {
+            0% {
+                background-position: 0% 50%
+            }
 
-      50% {
-        background-position: 100% 50%;
-      }
+            50% {
+                background-position: 100% 50%
+            }
 
-      100% {
-        background-position: 0% 50%;
-      }
-    }
+            100% {
+                background-position: 0% 50%
+            }
+        }
 
-    header {
-      text-align: center;
-      padding: 20px;
-      background: rgba(255, 255, 255, 0.05);
-      font-size: 1.8rem;
-      font-weight: 600;
-    }
+        header {
+            text-align: center;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            font-size: 1.8rem;
+            font-weight: 600;
+        }
 
-    .container {
-      width: 90%;
-      max-width: 1100px;
-      margin: 30px auto;
-      background: rgba(255, 255, 255, 0.08);
-      padding: 25px;
-      border-radius: 15px;
-      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
-      backdrop-filter: blur(10px);
-    }
+        .container {
+            width: 90%;
+            max-width: 1100px;
+            margin: 30px auto;
+            background: rgba(255, 255, 255, 0.08);
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+        }
 
-    .search-bar {
-      text-align: center;
-      margin-bottom: 20px;
-    }
+        .search-bar {
+            text-align: center;
+            margin-bottom: 20px;
+        }
 
-    .search-bar input {
-      width: 70%;
-      max-width: 450px;
-      padding: 10px 15px;
-      border-radius: 8px;
-      border: none;
-      outline: none;
-      font-size: 1rem;
-      text-align: center;
-      background: rgba(255, 255, 255, 0.9);
-      color: #000;
-      margin-right: 10px;
-    }
+        .search-bar input {
+            width: 80%;
+            max-width: 500px;
+            padding: 10px 15px;
+            border-radius: 8px;
+            border: none;
+            outline: none;
+            font-size: 1rem;
+            text-align: center;
+            background: rgba(255, 255, 255, 0.9);
+            color: #000;
+        }
 
-    .search-bar button {
-      padding: 10px 16px;
-      border: none;
-      border-radius: 8px;
-      background: #06b6d4;
-      color: white;
-      font-size: 1rem;
-      cursor: pointer;
-      transition: 0.3s;
-    }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            color: white;
+        }
 
-    .search-bar button:hover {
-      background: #4f46e5;
-    }
+        th,
+        td {
+            padding: 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            text-align: center;
+        }
 
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      color: white;
-    }
+        th {
+            background: rgba(255, 255, 255, 0.15);
+            text-transform: uppercase;
+        }
 
-    th,
-    td {
-      padding: 12px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-      text-align: center;
-    }
+        tr:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
 
-    th {
-      background: rgba(255, 255, 255, 0.15);
-      text-transform: uppercase;
-    }
+        input,
+        select {
+            padding: 6px;
+            border-radius: 6px;
+            border: none;
+            outline: none;
+            text-align: center;
+        }
 
-    tr:hover {
-      background: rgba(255, 255, 255, 0.05);
-    }
+        button {
+            padding: 8px 14px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: 0.3s;
+            color: white;
+        }
 
-    input,
-    select {
-      padding: 6px;
-      border-radius: 6px;
-      border: none;
-      outline: none;
-      text-align: center;
-    }
+        .save {
+            background: #22c55e;
+        }
 
-    button {
-      padding: 8px 14px;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 14px;
-      transition: 0.3s;
-      color: white;
-    }
+        .save:hover {
+            background: #16a34a;
+        }
 
-    .save {
-      background: #22c55e;
-    }
+        .delete {
+            background: #ef4444;
+        }
 
-    .save:hover {
-      background: #16a34a;
-    }
+        .delete:hover {
+            background: #dc2626;
+        }
 
-    .delete {
-      background: #ef4444;
-    }
+        .highlight {
+            background: yellow;
+            color: black;
+            border-radius: 3px;
+            padding: 1px 3px;
+        }
 
-    .delete:hover {
-      background: #dc2626;
-    }
+        .back-btn {
+            display: inline-block;
+            margin: 20px 0;
+            padding: 10px 20px;
+            border-radius: 8px;
+            background: #4f46e5;
+            color: #fff;
+            text-decoration: none;
+            transition: 0.3s;
+        }
 
-    .back-btn {
-      display: inline-block;
-      margin: 20px 0;
-      padding: 10px 20px;
-      border-radius: 8px;
-      background: #4f46e5;
-      color: #fff;
-      text-decoration: none;
-      transition: 0.3s;
-    }
-
-    .back-btn:hover {
-      background: #06b6d4;
-    }
-  </style>
+        .back-btn:hover {
+            background: #06b6d4;
+        }
+    </style>
 </head>
 
 <body>
-  <header>👑 Admin Panel - Edit Users & Sellers Accounts</header>
-  <div class="container">
-    <div class="search-bar">
-      <input type="text" id="searchInput" placeholder="🔍 Search by name, email, or role...">
-      <button onclick="exportToCSV()">⬇ Export to CSV</button>
+    <header>👑 Admin Panel - Edit Users & Sellers Accounts</header>
+
+    <div class="container">
+        <div class="search-bar">
+            <input type="text" id="searchInput" placeholder="🔍 Search by name, email, or role...">
+        </div>
+
+        <table id="accountsTable">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Role</th>
+                    <th>Subscription</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="accountList"></tbody>
+        </table>
+
+        <a href="dashboard-admin.html" class="back-btn">⬅ Back to Dashboard</a>
     </div>
-    <table id="accountsTable">
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Email</th>
-          <th>Role</th>
-          <th>Subscription</th>
-          <th>Status</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
-      <tbody id="accountList"></tbody>
-    </table>
-    <a href="dashboard-admin.html" class="back-btn">⬅ Back to Dashboard</a>
-  </div>
 
-  <script src="https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js"></script>
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyDFrctk2MZajP7OmECXe5npHAV0dODH9jk",
+            authDomain: "matrixmarketplace-1bd71.firebaseapp.com",
+            databaseURL: "https://matrixmarketplace-1bd71-default-rtdb.firebaseio.com",
+            projectId: "matrixmarketplace-1bd71",
+            storageBucket: "matrixmarketplace-1bd71.firebasestorage.app",
+            messagingSenderId: "10374416997",
+            appId: "1:10374416997:web:068ef937272b3de687548c",
+            measurementId: "G-EH1NNVS55W"
+        };
 
-  <script>
-    const firebaseConfig = {
-      apiKey: "AIzaSyDFrctk2MZajP7OmECXe5npHAV0dODH9jk",
-      authDomain: "matrixmarketplace-1bd71.firebaseapp.com",
-      databaseURL: "https://matrixmarketplace-1bd71-default-rtdb.firebaseio.com",
-      projectId: "matrixmarketplace-1bd71",
-      storageBucket: "matrixmarketplace-1bd71.firebasestorage.app",
-      messagingSenderId: "10374416997",
-      appId: "1:10374416997:web:068ef937272b3de687548c",
-      measurementId: "G-EH1NNVS55W"
-    };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+        let allAccounts = [];
 
-    const app = firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
-    let allAccounts = [];
+        // Render table
+        function renderAccounts(accounts, highlight = "") {
+            const tbody = document.getElementById("accountList");
+            tbody.innerHTML = "";
+            accounts.forEach((acc, i) => {
+                const regex = new RegExp(`(${highlight})`, "gi");
+                const highlightedName = acc.fullName ? acc.fullName.replace(regex, '<span class="highlight">$1</span>') : "";
+                const highlightedEmail = acc.email ? acc.email.replace(regex, '<span class="highlight">$1</span>') : "";
 
-    function loadAccounts() {
-      db.ref('accounts').once('value').then(snapshot => {
-        const data = snapshot.val() || {};
-        allAccounts = Object.values(data);
-        displayAccounts(allAccounts);
-      });
-    }
+                const row = document.createElement("tr");
+                row.innerHTML = `
+            <td><input value="${acc.fullName || ''}" id="name${i}"/></td>
+            <td><input value="${acc.email || ''}" id="email${i}"/></td>
+            <td>
+                <select id="role${i}">
+                    <option value="user" ${acc.role === 'user' ? 'selected' : ''}>User</option>
+                    <option value="seller" ${acc.role === 'seller' ? 'selected' : ''}>Seller</option>
+                </select>
+            </td>
+            <td>
+                <select id="sub${i}">
+                    <option value="inactive" ${acc.subscription !== 'active' ? 'selected' : ''}>Inactive</option>
+                    <option value="active" ${acc.subscription === 'active' ? 'selected' : ''}>Active</option>
+                </select>
+            </td>
+            <td>
+                <select id="status${i}">
+                    <option value="active" ${acc.status !== 'suspended' ? 'selected' : ''}>Active</option>
+                    <option value="suspended" ${acc.status === 'suspended' ? 'selected' : ''}>Suspended</option>
+                </select>
+            </td>
+            <td>
+                <button class="save" onclick="saveChanges(${i})">💾 Save</button>
+                <button class="delete" onclick="deleteAccount(${i})">🗑 Delete</button>
+            </td>
+        `;
+                tbody.appendChild(row);
+            });
+        }
 
-    function displayAccounts(accounts) {
-      let tbody = document.getElementById("accountList");
-      tbody.innerHTML = "";
-      accounts.forEach((acc, i) => {
-        let row = document.createElement("tr");
-        row.innerHTML = `
-        <td><input value="${acc.fullName || ''}" id="name${i}" /></td>
-        <td><input value="${acc.email || ''}" id="email${i}" /></td>
-        <td>
-          <select id="role${i}">
-            <option value="user" ${acc.role === 'user' ? 'selected' : ''}>User</option>
-            <option value="seller" ${acc.role === 'seller' ? 'selected' : ''}>Seller</option>
-          </select>
-        </td>
-        <td>
-          <select id="sub${i}">
-            <option value="inactive" ${acc.subscription !== 'active' ? 'selected' : ''}>Inactive</option>
-            <option value="active" ${acc.subscription === 'active' ? 'selected' : ''}>Active</option>
-          </select>
-        </td>
-        <td>
-          <select id="status${i}">
-            <option value="active" ${acc.status !== 'suspended' ? 'selected' : ''}>Active</option>
-            <option value="suspended" ${acc.status === 'suspended' ? 'selected' : ''}>Suspended</option>
-          </select>
-        </td>
-        <td>
-          <button class="save" onclick="saveChanges(${i}, '${acc.id}')">💾 Save</button>
-          <button class="delete" onclick="deleteAccount(${i}, '${acc.id}')">🗑 Delete</button>
-        </td>
-      `;
-        tbody.appendChild(row);
-      });
-    }
+        // Load accounts from Firebase
+        function loadAccounts() {
+            db.ref('users').once('value').then(snapshot => {
+                const users = snapshot.val() || {};
+                db.ref('sellers').once('value').then(snap => {
+                    const sellers = snap.val() || {};
+                    allAccounts = [...Object.values(users), ...Object.values(sellers)];
+                    renderAccounts(allAccounts);
+                });
+            });
+        }
 
-    function saveChanges(i, id) {
-      const updated = {
-        fullName: document.getElementById(`name${i}`).value,
-        email: document.getElementById(`email${i}`).value,
-        role: document.getElementById(`role${i}`).value,
-        subscription: document.getElementById(`sub${i}`).value,
-        status: document.getElementById(`status${i}`).value,
-        id: id
-      };
-      db.ref('accounts/' + id).set(updated).then(() => { alert("✅ Account changes saved!"); loadAccounts(); });
-    }
+        // Save changes
+        function saveChanges(i) {
+            const acc = allAccounts[i];
+            acc.fullName = document.getElementById(`name${i}`).value;
+            acc.email = document.getElementById(`email${i}`).value;
+            acc.role = document.getElementById(`role${i}`).value;
+            acc.subscription = document.getElementById(`sub${i}`).value;
+            acc.status = document.getElementById(`status${i}`).value;
 
-    function deleteAccount(i, id) {
-      if (!confirm("Are you sure you want to delete this account?")) return;
-      db.ref('accounts/' + id).remove().then(() => { alert("🗑 Account deleted."); loadAccounts(); });
-    }
+            const path = acc.role === 'user' ? 'users' : 'sellers';
+            db.ref(`${path}/${acc.email.replace('.', ',')}`).set(acc)
+                .then(() => alert("✅ Account changes saved!"))
+                .catch(err => alert("❌ Error: " + err.message));
 
-    document.getElementById("searchInput").addEventListener("input", (e) => {
-      let value = e.target.value.toLowerCase();
-      let filtered = allAccounts.filter(acc =>
-        (acc.fullName && acc.fullName.toLowerCase().includes(value)) ||
-        (acc.email && acc.email.toLowerCase().includes(value)) ||
-        (acc.role && acc.role.toLowerCase().includes(value))
-      );
-      displayAccounts(filtered);
-    });
+            loadAccounts();
+        }
 
-    function exportToCSV() {
-      if (allAccounts.length === 0) { alert("No accounts to export!"); return; }
-      let csv = "Name,Email,Role,Subscription,Status\n";
-      allAccounts.forEach(acc => {
-        csv += `${acc.fullName || ''},${acc.email || ''},${acc.role || ''},${acc.subscription || ''},${acc.status || ''}\n`;
-      });
-      const link = document.createElement("a");
-      link.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
-      link.download = "MatrixMarket_Accounts.csv";
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    }
+        // Delete account
+        function deleteAccount(i) {
+            if (!confirm("Are you sure you want to delete this account?")) return;
+            const acc = allAccounts[i];
+            const path = acc.role === 'user' ? 'users' : 'sellers';
+            db.ref(`${path}/${acc.email.replace('.', ',')}`).remove()
+                .then(() => {
+                    alert(`🗑 Account (${acc.email}) deleted.`);
+                    loadAccounts();
+                });
+        }
 
-    window.onload = loadAccounts;
-  </script>
+        // Search functionality
+        document.getElementById("searchInput").addEventListener("input", e => {
+            const value = e.target.value.toLowerCase();
+            const filtered = allAccounts.filter(acc =>
+                (acc.fullName && acc.fullName.toLowerCase().includes(value)) ||
+                (acc.email && acc.email.toLowerCase().includes(value)) ||
+                (acc.role && acc.role.toLowerCase().includes(value))
+            );
+            renderAccounts(filtered, value);
+        });
+
+        window.onload = loadAccounts;
+    </script>
 </body>
 
 </html>

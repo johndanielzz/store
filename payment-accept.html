@@ -5,8 +5,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MatrixMarket - Seller Payment Status</title>
-    <link rel="stylesheet" href="style.css">
 
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+
+    <link rel="stylesheet" href="style.css">
     <style>
         body {
             margin: 0;
@@ -35,7 +39,7 @@
         }
 
         header {
-            padding: 15px 40px;
+            padding: 15px;
             background: rgba(0, 0, 0, 0.4);
             display: flex;
             justify-content: space-between;
@@ -43,14 +47,13 @@
         }
 
         header .logo {
-            font-size: 1.5rem;
+            font-size: 1.3rem;
             font-weight: bold;
             color: #06b6d4;
-            text-shadow: 0 0 8px #4f46e5;
         }
 
         header nav a {
-            margin: 0 12px;
+            margin: 0 10px;
             color: #06b6d4;
             text-decoration: none;
             font-weight: bold;
@@ -111,7 +114,6 @@
             border-radius: 12px;
             margin-top: 20px;
             text-align: left;
-            display: none;
         }
 
         .details-box p {
@@ -189,81 +191,75 @@
         <p>© 2025 MatrixMarket | Seller Payment Status</p>
     </footer>
 
-    <script type="module">
-        // Firebase Imports
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
-        import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore.js";
-
+    <script>
+        // Firebase config
         const firebaseConfig = {
-            apiKey: "AIzaSyBZpLELrmplsK66YNPycGLO2Aab9jvxa9k",
-            authDomain: "matrixmarketpace.firebaseapp.com",
-            projectId: "matrixmarketpace",
-            storageBucket: "matrixmarketpace.appspot.com",
-            messagingSenderId: "200867795667",
-            appId: "1:200867795667:web:64de1ece48ddc07fa4ba26",
-            measurementId: "G-10TFPP3LDD"
+            apiKey: "AIzaSyDFrctk2MZajP7OmECXe5npHAV0dODH9jk",
+            authDomain: "matrixmarketplace-1bd71.firebaseapp.com",
+            databaseURL: "https://matrixmarketplace-1bd71-default-rtdb.firebaseio.com",
+            projectId: "matrixmarketplace-1bd71",
+            storageBucket: "matrixmarketplace-1bd71.firebasestorage.app",
+            messagingSenderId: "10374416997",
+            appId: "1:10374416997:web:068ef937272b3de687548c",
+            measurementId: "G-EH1NNVS55W"
         };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
 
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-
-        async function updateSellerStatus() {
-            const sellerEmail = localStorage.getItem("currentSellerEmail");
-            if (!sellerEmail) {
-                document.getElementById("statusTitle").innerText = "❌ No Seller Found";
-                document.getElementById("statusMessage").innerText = "Please register first.";
-                return;
-            }
-
-            const sellerDoc = await getDoc(doc(db, "sellers", sellerEmail));
-            if (!sellerDoc.exists()) {
-                document.getElementById("statusTitle").innerText = "⌛ Pending Approval";
-                document.getElementById("statusMessage").innerText = "Your payment is under review.";
-                return;
-            }
-
-            const seller = sellerDoc.data();
-            const statusTitle = document.getElementById("statusTitle");
-            const statusMsg = document.getElementById("statusMessage");
-            const continueBtn = document.getElementById("continueBtn");
+        const currentSeller = JSON.parse(localStorage.getItem("currentSeller"));
+        if (!currentSeller) {
+            document.getElementById("statusTitle").innerText = "❌ No Seller Found";
+            document.getElementById("statusMessage").innerText = "Please register first.";
+        } else {
             const detailsBox = document.querySelector(".details-box");
-
             detailsBox.style.display = "block";
-            document.getElementById("detailsName").innerText = seller.name;
-            document.getElementById("detailsEmail").innerText = seller.email;
-            document.getElementById("detailsPlan").innerText = seller.plan;
+            document.getElementById("detailsName").innerText = currentSeller.name;
+            document.getElementById("detailsEmail").innerText = currentSeller.email;
+            document.getElementById("detailsPlan").innerText = currentSeller.plan;
 
-            switch (seller.status.toLowerCase()) {
-                case "approved":
-                case "active":
-                    statusTitle.innerText = "✅ Payment Approved";
-                    statusMsg.innerText = "Your seller account is now active. Welcome to MatrixMarket!";
-                    statusMsg.className = "status-message success";
-                    continueBtn.style.display = "inline-block";
-                    break;
-                case "declined":
-                    statusTitle.innerText = "❌ Payment Declined";
-                    statusMsg.innerText = "Your payment was rejected by the admin.";
-                    statusMsg.className = "status-message declined";
-                    continueBtn.style.display = "none";
-                    break;
-                default:
+            const sellerRef = db.ref("sellers/" + currentSeller.email.replace('.', '_')); // Firebase keys cannot have .
+            sellerRef.on("value", snapshot => {
+                const sellerData = snapshot.val();
+                const statusTitle = document.getElementById("statusTitle");
+                const statusMsg = document.getElementById("statusMessage");
+                const continueBtn = document.getElementById("continueBtn");
+
+                if (!sellerData) {
                     statusTitle.innerText = "⌛ Pending Approval";
                     statusMsg.innerText = "Your payment is under review. Please check back later.";
                     statusMsg.className = "status-message pending";
                     continueBtn.style.display = "none";
-            }
-        }
+                    return;
+                }
 
-        window.onload = () => {
-            updateSellerStatus();
-            setInterval(updateSellerStatus, 5000); // Refresh every 5 sec
+                const status = (sellerData.status || "pending").toLowerCase();
+
+                if (status === "approved" || status === "active") {
+                    statusTitle.innerText = "✅ Payment Approved";
+                    statusMsg.innerText = "Your seller account is now active. Welcome to MatrixMarket!";
+                    statusMsg.className = "status-message success";
+                    continueBtn.style.display = "inline-block";
+
+                    setTimeout(() => window.location.href = "seller-dashboard.html", 3000);
+                } else if (status === "declined") {
+                    statusTitle.innerText = "❌ Payment Declined";
+                    statusMsg.innerText = "Your payment was rejected by the admin.";
+                    statusMsg.className = "status-message declined";
+                    continueBtn.style.display = "none";
+                } else {
+                    statusTitle.innerText = "⌛ Pending Approval";
+                    statusMsg.innerText = "Your payment is under review. Please check back later.";
+                    statusMsg.className = "status-message pending";
+                    continueBtn.style.display = "none";
+                }
+            });
 
             document.getElementById("continueBtn").addEventListener("click", () => {
                 window.location.href = "seller-dashboard.html";
             });
-        };
+        }
     </script>
+    <script src="main.js"></script>
 </body>
 
 </html>

@@ -6,6 +6,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Orders - MatrixMarket</title>
     <link rel="stylesheet" href="style.css">
+
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+
     <style>
         body {
             font-family: "Poppins", sans-serif;
@@ -51,7 +56,7 @@
         }
 
         .order h3 {
-            margin: 0 0 10px;
+            margin: 0 0 10px 0;
             color: #22c55e;
         }
 
@@ -102,7 +107,6 @@
 </head>
 
 <body>
-    <!-- Header -->
     <header>
         <div class="logo">MatrixMarket</div>
         <nav>
@@ -116,7 +120,7 @@
     <h2>📦 My Orders</h2>
 
     <div class="container" id="ordersContainer">
-        <p>Loading your orders...</p>
+        <p>Loading orders...</p>
     </div>
 
     <div style="text-align:center; margin-bottom: 30px;">
@@ -124,74 +128,57 @@
         <a href="index.html" class="btn">🏠 Back to Dashboard</a>
     </div>
 
-    <!-- Firebase Integration -->
-    <script type="module">
-        // Firebase imports
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
-        import { getFirestore, collection, getDocs, query, where, orderBy } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore.js";
-
-        // Firebase config
+    <script>
+        // === Firebase config ===
         const firebaseConfig = {
             apiKey: "AIzaSyDFrctk2MZajP7OmECXe5npHAV0dODH9jk",
             authDomain: "matrixmarketplace-1bd71.firebaseapp.com",
             databaseURL: "https://matrixmarketplace-1bd71-default-rtdb.firebaseio.com",
             projectId: "matrixmarketplace-1bd71",
-            storageBucket: "matrixmarketplace-1bd71.firebasestorage.app",
+            storageBucket: "matrixmarketplace-1bd71.appspot.com",
             messagingSenderId: "10374416997",
             appId: "1:10374416997:web:068ef937272b3de687548c",
             measurementId: "G-EH1NNVS55W"
         };
 
-        // Initialize Firebase
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
 
-        // Load orders from Firestore
+        // Get current logged-in user email from session or localStorage
+        const currentUserEmail = sessionStorage.getItem("currentUserEmail");
+        const safeEmail = currentUserEmail ? currentUserEmail.replace('.', '_') : null;
+
         async function loadOrders() {
             const container = document.getElementById("ordersContainer");
-            container.innerHTML = "<p>Fetching your orders...</p>";
 
-            // Get user email from buyerInfo (saved at checkout)
-            const buyerInfo = JSON.parse(localStorage.getItem("buyerInfo") || "{}");
-            const buyerEmail = buyerInfo.email || "";
-
-            try {
-                // If logged-in user email is available, filter orders
-                let q = query(collection(db, "orders"), orderBy("date", "desc"));
-                if (buyerEmail) {
-                    q = query(collection(db, "orders"), where("buyer.email", "==", buyerEmail), orderBy("date", "desc"));
-                }
-
-                const snapshot = await getDocs(q);
-                if (snapshot.empty) {
-                    container.innerHTML = "<p>No orders found. Start shopping now! 🛒</p>";
-                    return;
-                }
-
-                container.innerHTML = "";
-                snapshot.forEach((docSnap, i) => {
-                    const order = docSnap.data();
-                    const itemsList = order.cart.map(i => `<li>${i.name} - ${i.price} GMD (Seller: ${i.seller || 'N/A'})</li>`).join("");
-                    const statusClass = order.status?.toLowerCase() || "pending";
-                    const date = new Date(order.date).toLocaleString();
-
-                    container.innerHTML += `
-            <div class="order">
-              <h3>Order #${i + 1}</h3>
-              <p><b>Placed:</b> ${date}</p>
-              <p><b>Total:</b> ${order.total.toFixed(2)} GMD</p>
-              <p><b>Buyer:</b> ${order.buyer?.name || "Unknown"} (${order.buyer?.email || ""})</p>
-              <p><b>Delivery:</b> ${order.buyer?.address || "N/A"} — ${order.buyer?.phone || ""}</p>
-              <p><b>Status:</b> <span class="status ${statusClass}">${statusClass.toUpperCase()}</span></p>
-              <p><b>Items:</b></p>
-              <ul>${itemsList}</ul>
-            </div>
-          `;
-                });
-            } catch (error) {
-                console.error("Error loading orders:", error);
-                container.innerHTML = "<p>⚠️ Failed to load orders. Please try again later.</p>";
+            if (!safeEmail) {
+                container.innerHTML = "<p style='text-align:center;'>Please login to view your orders.</p>";
+                return;
             }
+
+            const snapshot = await db.ref("orders").orderByChild("userEmail").equalTo(currentUserEmail).get();
+            const orders = snapshot.exists() ? Object.values(snapshot.val()) : [];
+
+            if (!orders.length) {
+                container.innerHTML = "<p>No orders found. Start shopping now! 🛒</p>";
+                return;
+            }
+
+            container.innerHTML = "";
+            orders.reverse().forEach((order, idx) => {
+                const itemsList = order.items.map(i => `<li>${i.name} - ${i.price} GMD (Seller: ${i.seller || 'N/A'})</li>`).join('');
+                container.innerHTML += `
+                    <div class="order">
+                        <h3>Order #${orders.length - idx}</h3>
+                        <p><b>Placed:</b> ${new Date(order.createdAt).toLocaleString()}</p>
+                        <p><b>Total:</b> ${order.total.toFixed(2)} GMD</p>
+                        <p><b>Delivery:</b> ${order.buyer.address}, ${order.buyer.phone}</p>
+                        <p><b>Status:</b> <span class="status ${order.status}">${order.status.toUpperCase()}</span></p>
+                        <p><b>Items:</b></p>
+                        <ul>${itemsList}</ul>
+                    </div>
+                `;
+            });
         }
 
         window.onload = loadOrders;

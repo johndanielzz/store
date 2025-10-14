@@ -3,20 +3,20 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>MatrixMarket - Subscription Code</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MatrixMarket - Subscription Code</title>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
     <style>
-        /* ==========================
-           Global Styles
-        ========================== */
         body {
-            margin: 0;
-            font-family: "Poppins", sans-serif;
             background: linear-gradient(135deg, #0f172a, #1e293b, #4f46e5, #06b6d4);
             background-size: 400% 400%;
             animation: gradientBG 15s ease infinite;
+            font-family: "Poppins", sans-serif;
+            margin: 0;
             color: #fff;
             min-height: 100vh;
             display: flex;
@@ -50,8 +50,7 @@
         h2 {
             color: #06b6d4;
             margin-bottom: 10px;
-            font-size: 2rem;
-            text-shadow: 0 0 12px #4f46e5;
+            font-size: 1.8rem;
         }
 
         .code-display {
@@ -65,19 +64,8 @@
             word-break: break-all;
         }
 
-        #qrCanvas {
-            margin: 15px auto;
-            display: block;
-        }
-
-        #expiry {
-            margin-top: 10px;
-            font-size: 0.95rem;
-            color: #fbbf24;
-        }
-
         .btn {
-            margin: 10px 5px;
+            margin: 10px;
             padding: 12px 20px;
             border: none;
             border-radius: 8px;
@@ -85,7 +73,7 @@
             color: white;
             cursor: pointer;
             font-size: 16px;
-            transition: 0.3s;
+            transition: .3s;
         }
 
         .btn:hover {
@@ -98,6 +86,17 @@
             font-size: 0.9rem;
             display: none;
             margin-top: 5px;
+        }
+
+        #expiry {
+            margin-top: 10px;
+            font-size: 0.9rem;
+            color: #fbbf24;
+        }
+
+        #qrCanvas {
+            margin: 15px auto;
+            display: block;
         }
     </style>
 </head>
@@ -118,54 +117,60 @@
     </div>
 
     <script>
-        // ==========================
-        // Generate unique secure code
-        // ==========================
-        function generateCode(length = 12) {
+        // Firebase config
+        const firebaseConfig = {
+            apiKey: "AIzaSyDFrctk2MZajP7OmECXe5npHAV0dODH9jk",
+            authDomain: "matrixmarketplace-1bd71.firebaseapp.com",
+            databaseURL: "https://matrixmarketplace-1bd71-default-rtdb.firebaseio.com",
+            projectId: "matrixmarketplace-1bd71",
+            storageBucket: "matrixmarketplace-1bd71.firebasestorage.app",
+            messagingSenderId: "10374416997",
+            appId: "1:10374416997:web:068ef937272b3de687548c",
+            measurementId: "G-EH1NNVS55W"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        // Generate secure code
+        function generateCode() {
             const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-            let code = Array.from({ length }, () => chars.charAt(Math.floor(Math.random() * chars.length))).join('');
-            const checksum = [...code].reduce((acc, c) => acc + c.charCodeAt(0), 0);
-            return code + "-" + (checksum % 36).toString(36).toUpperCase().padStart(2, "0");
+            let code = "";
+            for (let i = 0; i < 12; i++) { code += chars.charAt(Math.floor(Math.random() * chars.length)); }
+            const sum = [...code].reduce((acc, c) => acc + c.charCodeAt(0), 0);
+            code += "-" + (sum % 36).toString(36).toUpperCase().padStart(2, "0");
+            return code;
         }
 
-        // ==========================
-        // Assign or fetch user code
-        // ==========================
-        function assignCode(user) {
-            let codes = JSON.parse(localStorage.getItem("assignedCodes")) || {};
-            if (codes[user.email]) return codes[user.email];
+        // Assign/fetch subscription code from Firebase
+        async function assignCode(userEmail) {
+            const ref = db.ref('subscriptionCodes/' + userEmail.replace(/\./g, '_'));
+            const snapshot = await ref.once('value');
+            const data = snapshot.val();
+            const now = new Date();
+            if (data && new Date(data.expiry) > now) return data;
 
-            const expiry = new Date();
-            expiry.setDate(expiry.getDate() + 30);
+            const expiry = new Date(); expiry.setDate(expiry.getDate() + 30);
             const newCode = { value: generateCode(), expiry: expiry.toISOString() };
-            codes[user.email] = newCode;
-            localStorage.setItem("assignedCodes", JSON.stringify(codes));
+            await ref.set(newCode);
             return newCode;
         }
 
-        // ==========================
-        // Copy code to clipboard
-        // ==========================
         function copyCode() {
             const code = document.getElementById("codeDisplay").innerText;
-            if (!code.includes("❌") && !code.includes("⚠️")) {
+            if (code) {
                 navigator.clipboard.writeText(code).then(() => {
-                    const msg = document.getElementById("copyMsg");
-                    msg.style.display = "block";
+                    const msg = document.getElementById("copyMsg"); msg.style.display = "block";
                     setTimeout(() => msg.style.display = "none", 2000);
                 });
             }
         }
 
-        // ==========================
-        // Download PDF
-        // ==========================
         async function downloadPDF() {
             const { jsPDF } = window.jspdf;
             const pdf = new jsPDF();
             const code = document.getElementById("codeDisplay").innerText;
             const expiry = document.getElementById("expiry").innerText;
-
             pdf.setFontSize(18);
             pdf.text("MatrixMarket Subscription Code", 20, 20);
             pdf.setFontSize(14);
@@ -174,38 +179,17 @@
             pdf.save("MatrixMarket_Code.pdf");
         }
 
-        // ==========================
-        // Initialize page
-        // ==========================
-        function initPage() {
+        async function initPage() {
             const user = JSON.parse(localStorage.getItem("currentUser"));
-            const codeDisplay = document.getElementById("codeDisplay");
-            const expiryEl = document.getElementById("expiry");
-            const userNameEl = document.getElementById("userName");
-
-            if (!user) {
-                codeDisplay.innerText = "❌ Please log in first.";
-                return;
-            }
-
-            userNameEl.innerText = "👋 Welcome, " + (user.fullName || user.email);
-
+            if (!user) { document.getElementById("codeDisplay").innerText = "❌ Please log in first."; return; }
+            document.getElementById("userName").innerText = "👋 Welcome, " + (user.fullName || user.email);
             if (!user.subscription || user.subscription !== "active") {
-                codeDisplay.innerText = "⚠️ You need an active subscription to view your code.";
-                return;
+                document.getElementById("codeDisplay").innerText = "⚠️ You need an active subscription to view your code."; return;
             }
-
-            const userCode = assignCode(user);
+            const userCode = await assignCode(user.email);
             const expiryDate = new Date(userCode.expiry);
-
-            if (expiryDate < new Date()) {
-                codeDisplay.innerText = "⚠️ Your code has expired. Please renew your subscription.";
-                expiryEl.innerText = "";
-                return;
-            }
-
-            codeDisplay.innerText = userCode.value;
-            expiryEl.innerText = "⏳ Expires on: " + expiryDate.toDateString();
+            document.getElementById("codeDisplay").innerText = userCode.value;
+            document.getElementById("expiry").innerText = "⏳ Expires on: " + expiryDate.toDateString();
             QRCode.toCanvas(document.getElementById("qrCanvas"), userCode.value, { width: 200 });
         }
 

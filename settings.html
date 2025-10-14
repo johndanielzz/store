@@ -5,6 +5,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MatrixMarket - Settings</title>
+
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+
     <link rel="stylesheet" href="style.css">
     <style>
         body {
@@ -150,7 +156,7 @@
         <input type="text" id="fullName" placeholder="Enter your full name">
 
         <label>Email</label>
-        <input type="email" id="email" placeholder="Enter your email">
+        <input type="email" id="email" placeholder="Enter your email" disabled>
 
         <label>Password</label>
         <input type="password" id="password" placeholder="Enter new password">
@@ -182,91 +188,117 @@
     </div>
 
     <script>
-        function loadSettings() {
-            let user = JSON.parse(localStorage.getItem("currentUser"));
-            if (user) {
-                document.getElementById("fullName").value = user.fullName || "";
-                document.getElementById("email").value = user.email || "";
-                document.getElementById("password").value = user.password || "";
-                document.getElementById("balance").innerText = user.balance || 0;
-            }
-            loadPending();
-        }
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyDFrctk2MZajP7OmECXe5npHAV0dODH9jk",
+            authDomain: "matrixmarketplace-1bd71.firebaseapp.com",
+            databaseURL: "https://matrixmarketplace-1bd71-default-rtdb.firebaseio.com",
+            projectId: "matrixmarketplace-1bd71",
+            storageBucket: "matrixmarketplace-1bd71.firebasestorage.app",
+            messagingSenderId: "10374416997",
+            appId: "1:10374416997:web:068ef937272b3de687548c",
+            measurementId: "G-EH1NNVS55W"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.database();
 
-        function saveUser(user) {
-            let users = JSON.parse(localStorage.getItem("users")) || [];
-            let found = false;
-            users = users.map(u => {
-                if (u.email === user.email) {
-                    found = true;
-                    return user;
-                }
-                return u;
-            });
-            if (!found) users.push(user);
-            localStorage.setItem("users", JSON.stringify(users));
-            localStorage.setItem("currentUser", JSON.stringify(user));
+        // Load user data
+        auth.onAuthStateChanged(user => {
+            if (!user) return window.location.href = "login.html";
+            loadSettingsFirebase(user.uid);
+        });
+
+        async function loadSettingsFirebase(uid) {
+            const snapshot = await db.ref('users/' + uid).once('value');
+            const user = snapshot.val();
+            if (!user) return alert("⚠️ User not found");
+            document.getElementById("fullName").value = user.fullName || "";
+            document.getElementById("email").value = user.email || "";
+            document.getElementById("balance").innerText = user.balance || 0;
+            loadPendingFirebase(uid);
         }
 
         function saveAccount() {
-            let user = JSON.parse(localStorage.getItem("currentUser"));
-            if (!user) return alert("⚠️ No user logged in.");
-            user.fullName = document.getElementById("fullName").value;
-            user.email = document.getElementById("email").value;
-            user.password = document.getElementById("password").value;
-            saveUser(user);
-            alert("✅ Account settings updated!");
+            const user = auth.currentUser;
+            if (!user) return;
+            const fullName = document.getElementById("fullName").value.trim();
+            const password = document.getElementById("password").value.trim();
+
+            // Update Firebase Database
+            db.ref('users/' + user.uid).update({ fullName });
+
+            // Update Firebase Auth password if entered
+            if (password) {
+                user.updatePassword(password).catch(err => alert(err.message));
+            }
+            alert("✅ Account updated successfully!");
         }
 
         function deleteAccount() {
             if (!confirm("⚠️ Delete account?")) return;
-            let user = JSON.parse(localStorage.getItem("currentUser"));
+            const user = auth.currentUser;
             if (!user) return;
-            let users = JSON.parse(localStorage.getItem("users")) || [];
-            users = users.filter(u => u.email !== user.email);
-            localStorage.setItem("users", JSON.stringify(users));
-            localStorage.removeItem("currentUser");
-            alert("🗑 Account deleted.");
-            window.location.href = "register.html";
-        }
 
-        function requestTopUp() {
-            let amount = parseFloat(document.getElementById("amount").value);
-            let method = document.getElementById("method").value.trim();
-            if (!amount || amount <= 0) return alert("⚠️ Enter valid amount");
-            let user = JSON.parse(localStorage.getItem("currentUser"));
-            if (!user) return;
-            let requests = JSON.parse(localStorage.getItem("pendingRequests")) || [];
-            requests.push({ email: user.email, type: "Top-Up", amount, method, status: "Pending" });
-            localStorage.setItem("pendingRequests", JSON.stringify(requests));
-            alert("📩 Top-Up request submitted. Awaiting admin approval.");
-            loadPending();
-        }
-
-        function requestWithdraw() {
-            let amount = parseFloat(document.getElementById("amount").value);
-            if (!amount || amount <= 0) return alert("⚠️ Enter valid amount");
-            let user = JSON.parse(localStorage.getItem("currentUser"));
-            if (!user) return;
-            let requests = JSON.parse(localStorage.getItem("pendingRequests")) || [];
-            requests.push({ email: user.email, type: "Withdrawal", amount, method: "Balance", status: "Pending" });
-            localStorage.setItem("pendingRequests", JSON.stringify(requests));
-            alert("📩 Withdrawal request submitted. Awaiting admin approval.");
-            loadPending();
-        }
-
-        function loadPending() {
-            let user = JSON.parse(localStorage.getItem("currentUser"));
-            if (!user) return;
-            let requests = JSON.parse(localStorage.getItem("pendingRequests")) || [];
-            let list = document.getElementById("pendingList");
-            list.innerHTML = "";
-            requests.filter(r => r.email === user.email).forEach(r => {
-                list.innerHTML += `<div>📌 ${r.type} - ${r.amount} GMD via ${r.method || "N/A"} (${r.status})</div>`;
+            // Remove from database
+            db.ref('users/' + user.uid).remove().then(() => {
+                user.delete().then(() => {
+                    alert("🗑 Account deleted.");
+                    window.location.href = "register.html";
+                }).catch(err => alert(err.message));
             });
         }
 
-        loadSettings();
+        function requestTopUp() {
+            const user = auth.currentUser;
+            if (!user) return;
+            const amount = parseFloat(document.getElementById("amount").value);
+            const method = document.getElementById("method").value;
+            if (!amount || amount <= 0) return alert("⚠️ Enter valid amount");
+
+            const newReq = db.ref('requests').push();
+            newReq.set({
+                uid: user.uid,
+                type: "Top-Up",
+                amount,
+                method,
+                status: "Pending",
+                timestamp: Date.now()
+            }).then(() => {
+                alert("📩 Top-Up requested! Awaiting approval.");
+                loadPendingFirebase(user.uid);
+            });
+        }
+
+        function requestWithdraw() {
+            const user = auth.currentUser;
+            if (!user) return;
+            const amount = parseFloat(document.getElementById("amount").value);
+            if (!amount || amount <= 0) return alert("⚠️ Enter valid amount");
+
+            const newReq = db.ref('requests').push();
+            newReq.set({
+                uid: user.uid,
+                type: "Withdrawal",
+                amount,
+                method: "Balance",
+                status: "Pending",
+                timestamp: Date.now()
+            }).then(() => {
+                alert("📩 Withdrawal requested! Awaiting approval.");
+                loadPendingFirebase(user.uid);
+            });
+        }
+
+        async function loadPendingFirebase(uid) {
+            const snapshot = await db.ref('requests').orderByChild('uid').equalTo(uid).once('value');
+            const data = snapshot.val() || {};
+            const list = document.getElementById("pendingList");
+            list.innerHTML = "";
+            Object.values(data).forEach(r => {
+                list.innerHTML += `<div>📌 ${r.type} - ${r.amount} GMD via ${r.method} (${r.status})</div>`;
+            });
+        }
     </script>
 </body>
 

@@ -5,51 +5,58 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chat with Seller - Matrix Store</title>
-    <link rel="icon" type="image/x-icon" href="matrixx.png">
-    <link rel="stylesheet" href="style.css">
 
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+
+    <link rel="stylesheet" href="style.css">
     <style>
         body {
-            margin: 0;
             font-family: "Poppins", sans-serif;
             background: #0f172a;
             color: white;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
         }
 
         header {
-            background: #1e293b;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 15px 25px;
+            padding: 15px 30px;
+            background: rgba(0, 0, 0, 0.5);
         }
 
-        .logo {
-            font-size: 1.4rem;
+        header .logo {
+            font-size: 1.5rem;
             font-weight: bold;
             color: #06b6d4;
         }
 
-        nav a {
-            color: white;
+        header nav a {
             margin-left: 20px;
+            color: white;
             text-decoration: none;
+            transition: 0.3s;
         }
 
-        nav a:hover {
+        header nav a:hover {
             color: #06b6d4;
         }
 
-        /* Chat Styles */
         .chat-page {
             max-width: 900px;
-            margin: 40px auto;
+            margin: 20px auto;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
             background: rgba(30, 41, 59, 0.95);
             border-radius: 16px;
             box-shadow: 0 8px 25px rgba(0, 0, 0, 0.6);
-            display: flex;
-            flex-direction: column;
-            height: 80vh;
             overflow: hidden;
         }
 
@@ -81,7 +88,7 @@
             display: flex;
             align-items: flex-end;
             gap: 10px;
-            animation: fadeIn 0.3s ease;
+            animation: fadeIn 0.3s;
         }
 
         .message.user {
@@ -166,34 +173,27 @@
 </head>
 
 <body>
+
     <header>
         <div class="logo">Matrix Store</div>
         <nav>
             <a href="index.html">Home</a>
             <a href="cart.html">Cart</a>
-            <a href="chat.html">Chat</a>
+            <a href="sellers-chat.html">Chat</a>
         </nav>
     </header>
 
     <div class="chat-page">
         <div class="chat-header" id="chatHeader">💬 Chat</div>
-
         <div class="chat-messages" id="chatMessages"></div>
-
         <div class="chat-input">
             <input type="text" id="chatInput" placeholder="Type your message...">
             <button onclick="sendMessage()">Send</button>
         </div>
     </div>
 
-    <!-- Firebase Chat Logic -->
-    <script type="module">
-        // === Firebase Imports ===
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
-        import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp }
-            from "https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore.js";
-
-        // === Firebase Config ===
+    <script>
+        // Firebase config
         const firebaseConfig = {
             apiKey: "AIzaSyDFrctk2MZajP7OmECXe5npHAV0dODH9jk",
             authDomain: "matrixmarketplace-1bd71.firebaseapp.com",
@@ -204,64 +204,57 @@
             appId: "1:10374416997:web:068ef937272b3de687548c",
             measurementId: "G-EH1NNVS55W"
         };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
 
-        // === Initialize Firebase ===
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-
-        // === User and Chat Setup ===
         let currentUser = JSON.parse(localStorage.getItem("currentUser")) || { username: "Guest" };
+
         const params = new URLSearchParams(window.location.search);
         const sellerName = params.get("seller") || "Support";
-
         document.getElementById("chatHeader").textContent = "💬 Chat with " + sellerName;
 
-        // Unique chat ID for buyer-seller
-        const chatId = [currentUser.username, sellerName].sort().join("_");
-        const chatRef = collection(db, "chats", chatId, "messages");
+        const participants = [currentUser.username, sellerName].sort();
+        const chatKey = `chat_${participants[0]}_${participants[1]}`;
 
-        // === Listen for Messages (Real-Time) ===
-        const chatMessages = document.getElementById("chatMessages");
-
-        onSnapshot(query(chatRef, orderBy("timestamp", "asc")), (snapshot) => {
-            chatMessages.innerHTML = "";
-            snapshot.forEach((doc) => {
-                const msg = doc.data();
-                const div = document.createElement("div");
-                div.classList.add("message");
-                div.classList.add(msg.sender === currentUser.username ? "user" : "other");
-
-                const time = msg.timestamp
-                    ? new Date(msg.timestamp.toDate()).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-                    : "Sending...";
-
-                div.innerHTML = `
-                    <div class="avatar">${msg.sender.charAt(0).toUpperCase()}</div>
+        function loadMessages() {
+            const chatMessages = document.getElementById("chatMessages");
+            db.ref(`chats/${chatKey}`).on("value", snapshot => {
+                chatMessages.innerHTML = "";
+                const data = snapshot.val() || {};
+                const msgs = Object.values(data).sort((a, b) => a.timestamp - b.timestamp);
+                msgs.forEach(m => {
+                    const div = document.createElement("div");
+                    div.classList.add("message");
+                    div.classList.add(m.sender === currentUser.username ? "user" : "other");
+                    div.innerHTML = `
+                    <div class="avatar">${m.sender.charAt(0).toUpperCase()}</div>
                     <div>
-                        <div>${msg.text}</div>
-                        <div class="timestamp">${time}</div>
+                        <div>${m.text}</div>
+                        <div class="timestamp">${new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
                     </div>
                 `;
-                chatMessages.appendChild(div);
+                    chatMessages.appendChild(div);
+                });
+                chatMessages.scrollTop = chatMessages.scrollHeight;
             });
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-        });
+        }
 
-        // === Send Message ===
-        window.sendMessage = async function () {
+        function sendMessage() {
             const input = document.getElementById("chatInput");
             const text = input.value.trim();
             if (!text) return;
-
-            await addDoc(chatRef, {
+            const newMsg = db.ref(`chats/${chatKey}`).push();
+            newMsg.set({
                 sender: currentUser.username,
                 text,
-                timestamp: serverTimestamp()
+                timestamp: Date.now()
             });
-
             input.value = "";
-        };
+        }
+
+        window.onload = loadMessages;
     </script>
+
 </body>
 
 </html>

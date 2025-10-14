@@ -5,6 +5,10 @@
     <meta charset="UTF-8">
     <title>Register - Matrix Marketplace</title>
     <link rel="stylesheet" href="style.css">
+
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+
     <style>
         body {
             display: flex;
@@ -144,7 +148,7 @@
 <body>
     <div class="register-box">
         <h1>Create Account</h1>
-        <form id="registerForm">
+        <form onsubmit="return registerUser(event)">
             <input type="text" id="fullName" placeholder="Full Name" required>
             <input type="email" id="email" placeholder="Email Address" required>
             <input type="password" id="password" placeholder="Password" required>
@@ -156,47 +160,39 @@
             </select>
             <button type="submit">Register</button>
         </form>
-
         <div class="msg success" id="successMsg">✅ Registration successful! Redirecting...</div>
         <div class="msg error" id="errorMsg"></div>
         <p>Already have an account? <a href="login.html">Login here</a></p>
     </div>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js";
-        import { getAuth, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js";
-        import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-analytics.js";
-
+    <script>
+        // ===============================
+        // Firebase Config & Initialization
+        // ===============================
         const firebaseConfig = {
-          apiKey: "AIzaSyDFrctk2MZajP7OmECXe5npHAV0dODH9jk",
-  authDomain: "matrixmarketplace-1bd71.firebaseapp.com",
-  databaseURL: "https://matrixmarketplace-1bd71-default-rtdb.firebaseio.com",
-  projectId: "matrixmarketplace-1bd71",
-  storageBucket: "matrixmarketplace-1bd71.firebasestorage.app",
-  messagingSenderId: "10374416997",
-  appId: "1:10374416997:web:068ef937272b3de687548c",
-  measurementId: "G-EH1NNVS55W"
+            apiKey: "AIzaSyDFrctk2MZajP7OmECXe5npHAV0dODH9jk",
+            authDomain: "matrixmarketplace-1bd71.firebaseapp.com",
+            databaseURL: "https://matrixmarketplace-1bd71-default-rtdb.firebaseio.com",
+            projectId: "matrixmarketplace-1bd71",
+            storageBucket: "matrixmarketplace-1bd71.firebasestorage.app",
+            messagingSenderId: "10374416997",
+            appId: "1:10374416997:web:068ef937272b3de687548c",
+            measurementId: "G-EH1NNVS55W"
         };
 
-        const app = initializeApp(firebaseConfig);
-        const analytics = getAnalytics(app);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
 
-        const form = document.getElementById("registerForm");
-        const successMsg = document.getElementById("successMsg");
-        const errorMsg = document.getElementById("errorMsg");
-
-        form.addEventListener("submit", async (e) => {
-            e.preventDefault();
-
+        async function registerUser(event) {
+            event.preventDefault();
             const fullName = document.getElementById("fullName").value.trim();
-            const email = document.getElementById("email").value.trim();
+            const email = document.getElementById("email").value.trim().toLowerCase();
             const password = document.getElementById("password").value;
             const location = document.getElementById("location").value.trim();
             const accountType = document.getElementById("accountType").value;
 
+            const successMsg = document.getElementById("successMsg");
+            const errorMsg = document.getElementById("errorMsg");
             errorMsg.style.display = "none";
             successMsg.style.display = "none";
 
@@ -207,31 +203,48 @@
             }
 
             try {
-                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-                const user = userCredential.user;
+                // Check if user already exists
+                const snapshot = await db.ref("users").orderByChild("email").equalTo(email).get();
+                if (snapshot.exists()) {
+                    errorMsg.innerText = "⚠️ Email already registered. Please login.";
+                    errorMsg.style.display = "block";
+                    return;
+                }
 
-                // Save user data in Firestore
-                await setDoc(doc(db, "users", user.uid), {
+                // Add new user
+                const newUserRef = db.ref("users").push();
+                await newUserRef.set({
                     fullName,
                     email,
+                    password,
                     location,
                     accountType,
                     balance: 0,
                     subscription: "inactive",
-                    isSeller: accountType === "seller",
-                    createdAt: new Date().toISOString()
+                    isSeller: accountType === "seller"
                 });
 
+                // If seller account → add to sellerRequests
+                if (accountType === "seller") {
+                    const sellerRef = db.ref("sellerRequests").push();
+                    await sellerRef.set({
+                        name: fullName,
+                        email,
+                        plan: "Basic",
+                        status: "pending"
+                    });
+                }
+
                 successMsg.style.display = "block";
-                setTimeout(() => window.location.href = "login.html", 2000);
+                setTimeout(() => { window.location.href = "login.html"; }, 2000);
+
             } catch (error) {
-                console.error("Registration error:", error.message);
-                errorMsg.innerText = "❌ " + error.message;
+                console.error(error);
+                errorMsg.innerText = "❌ Registration failed. Try again.";
                 errorMsg.style.display = "block";
             }
-        });
+        }
     </script>
 </body>
-
 
 </html>

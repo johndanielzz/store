@@ -2,307 +2,215 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>MatrixMarket Admin - Manage Payments</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Manage Subscription Codes | MatrixMarket</title>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
     <style>
-        /* ===== Global & Body ===== */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: "Poppins", sans-serif;
-        }
-
         body {
+            font-family: "Poppins", sans-serif;
             background: linear-gradient(135deg, #0f172a, #1e293b, #4f46e5, #06b6d4);
             background-size: 400% 400%;
             animation: gradientBG 15s ease infinite;
             color: #fff;
+            margin: 0;
             min-height: 100vh;
-            line-height: 1.6;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
 
         @keyframes gradientBG {
-
-            0%,
-            100% {
-                background-position: 0% 50%;
+            0% {
+                background-position: 0% 50%
             }
 
             50% {
-                background-position: 100% 50%;
+                background-position: 100% 50%
+            }
+
+            100% {
+                background-position: 0% 50%
             }
         }
 
-        a {
-            text-decoration: none;
-            color: inherit;
-        }
-
-        /* ===== Header ===== */
         header {
-            background: rgba(0, 0, 0, 0.5);
-            padding: 15px 5%;
+            width: 100%;
+            background: rgba(0, 0, 0, 0.4);
+            padding: 15px 40px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            font-weight: 600;
-            flex-wrap: wrap;
+            backdrop-filter: blur(10px);
         }
 
-        header a {
-            margin-left: 12px;
-            color: #fff;
-            font-weight: 500;
-            transition: 0.3s;
-        }
-
-        header a:hover {
+        .logo {
+            font-weight: 700;
+            font-size: 1.4rem;
             color: #06b6d4;
-        }
-
-        /* ===== Container ===== */
-        .container {
-            max-width: 1100px;
-            margin: 40px auto;
-            background: rgba(255, 255, 255, 0.08);
-            padding: clamp(20px, 5vw, 30px);
-            border-radius: 15px;
-            box-shadow: 0 0 20px rgba(6, 182, 212, 0.4);
-            overflow-x: auto;
-        }
-
-        h1 {
-            text-align: center;
-            margin-bottom: 25px;
-            color: #06b6d4;
-            text-shadow: 0 0 10px #06b6d4;
-            font-size: clamp(1.5rem, 3vw, 2rem);
+            text-shadow: 0 0 8px #4f46e5;
         }
 
         table {
-            width: 100%;
+            width: 90%;
+            margin-top: 30px;
             border-collapse: collapse;
-            margin-top: 15px;
-            min-width: 600px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 0 25px rgba(6, 182, 212, 0.4);
         }
 
         th,
         td {
-            padding: clamp(8px, 1vw, 12px);
+            padding: 14px;
             text-align: center;
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-            font-size: clamp(0.8rem, 1vw, 1rem);
         }
 
         th {
-            background: rgba(6, 182, 212, 0.2);
+            background: rgba(0, 0, 0, 0.3);
             color: #06b6d4;
+            font-weight: 600;
         }
 
-        tr:hover {
-            background: rgba(255, 255, 255, 0.05);
+        td {
+            color: #e2e8f0;
         }
 
-        .btn {
-            padding: clamp(6px, 1vw, 10px) clamp(12px, 2vw, 14px);
+        button {
+            padding: 8px 12px;
             border: none;
             border-radius: 8px;
-            font-size: clamp(0.75rem, 1vw, 0.9rem);
+            margin: 3px;
+            font-weight: bold;
             cursor: pointer;
             transition: 0.3s;
         }
 
-        .accept {
+        .approve {
             background: #22c55e;
             color: white;
         }
 
-        .accept:hover {
-            background: #16a34a;
-        }
-
-        .decline {
+        .deactivate {
             background: #ef4444;
             color: white;
         }
 
-        .decline:hover {
-            background: #dc2626;
+        .renew {
+            background: #fbbf24;
+            color: #222;
         }
 
-        .status {
-            padding: 4px 8px;
-            border-radius: 6px;
-            font-weight: 600;
-            display: inline-block;
-            font-size: clamp(0.7rem, 1vw, 0.85rem);
+        button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 8px rgba(255, 255, 255, 0.4);
         }
 
-        .pending {
-            background: rgba(250, 204, 21, 0.2);
-            color: #facc15;
-        }
-
-        .approved {
-            background: rgba(34, 197, 94, 0.2);
-            color: #22c55e;
-        }
-
-        .declined {
-            background: rgba(239, 68, 68, 0.2);
-            color: #ef4444;
-        }
-
-        .empty {
-            text-align: center;
-            padding: 20px;
-            color: #cbd5e1;
-            font-size: clamp(0.9rem, 1vw, 1rem);
-        }
-
-        footer {
-            text-align: center;
-            padding: 20px;
-            font-size: clamp(0.75rem, 1vw, 0.9rem);
-            color: #cbd5e1;
-            background: rgba(255, 255, 255, 0.08);
-            margin-top: 30px;
-        }
-
-        @media (max-width: 768px) {
-            header {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-
-            table {
-                min-width: 100%;
-            }
-        }
-
-        @media (max-width: 480px) {
-            h1 {
-                font-size: 1.5rem;
-            }
-
-            th,
-            td {
-                padding: 6px 8px;
-                font-size: 0.75rem;
-            }
-
-            .btn {
-                padding: 5px 8px;
-                font-size: 0.7rem;
-            }
+        .back-btn {
+            margin-top: 25px;
+            padding: 12px 20px;
+            background: linear-gradient(90deg, #06b6d4, #4f46e5);
+            color: white;
+            border-radius: 10px;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
         }
     </style>
 </head>
 
 <body>
-
     <header>
-        <div>💼 MatrixMarket Admin</div>
+        <div class="logo">MatrixMarket Admin</div>
         <nav>
-            <a href="dashboard-admin.html">Dashboard</a>
-            <a href="admin-sellers.html">Sellers</a>
-            <a href="index.html">Logout</a>
+            <a href="dashboard-admin.html" style="color:#fff;text-decoration:none;">⬅ Back to Dashboard</a>
         </nav>
     </header>
 
-    <div class="container">
-        <h1>📋 Manage Payment Requests</h1>
-        <table id="paymentTable">
-            <thead>
-                <tr>
-                    <th>Name</th>
-                    <th>Email</th>
-                    <th>Amount (GMD)</th>
-                    <th>Method</th>
-                    <th>Date</th>
-                    <th>Status</th>
-                    <th>Action</th>
-                </tr>
-            </thead>
-            <tbody id="paymentBody"></tbody>
-        </table>
-        <div class="empty" id="emptyMsg">No pending payments found.</div>
-    </div>
-
-    <footer>© 2025 MatrixMarket | Admin Panel</footer>
-
-    <!-- ===== Firebase SDK ===== -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <h2>📋 Manage Subscription Codes</h2>
+    <table id="codesTable">
+        <thead>
+            <tr>
+                <th>Email</th>
+                <th>Code</th>
+                <th>Expiry</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
 
     <script>
-        // ===== Firebase Configuration =====
         const firebaseConfig = {
             apiKey: "AIzaSyDFrctk2MZajP7OmECXe5npHAV0dODH9jk",
             authDomain: "matrixmarketplace-1bd71.firebaseapp.com",
             databaseURL: "https://matrixmarketplace-1bd71-default-rtdb.firebaseio.com",
             projectId: "matrixmarketplace-1bd71",
-            storageBucket: "matrixmarketplace-1bd71.appspot.com",
+            storageBucket: "matrixmarketplace-1bd71.firebasestorage.app",
             messagingSenderId: "10374416997",
             appId: "1:10374416997:web:068ef937272b3de687548c",
             measurementId: "G-EH1NNVS55W"
         };
 
-        // Initialize Firebase
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
+        const codesTableBody = document.querySelector("#codesTable tbody");
 
-        // Load payments from Firebase
-        function loadPayments() {
-            const body = document.getElementById("paymentBody");
-            const emptyMsg = document.getElementById("emptyMsg");
-            body.innerHTML = "";
+        // Render table
+        function renderCodes(codes) {
+            codesTableBody.innerHTML = "";
+            if (!codes) return;
 
-            db.ref('pendingRequests').once('value', snapshot => {
-                const payments = snapshot.val() || [];
-                if (!payments || payments.length === 0) {
-                    emptyMsg.style.display = "block";
-                    return;
-                } else {
-                    emptyMsg.style.display = "none";
-                }
+            Object.keys(codes).forEach(email => {
+                const codeData = codes[email];
+                const expiry = new Date(codeData.expiry);
+                const expired = expiry < new Date();
 
-                payments.forEach((p, i) => {
-                    const row = document.createElement("tr");
-                    row.innerHTML = `
-            <td>${p.name}</td>
-            <td>${p.email}</td>
-            <td>${p.amount}</td>
-            <td>${p.method}</td>
-            <td>${p.date}</td>
-            <td><span class="status ${p.status.toLowerCase()}">${p.status}</span></td>
+                const row = document.createElement("tr");
+                row.innerHTML = `
+            <td>${email}</td>
+            <td>${codeData.value}</td>
+            <td>${expiry.toDateString()}</td>
+            <td style="color:${expired ? '#ef4444' : '#22c55e'}">${expired ? 'Expired' : 'Active'}</td>
             <td>
-              ${p.status === "Pending"
-                            ? `<button class="btn accept" onclick="updatePayment(${i}, 'Approved')">Accept</button>
-                   <button class="btn decline" onclick="updatePayment(${i}, 'Declined')">Decline</button>`
-                            : "-"
-                        }
+                <button class="approve" onclick="approve('${email}')">Approve</button>
+                <button class="deactivate" onclick="deactivate('${email}')">Deactivate</button>
+                <button class="renew" onclick="renew('${email}')">Renew</button>
             </td>
-          `;
-                    body.appendChild(row);
-                });
+        `;
+                codesTableBody.appendChild(row);
             });
         }
 
-        // Update payment in Firebase
-        function updatePayment(index, newStatus) {
-            db.ref('pendingRequests').once('value', snapshot => {
-                const payments = snapshot.val() || [];
-                if (!payments[index]) return;
-
-                payments[index].status = newStatus;
-                db.ref('pendingRequests').set(payments).then(() => loadPayments());
-            });
+        // Approve
+        function approve(email) {
+            db.ref('subscriptionCodes/' + email).update({ status: 'active' });
+            alert(`✅ ${email} approved successfully.`);
         }
 
-        window.onload = loadPayments;
+        // Deactivate
+        function deactivate(email) {
+            db.ref('subscriptionCodes/' + email).update({ status: 'inactive' });
+            alert(`🚫 ${email} deactivated.`);
+        }
+
+        // Renew (30 days)
+        function renew(email) {
+            const newExpiry = new Date();
+            newExpiry.setDate(newExpiry.getDate() + 30);
+            db.ref('subscriptionCodes/' + email).update({ expiry: newExpiry.toISOString(), status: 'active' });
+            alert(`🔄 ${email} renewed until ${newExpiry.toDateString()}`);
+        }
+
+        // Realtime listener
+        db.ref('subscriptionCodes').on('value', snapshot => {
+            const data = snapshot.val();
+            renderCodes(data);
+        });
     </script>
 </body>
 

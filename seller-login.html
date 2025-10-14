@@ -2,21 +2,26 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MatrixMarket - Seller Login</title>
-    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="style.css">
+    <script src="https://www.gstatic.com/firebasejs/9.24.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.24.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.24.0/firebase-auth-compat.js"></script>
+    <script src="https://kit.fontawesome.com/5c4b4f8d4f.js" crossorigin="anonymous"></script>
+
     <style>
         body {
             margin: 0;
             font-family: "Poppins", sans-serif;
             background: linear-gradient(-45deg, #0f172a, #1e293b, #4f46e5, #06b6d4);
             background-size: 400% 400%;
-            animation: gradientBG 15s ease infinite;
+            animation: gradientBG 10s ease infinite;
             color: #fff;
-            min-height: 100vh;
             display: flex;
             flex-direction: column;
+            min-height: 100vh;
         }
 
         @keyframes gradientBG {
@@ -37,26 +42,25 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 15px 40px;
-            background: rgba(0, 0, 0, 0.3);
-            backdrop-filter: blur(8px);
+            padding: 15px 30px;
+            background: rgba(0, 0, 0, 0.5);
         }
 
-        .logo {
-            color: #06b6d4;
-            font-weight: 700;
+        header .logo {
             font-size: 1.4rem;
-            text-shadow: 0 0 8px #4f46e5;
+            font-weight: bold;
+            color: #06b6d4;
         }
 
-        header nav a {
-            color: #fff;
-            margin: 0 10px;
+        nav a {
+            margin: 0 12px;
             text-decoration: none;
-            transition: 0.3s;
+            color: #fff;
+            font-weight: 500;
         }
 
-        header nav a:hover {
+        nav a.active,
+        nav a:hover {
             color: #06b6d4;
         }
 
@@ -70,147 +74,187 @@
 
         .seller-card {
             background: rgba(255, 255, 255, 0.08);
-            backdrop-filter: blur(15px);
+            backdrop-filter: blur(18px);
             border-radius: 20px;
             padding: 40px;
-            text-align: center;
-            max-width: 480px;
             width: 100%;
-            box-shadow: 0 0 25px rgba(6, 182, 212, 0.5);
+            max-width: 420px;
+            text-align: center;
+            box-shadow: 0 0 30px rgba(6, 182, 212, 0.6);
+            animation: fadeIn 1s ease-in-out;
         }
 
         .seller-card h1 {
+            margin-bottom: 20px;
             font-size: 2rem;
-            margin-bottom: 10px;
-            color: #06b6d4;
-            text-shadow: 0 0 8px #4f46e5;
+            text-shadow: 0 0 12px #06b6d4, 0 0 20px #4f46e5;
         }
 
-        input {
+        .input-group {
+            position: relative;
+            margin: 15px 0;
+        }
+
+        .input-group input {
             width: 100%;
-            padding: 12px;
-            margin: 10px 0;
-            border-radius: 10px;
+            padding: 14px 40px;
             border: none;
-            background: rgba(255, 255, 255, 0.12);
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.15);
             color: #fff;
             font-size: 1rem;
             outline: none;
+            transition: 0.3s;
+            box-shadow: 0 0 8px rgba(255, 255, 255, 0.15);
         }
 
-        button {
+        .input-group input:focus {
+            box-shadow: 0 0 15px #06b6d4, 0 0 25px #4f46e5;
+        }
+
+        .input-group i {
+            position: absolute;
+            top: 50%;
+            left: 12px;
+            transform: translateY(-50%);
+            color: #06b6d4;
+            font-size: 1.2rem;
+        }
+
+        .seller-card button {
             width: 100%;
-            padding: 12px;
-            border-radius: 10px;
+            padding: 14px;
             border: none;
+            border-radius: 14px;
             background: linear-gradient(90deg, #06b6d4, #4f46e5);
-            color: #fff;
-            font-weight: 700;
+            color: white;
+            font-size: 1.1rem;
+            font-weight: bold;
             cursor: pointer;
-            transition: all 0.3s ease-in-out;
-        }
-
-        button:hover {
-            transform: scale(1.05);
-            box-shadow: 0 0 15px #06b6d4;
-        }
-
-        .links {
             margin-top: 15px;
+            transition: all 0.3s ease-in-out;
+            box-shadow: 0 0 18px rgba(6, 182, 212, 0.7);
+        }
+
+        .seller-card button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 25px rgba(6, 182, 212, 1);
+        }
+
+        .extra-links {
+            margin-top: 18px;
             font-size: 0.9rem;
         }
 
-        .links a {
+        .extra-links a {
             color: #06b6d4;
             text-decoration: none;
+            margin: 0 10px;
+            transition: 0.3s;
         }
 
-        .links a:hover {
-            text-decoration: underline;
+        .extra-links a:hover {
+            text-shadow: 0 0 12px #06b6d4;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
     </style>
+
+    <script>
+        // Firebase config
+        const firebaseConfig = {
+            apiKey: "AIzaSyDFrctk2MZajP7OmECXe5npHAV0dODH9jk",
+            authDomain: "matrixmarketplace-1bd71.firebaseapp.com",
+            databaseURL: "https://matrixmarketplace-1bd71-default-rtdb.firebaseio.com",
+            projectId: "matrixmarketplace-1bd71",
+            storageBucket: "matrixmarketplace-1bd71.firebasestorage.app",
+            messagingSenderId: "10374416997",
+            appId: "1:10374416997:web:068ef937272b3de687548c",
+            measurementId: "G-EH1NNVS55W"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        function sellerLogin(event) {
+            event.preventDefault();
+            const email = document.getElementById("sellerCode").value.trim();
+            const pass = document.getElementById("sellerPass").value.trim();
+
+            if (!email || !pass) { alert("⚠️ Fill all fields!"); return; }
+
+            db.ref("sellers").orderByChild("email").equalTo(email).once("value")
+                .then(snapshot => {
+                    const data = snapshot.val();
+                    if (data) {
+                        const key = Object.keys(data)[0];
+                        const seller = data[key];
+                        if (seller.password === pass) {
+                            alert("✅ Seller login successful!");
+                            localStorage.setItem("currentSeller", JSON.stringify(seller));
+                            window.location.href = "seller-dashboard.html";
+                        } else {
+                            alert("❌ Invalid password!");
+                        }
+                    } else {
+                        alert("❌ Seller not found!");
+                    }
+                }).catch(err => console.error(err));
+        }
+    </script>
 </head>
 
 <body>
+    <!-- Header -->
     <header>
         <div class="logo">MatrixMarket</div>
         <nav>
             <a href="index.html">Home</a>
             <a href="shop.html">Shop</a>
-            <a href="seller-register.html">Register</a>
+            <a href="seller-login.html" class="active">Sellers</a>
+            <a href="cart.html">Cart</a>
+            <a href="login.html">Login</a>
+            <a href="register.html">Sign Up</a>
         </nav>
     </header>
 
-    <main class="seller-container">
+    <!-- Seller Login -->
+    <div class="seller-container">
         <div class="seller-card">
             <h1>🔑 Seller Portal</h1>
-            <p>Log in with your Email, Password, or Subscription Code</p>
-
-            <form id="loginForm">
-                <input id="sellerIdentifier" placeholder="Email or Subscription Code" required />
-                <input id="sellerPassword" type="password" placeholder="Password (optional)" />
+            <form onsubmit="sellerLogin(event)">
+                <div class="input-group">
+                    <i class="fas fa-envelope"></i>
+                    <input type="email" id="sellerCode" placeholder="Enter Seller Email" required>
+                </div>
+                <div class="input-group">
+                    <i class="fas fa-lock"></i>
+                    <input type="password" id="sellerPass" placeholder="Enter Password" required>
+                </div>
                 <button type="submit">Login</button>
             </form>
-
-            <div class="links">
-                <a href="seller-register.html">Register as Seller</a> |
-                <a href="index.html">Back to Home</a>
+            <div class="extra-links">
+                <a href="#">Need Help?</a> |
+                <a href="index.html">Back to Marketplace</a> |
+                <a href="seller-register.html"><strong>Register as Seller</strong></a>
             </div>
         </div>
-    </main>
+    </div>
 
-    <script>
-        document.getElementById("loginForm").addEventListener("submit", function (e) {
-            e.preventDefault();
-
-            const id = document.getElementById("sellerIdentifier").value.trim().toUpperCase();
-            const pass = document.getElementById("sellerPassword").value.trim();
-            const sellers = JSON.parse(localStorage.getItem("sellers") || "[]");
-            const assignedCodes = JSON.parse(localStorage.getItem("assignedCodes") || "{}");
-
-            // Try to find seller by email
-            let seller = sellers.find(s => s.email?.toLowerCase() === id.toLowerCase());
-
-            // Try login via subscription code
-            if (!seller) {
-                // find email by code
-                const matchedEmail = Object.keys(assignedCodes).find(email => assignedCodes[email].value === id);
-                if (matchedEmail) {
-                    const foundSeller = sellers.find(s => s.email === matchedEmail);
-                    if (foundSeller) {
-                        const expiry = new Date(assignedCodes[matchedEmail].expiry);
-                        if (expiry < new Date()) {
-                            alert("⚠️ This subscription code has expired. Renew subscription.");
-                            return;
-                        }
-                        seller = foundSeller;
-                        seller.subscription = "active";
-                    }
-                }
-            }
-
-            if (!seller) {
-                alert("❌ Seller not found. Please register first.");
-                return;
-            }
-
-            // password check (optional for code login)
-            if (pass && seller.password !== pass) {
-                alert("❌ Incorrect password.");
-                return;
-            }
-
-            // mark active
-            seller.status = "approved";
-            seller.paymentStatus = "paid";
-            seller.subscription = "active";
-
-            localStorage.setItem("currentSeller", JSON.stringify(seller));
-            localStorage.setItem("currentUser", JSON.stringify(seller));
-            alert("✅ Login successful!");
-            window.location.href = "seller-dashboard.html";
-        });
-    </script>
+    <!-- Footer -->
+    <footer
+        style="text-align:center; padding:20px; background:rgba(255,255,255,0.08); border-top:1px solid rgba(255,255,255,0.1);">
+        <p>© 2025 MatrixMarket | Secure Seller Login</p>
+    </footer>
 </body>
 
 </html>

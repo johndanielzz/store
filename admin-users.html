@@ -5,6 +5,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MatrixMarket - Admin User Control</title>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+
     <style>
         body {
             font-family: "Poppins", sans-serif;
@@ -125,12 +130,12 @@
             background: #06b6d4;
         }
 
-        .approve:hover {
-            background: #0891b2;
-        }
-
         .decline {
             background: #ef4444;
+        }
+
+        .approve:hover {
+            background: #0891b2;
         }
 
         .decline:hover {
@@ -210,10 +215,8 @@
 
     <footer>© 2025 MatrixMarket | Admin User Control</footer>
 
-    <!-- Firebase -->
-    <script src="https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js"></script>
     <script>
+        // Firebase configuration
         const firebaseConfig = {
             apiKey: "AIzaSyDFrctk2MZajP7OmECXe5npHAV0dODH9jk",
             authDomain: "matrixmarketplace-1bd71.firebaseapp.com",
@@ -224,60 +227,74 @@
             appId: "1:10374416997:web:068ef937272b3de687548c",
             measurementId: "G-EH1NNVS55W"
         };
+
+        // Initialize Firebase
         const app = firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        function renderUsers() {
+        async function fetchUsers() {
+            const snapshot = await db.ref('users').once('value');
+            const users = snapshot.val() || {};
+            return Object.keys(users).map(key => ({ id: key, ...users[key] }));
+        }
+
+        async function renderUsers() {
+            const users = await fetchUsers();
             const search = document.getElementById("searchBox").value.toLowerCase();
-            db.ref('users').once('value').then(snapshot => {
-                const usersObj = snapshot.val() || {};
-                const users = Object.values(usersObj);
-                const table = document.getElementById("userTable");
-                const filtered = users.filter(u => u.email?.toLowerCase().includes(search) || u.name?.toLowerCase().includes(search));
-                table.innerHTML = `
-            <tr>
-                <th>Name</th><th>Email</th><th>Country</th><th>Balance</th><th>Status</th><th>Proof</th><th>Action</th>
-            </tr>
+            const table = document.getElementById("userTable");
+
+            const filtered = users.filter(u =>
+                u.email?.toLowerCase().includes(search) || u.name?.toLowerCase().includes(search)
+            );
+
+            table.innerHTML = `
+        <tr>
+          <th>Name</th>
+          <th>Email</th>
+          <th>Country</th>
+          <th>Balance</th>
+          <th>Status</th>
+          <th>Proof</th>
+          <th>Action</th>
+        </tr>
+      `;
+
+            filtered.forEach(u => {
+                const statusClass = u.status === "Approved" || u.paymentStatus === "Paid" ? "approved" :
+                    u.status === "Declined" || u.paymentStatus === "Unpaid" ? "declined" : "pending";
+
+                const proofHTML = u.proof ? `<img src="${u.proof}" class="proof" onclick="viewProof('${u.proof}')">` : "No proof";
+
+                table.innerHTML += `
+          <tr>
+            <td>${u.name || "-"}</td>
+            <td>${u.email}</td>
+            <td>${u.country || "Unknown"}</td>
+            <td>${u.balance || 0} GMD</td>
+            <td><span class="status ${statusClass}">${u.paymentStatus || u.status || "Pending"}</span></td>
+            <td>${proofHTML}</td>
+            <td>
+              <button class="btn approve" onclick="updateUserStatus('${u.id}','Approved')">Approve</button>
+              <button class="btn decline" onclick="updateUserStatus('${u.id}','Declined')">Decline</button>
+            </td>
+          </tr>
         `;
-                if (!filtered.length) { table.innerHTML += `<tr><td colspan="7">No users found.</td></tr>`; return; }
-                filtered.forEach(u => {
-                    const statusClass = u.paymentStatus === "Paid" || u.status === "Approved" ? "approved" :
-                        u.paymentStatus === "Declined" || u.status === "Declined" ? "declined" : "pending";
-                    const proofHTML = u.proof ? `<img src="${u.proof}" class="proof" onclick="viewProof('${u.proof}')">` : "No proof";
-                    table.innerHTML += `
-                <tr>
-                    <td>${u.name || "-"}</td>
-                    <td>${u.email}</td>
-                    <td>${u.country || "Unknown"}</td>
-                    <td>${u.balance || 0} GMD</td>
-                    <td><span class="status ${statusClass}">${u.paymentStatus || u.status || "Pending"}</span></td>
-                    <td>${proofHTML}</td>
-                    <td>
-                        <button class="btn approve" onclick="updateUser('${u.id}','Approved')">Approve</button>
-                        <button class="btn decline" onclick="updateUser('${u.id}','Declined')">Decline</button>
-                    </td>
-                </tr>
-            `;
-                });
             });
+        }
+
+        async function updateUserStatus(userId, status) {
+            await db.ref('users/' + userId).update({
+                status: status,
+                paymentStatus: status === 'Approved' ? 'Paid' : 'Unpaid'
+            });
+            alert(`User ${status}!`);
+            renderUsers();
         }
 
         function viewProof(src) {
             const modal = document.getElementById("imageModal");
             document.getElementById("modalImg").src = src;
             modal.style.display = "flex";
-        }
-
-        function updateUser(id, action) {
-            const updates = {
-                status: action,
-                paymentStatus: action === "Approved" ? "Paid" : "Unpaid",
-                subscription: action === "Approved" ? "Active" : "Inactive"
-            };
-            db.ref('users/' + id).update(updates).then(() => {
-                alert(`${action === 'Approved' ? '✅ User approved' : '❌ User declined'} successfully!`);
-                renderUsers();
-            });
         }
 
         window.onload = renderUsers;

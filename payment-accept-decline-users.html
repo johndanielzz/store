@@ -5,6 +5,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MatrixMarket - Payment Status</title>
+
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+
     <link rel="stylesheet" href="style.css">
     <style>
         body {
@@ -15,6 +20,10 @@
             color: white;
             margin: 0;
             text-align: center;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
 
         @keyframes gradientBG {
@@ -33,7 +42,6 @@
 
         .payment-status-box {
             max-width: 500px;
-            margin: 80px auto;
             padding: 30px;
             background: rgba(255, 255, 255, 0.1);
             border-radius: 20px;
@@ -115,60 +123,41 @@
 </head>
 
 <body>
+
     <div class="payment-status-box">
         <h2>💳 Payment Status</h2>
         <p id="statusMessage" class="status-message">Loading...</p>
-
         <div class="details" id="paymentDetails"></div>
-
         <p id="redirectNotice"></p>
-
         <button class="btn" onclick="window.location.href='index.html'">⬅ Back to Dashboard</button>
     </div>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
-        import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore.js";
-
+    <script>
+        // Firebase config
         const firebaseConfig = {
-            apiKey: "AIzaSyBZpLELrmplsK66YNPycGLO2Aab9jvxa9k",
-            authDomain: "matrixmarketpace.firebaseapp.com",
-            projectId: "matrixmarketpace",
-            storageBucket: "matrixmarketpace.firebasestorage.app",
-            messagingSenderId: "200867795667",
-            appId: "1:200867795667:web:64de1ece48ddc07fa4ba26",
-            measurementId: "G-10TFPP3LDD"
+            apiKey: "AIzaSyDFrctk2MZajP7OmECXe5npHAV0dODH9jk",
+            authDomain: "matrixmarketplace-1bd71.firebaseapp.com",
+            databaseURL: "https://matrixmarketplace-1bd71-default-rtdb.firebaseio.com",
+            projectId: "matrixmarketplace-1bd71",
+            storageBucket: "matrixmarketplace-1bd71.firebasestorage.app",
+            messagingSenderId: "10374416997",
+            appId: "1:10374416997:web:068ef937272b3de687548c",
+            measurementId: "G-EH1NNVS55W"
         };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
 
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-
+        const paymentId = localStorage.getItem("lastPaymentId"); // unique payment ID
+        const statusEl = document.getElementById("statusMessage");
+        const detailsEl = document.getElementById("paymentDetails");
+        const redirectNotice = document.getElementById("redirectNotice");
         let countdownInterval;
 
-        async function loadPaymentStatus() {
-            // Load local data
-            const payment = JSON.parse(localStorage.getItem("lastPayment")) || {};
-            let status = (localStorage.getItem("paymentStatus") || "pending").toLowerCase();
-
-            const statusEl = document.getElementById("statusMessage");
-            const detailsEl = document.getElementById("paymentDetails");
-            const redirectNotice = document.getElementById("redirectNotice");
-
+        function updateStatus(payment) {
             clearInterval(countdownInterval);
             redirectNotice.style.display = "none";
 
-            // Optional: Fetch updated payment status from Firebase
-            if (payment.id) {
-                try {
-                    const docRef = doc(db, "payments", payment.id);
-                    const docSnap = await getDoc(docRef);
-                    if (docSnap.exists()) status = docSnap.data().status.toLowerCase();
-                } catch (err) {
-                    console.error("Firebase error:", err);
-                }
-            }
-
-            // Update status message
+            const status = (payment.status || "pending").toLowerCase();
             if (status === "success") {
                 statusEl.innerText = "✅ Payment Accepted!";
                 statusEl.className = "status-message success";
@@ -185,7 +174,6 @@
                         window.location.href = "code.html";
                     }
                 }, 1000);
-
             } else if (status === "declined") {
                 statusEl.innerText = "❌ Payment Declined.";
                 statusEl.className = "status-message declined";
@@ -194,19 +182,26 @@
                 statusEl.className = "status-message pending";
             }
 
-            // Show payment details
             detailsEl.innerHTML = `
-        <p><strong>👤 Name:</strong> ${payment.name || "N/A"}</p>
-        <p><strong>💰 Amount:</strong> ${payment.amount ? payment.amount + " GMD" : "0 GMD"}</p>
-        <p><strong>📦 Plan:</strong> ${payment.plan || payment.method || "N/A"}</p>
-        <p><strong>📅 Date:</strong> ${payment.date || new Date().toLocaleString()}</p>
-      `;
+            <p><strong>👤 Name:</strong> ${payment.name || "N/A"}</p>
+            <p><strong>💰 Amount:</strong> ${payment.amount ? payment.amount + " GMD" : "0 GMD"}</p>
+            <p><strong>📦 Plan:</strong> ${payment.plan || payment.method || "N/A"}</p>
+            <p><strong>📅 Date:</strong> ${payment.date || new Date().toLocaleString()}</p>
+        `;
         }
 
-        // Auto-refresh every 5s
-        setInterval(loadPaymentStatus, 5000);
-        window.onload = loadPaymentStatus;
+        if (paymentId) {
+            const ref = db.ref("payments/" + paymentId);
+            ref.on("value", snapshot => {
+                const payment = snapshot.val() || {};
+                updateStatus(payment);
+            });
+        } else {
+            statusEl.innerText = "⚠️ No payment information found.";
+            statusEl.className = "status-message pending";
+        }
     </script>
+
 </body>
 
 </html>

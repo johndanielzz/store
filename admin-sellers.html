@@ -5,6 +5,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MatrixMarket - Admin Seller Control</title>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+
     <style>
         body {
             font-family: "Poppins", sans-serif;
@@ -125,12 +130,12 @@
             background: #06b6d4;
         }
 
-        .decline {
-            background: #ef4444;
-        }
-
         .approve:hover {
             background: #0891b2;
+        }
+
+        .decline {
+            background: #ef4444;
         }
 
         .decline:hover {
@@ -195,25 +200,20 @@
             <a href="dashboard-admin.html">Dashboard</a>
             <a href="admin-sellers.html">Sellers</a>
             <a href="admin-users.html">Users</a>
-            <a href="admin-code.html">Codes</a>
         </nav>
     </header>
 
     <div class="container">
         <h1>🧾 Manage Sellers & Payments</h1>
-        <input type="text" id="searchBox" placeholder="Search seller by name or email..." onkeyup="renderSellers()">
+        <input type="text" id="searchBox" placeholder="Search seller by name or email..." oninput="renderSellers()">
         <table id="sellerTable"></table>
     </div>
 
-    <div class="modal" id="imageModal" onclick="this.style.display='none'">
+    <div class="modal" id="imageModal" onclick="closeModal()">
         <img id="modalImg" src="">
     </div>
 
     <footer>© 2025 MatrixMarket | Admin Seller Control</footer>
-
-    <!-- Firebase -->
-    <script src="https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js"></script>
 
     <script>
         const firebaseConfig = {
@@ -230,75 +230,67 @@
         const app = firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        function renderSellers() {
+        async function fetchSellers() {
+            const snapshot = await db.ref('sellers').once('value');
+            const sellers = snapshot.val() || {};
+            return Object.keys(sellers).map(key => ({ id: key, ...sellers[key] }));
+        }
+
+        async function renderSellers() {
+            const sellers = await fetchSellers();
             const search = document.getElementById("searchBox").value.toLowerCase();
-            db.ref('sellers').once('value').then(snapshot => {
-                const sellers = snapshot.val() || {};
-                const sellerArr = Object.values(sellers);
-                const table = document.getElementById("sellerTable");
+            const table = document.getElementById("sellerTable");
 
-                const filtered = sellerArr.filter(s => s.email?.toLowerCase().includes(search) || s.name?.toLowerCase().includes(search));
+            const filtered = sellers.filter(s =>
+                s.email?.toLowerCase().includes(search) || s.name?.toLowerCase().includes(search)
+            );
 
-                table.innerHTML = `
-                    <tr>
-                        <th>Name</th>
-                        <th>Email</th>
-                        <th>Plan</th>
-                        <th>Store</th>
-                        <th>Status</th>
-                        <th>Proof</th>
-                        <th>Action</th>
-                    </tr>
-                `;
+            table.innerHTML = `
+  <tr>
+    <th>Name</th>
+    <th>Email</th>
+    <th>Plan</th>
+    <th>Store</th>
+    <th>Status</th>
+    <th>Proof</th>
+    <th>Action</th>
+  </tr>`;
 
-                if (!filtered.length) {
-                    table.innerHTML += `<tr><td colspan="7">No sellers found.</td></tr>`;
-                    return;
-                }
+            filtered.forEach(s => {
+                const statusClass = s.status === "Approved" ? "approved" : s.status === "Declined" ? "declined" : "pending";
+                const proofHTML = s.proof ? `<img src="${s.proof}" class="proof" onclick="viewProof('${s.proof}')">` : "No proof";
 
-                filtered.forEach(seller => {
-                    const statusClass = seller.status === "Approved" ? "approved" :
-                        seller.status === "Declined" ? "declined" : "pending";
-
-                    const proofHTML = seller.proof
-                        ? `<img src="${seller.proof}" class="proof" onclick="viewProof('${seller.proof}')">`
-                        : "No proof";
-
-                    table.innerHTML += `
-                        <tr>
-                            <td>${seller.name || "-"}</td>
-                            <td>${seller.email}</td>
-                            <td>${seller.plan || "Free"}</td>
-                            <td>${seller.store || "N/A"}</td>
-                            <td><span class="status ${statusClass}">${seller.status || "Pending"}</span></td>
-                            <td>${proofHTML}</td>
-                            <td>
-                                <button class="btn approve" onclick="updateSeller('${seller.id}', 'Approved')">Approve</button>
-                                <button class="btn decline" onclick="updateSeller('${seller.id}', 'Declined')">Decline</button>
-                            </td>
-                        </tr>
-                    `;
-                });
+                table.innerHTML += `
+    <tr>
+      <td>${s.name || "-"}</td>
+      <td>${s.email}</td>
+      <td>${s.plan || "Free"}</td>
+      <td>${s.store || "N/A"}</td>
+      <td><span class="status ${statusClass}">${s.status || "Pending"}</span></td>
+      <td>${proofHTML}</td>
+      <td>
+        <button class="btn approve" onclick="updateSeller('${s.id}','Approved')">Approve</button>
+        <button class="btn decline" onclick="updateSeller('${s.id}','Declined')">Decline</button>
+      </td>
+    </tr>`;
             });
+
+            if (filtered.length === 0) table.innerHTML += `<tr><td colspan="7">No sellers found.</td></tr>`;
+        }
+
+        async function updateSeller(id, status) {
+            await db.ref('sellers/' + id).update({ status });
+            alert(`Seller ${status}!`);
+            renderSellers();
         }
 
         function viewProof(src) {
-            const modal = document.getElementById("imageModal");
-            const modalImg = document.getElementById("modalImg");
-            modalImg.src = src;
-            modal.style.display = "flex";
+            document.getElementById("modalImg").src = src;
+            document.getElementById("imageModal").style.display = "flex";
         }
 
-        function updateSeller(id, action) {
-            const updates = {
-                status: action,
-                paymentStatus: action === 'Approved' ? 'Paid' : 'Unpaid',
-                subscription: action === 'Approved' ? 'Active' : 'Inactive'
-            };
-            db.ref('sellers/' + id).update(updates).then(() => {
-                alert(`${action === 'Approved' ? '✅ Seller approved' : '❌ Seller declined'} successfully!`);
-                renderSellers();
-            });
+        function closeModal() {
+            document.getElementById("imageModal").style.display = "none";
         }
 
         window.onload = renderSellers;

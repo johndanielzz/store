@@ -7,6 +7,10 @@
   <title>MatrixMarket - Checkout</title>
   <link rel="stylesheet" href="style.css">
 
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+
   <style>
     body {
       font-family: "Poppins", sans-serif;
@@ -18,7 +22,7 @@
 
     header {
       background: #1e1e1e;
-      padding: 15px 40px;
+      padding: 15px;
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -26,13 +30,8 @@
 
     nav a {
       color: white;
-      margin: 0 12px;
+      margin: 0 10px;
       text-decoration: none;
-      font-weight: 500;
-    }
-
-    nav a:hover {
-      color: #06b6d4;
     }
 
     h2 {
@@ -116,12 +115,10 @@
       <h3>🛒 Order Review</h3>
       <p>Loading order...</p>
     </div>
-
     <div class="section" id="deliveryInfo">
       <h3>📦 Delivery Information</h3>
       <p>Loading info...</p>
     </div>
-
     <div class="section" id="walletInfo">
       <h3>💰 Your Balance</h3>
       <p>Loading...</p>
@@ -132,77 +129,68 @@
     <div class="msg error" id="errorMsg"></div>
   </div>
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
-    import { getFirestore, doc, setDoc, getDoc, updateDoc, arrayUnion } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore.js";
-
+  <script>
+    // === Firebase config ===
     const firebaseConfig = {
-      apiKey: "AIzaSyBZpLELrmplsK66YNPycGLO2Aab9jvxa9k",
-      authDomain: "matrixmarketpace.firebaseapp.com",
-      projectId: "matrixmarketpace",
-      storageBucket: "matrixmarketpace.appspot.com",
-      messagingSenderId: "200867795667",
-      appId: "1:200867795667:web:64de1ece48ddc07fa4ba26",
-      measurementId: "G-10TFPP3LDD"
+      apiKey: "AIzaSyDFrctk2MZajP7OmECXe5npHAV0dODH9jk",
+      authDomain: "matrixmarketplace-1bd71.firebaseapp.com",
+      databaseURL: "https://matrixmarketplace-1bd71-default-rtdb.firebaseio.com",
+      projectId: "matrixmarketplace-1bd71",
+      storageBucket: "matrixmarketplace-1bd71.appspot.com",
+      messagingSenderId: "10374416997",
+      appId: "1:10374416997:web:068ef937272b3de687548c"
     };
 
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
 
     let checkoutDetails;
     let total = 0;
-    let balance = 0;
+    let userEmail = sessionStorage.getItem("currentUserEmail");
 
-    async function loadCheckout() {
-      const buyerInfo = JSON.parse(localStorage.getItem("buyerInfo")) || null;
-      const cartItems = JSON.parse(localStorage.getItem("checkoutCart")) || [];
-      balance = parseFloat(localStorage.getItem("userBalance")) || 0;
-
-      const orderContainer = document.getElementById("orderSummary");
-      const deliveryContainer = document.getElementById("deliveryInfo");
-      const walletContainer = document.getElementById("walletInfo");
-
-      if (!buyerInfo || cartItems.length === 0) {
-        orderContainer.innerHTML = "<p>No order found. Please go back to cart.</p>";
+    function loadCheckout() {
+      if (!userEmail) {
+        document.getElementById("orderSummary").innerHTML = "<p>Please login to checkout.</p>";
         return;
       }
 
-      checkoutDetails = {
-        fullName: buyerInfo.name,
-        address: buyerInfo.address,
-        phone: buyerInfo.phone,
-        email: buyerInfo.email,
-        cart: cartItems
-      };
+      const buyerInfo = JSON.parse(localStorage.getItem("buyerInfo")) || null;
+      const cartItems = JSON.parse(localStorage.getItem("checkoutCart")) || [];
 
-      total = 0;
-      orderContainer.innerHTML = "<h3>🛒 Order Review</h3>";
+      if (!buyerInfo || cartItems.length === 0) {
+        document.getElementById("orderSummary").innerHTML = "<p>No order found. Please go back to cart.</p>";
+        return;
+      }
+
+      checkoutDetails = { buyer: buyerInfo, cart: cartItems };
+      total = cartItems.reduce((sum, i) => sum + parseFloat(i.price), 0);
+
+      document.getElementById("orderSummary").innerHTML = "<h3>🛒 Order Review</h3>";
       cartItems.forEach(item => {
-        total += parseFloat(item.price);
-        orderContainer.innerHTML += `
-          <div class="cart-item">
-            <span>${item.name}<br><small>Seller: ${item.seller}</small></span>
-            <strong>${item.price} GMD</strong>
-          </div>`;
+        document.getElementById("orderSummary").innerHTML += `
+          <div class="cart-item"><span>${item.name}<br><small>Seller: ${item.seller}</small></span><strong>${item.price} GMD</strong></div>`;
       });
-      orderContainer.innerHTML += `<hr><p><b>Total:</b> ${total.toFixed(2)} GMD</p>`;
+      document.getElementById("orderSummary").innerHTML += `<hr><p><b>Total:</b> ${total.toFixed(2)} GMD</p>`;
 
-      deliveryContainer.innerHTML = `
+      document.getElementById("deliveryInfo").innerHTML = `
         <h3>📦 Delivery Information</h3>
         <p><b>Name:</b> ${buyerInfo.name}</p>
         <p><b>Address:</b> ${buyerInfo.address}</p>
         <p><b>Phone:</b> ${buyerInfo.phone}</p>
         <p><b>Email:</b> ${buyerInfo.email}</p>`;
 
-      walletContainer.innerHTML = `<h3>💰 Your Balance</h3><p><b>Balance:</b> ${balance.toFixed(2)} GMD</p>`;
+      // Get balance from Firebase
+      db.ref(`users/${userEmail.replace('.', '_')}/balance`).once('value').then(snapshot => {
+        const balance = parseFloat(snapshot.val() || 0);
+        document.getElementById("walletInfo").innerHTML = `<h3>💰 Your Balance</h3><p><b>Balance:</b> ${balance.toFixed(2)} GMD</p>`;
+        checkoutDetails.balance = balance;
+      });
     }
 
-    async function placeOrder() {
+    function placeOrder() {
       const errorMsg = document.getElementById("errorMsg");
       const successMsg = document.getElementById("successMsg");
-
-      errorMsg.style.display = "none";
-      successMsg.style.display = "none";
+      errorMsg.style.display = successMsg.style.display = "none";
 
       if (!checkoutDetails) {
         errorMsg.innerText = "⚠️ No checkout details found.";
@@ -210,62 +198,48 @@
         return;
       }
 
-      if (balance < total) {
-        errorMsg.innerText = "⚠️ Insufficient balance. Please top up your account.";
+      if (checkoutDetails.balance < total) {
+        errorMsg.innerText = "⚠️ Insufficient balance. Please top up.";
         errorMsg.style.display = "block";
         return;
       }
 
-      balance -= total;
-      localStorage.setItem("userBalance", balance);
+      const orderId = `order_${Date.now()}`;
+      const userKey = userEmail.replace('.', '_');
 
-      // Save buyer order
-      const buyerDoc = doc(db, "buyers", checkoutDetails.email);
-      await setDoc(buyerDoc, {
-        ...checkoutDetails,
-        total: total,
+      // Update buyer balance
+      db.ref(`users/${userKey}/balance`).set(checkoutDetails.balance - total);
+
+      // Save order
+      db.ref(`orders/${orderId}`).set({
+        userEmail,
+        buyer: checkoutDetails.buyer,
+        items: checkoutDetails.cart,
+        total,
         status: "pending",
-        placedAt: new Date().toISOString()
-      }, { merge: true });
+        createdAt: new Date().toISOString()
+      });
 
-      // Update sellers balances and orders
-      for (let item of checkoutDetails.cart) {
-        const sellerRef = doc(db, "sellers", item.seller);
-        const sellerSnap = await getDoc(sellerRef);
-
-        if (!sellerSnap.exists()) {
-          await setDoc(sellerRef, {
-            balance: parseFloat(item.price),
-            orders: [{
-              buyer: checkoutDetails.fullName,
-              address: checkoutDetails.address,
-              phone: checkoutDetails.phone,
-              item: item.name,
-              amount: item.price,
-              status: "pending",
-              date: new Date().toISOString()
-            }]
+      // Update each seller balance and orders
+      checkoutDetails.cart.forEach(item => {
+        const sellerKey = item.seller.replace(/\s/g, '_');
+        db.ref(`sellers/${sellerKey}`).transaction(current => {
+          if (current === null) current = { balance: 0, orders: [] };
+          current.balance += parseFloat(item.price);
+          current.orders = current.orders || [];
+          current.orders.push({
+            buyer: checkoutDetails.buyer.name,
+            item: item.name,
+            amount: item.price,
+            status: "pending",
+            date: new Date().toISOString()
           });
-        } else {
-          await updateDoc(sellerRef, {
-            balance: parseFloat(sellerSnap.data().balance || 0) + parseFloat(item.price),
-            orders: arrayUnion({
-              buyer: checkoutDetails.fullName,
-              address: checkoutDetails.address,
-              phone: checkoutDetails.phone,
-              item: item.name,
-              amount: item.price,
-              status: "pending",
-              date: new Date().toISOString()
-            })
-          });
-        }
-      }
+          return current;
+        });
+      });
 
       successMsg.style.display = "block";
-      setTimeout(() => {
-        window.location.href = "payment-accept-decline-users.html";
-      }, 2000);
+      setTimeout(() => window.location.href = "my-orders.html", 2000);
     }
 
     window.onload = loadCheckout;

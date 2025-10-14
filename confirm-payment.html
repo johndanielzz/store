@@ -1,9 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>MatrixMarket - Confirm Payment</title>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+
   <style>
     body {
       font-family: "Poppins", sans-serif;
@@ -15,8 +21,15 @@
     }
 
     @keyframes gradientBG {
-      0%,100% { background-position: 0% 50%; }
-      50% { background-position: 100% 50%; }
+
+      0%,
+      100% {
+        background-position: 0% 50%;
+      }
+
+      50% {
+        background-position: 100% 50%;
+      }
     }
 
     .container {
@@ -29,34 +42,88 @@
       text-align: center;
     }
 
-    h1 { margin-bottom: 10px; text-shadow: 0 0 10px #06b6d4; }
-
-    .user-info { margin-bottom: 20px; color: #cbd5e1; }
-
-    label { font-weight: 600; display: block; margin: 12px 0 6px; text-align: left; }
-
-    input, select, button {
-      width: 100%; padding: 12px; margin: 8px 0;
-      border: none; border-radius: 12px; font-size: 1rem;
+    h1 {
+      margin-bottom: 10px;
+      text-shadow: 0 0 10px #06b6d4;
     }
 
-    input, select { background: rgba(255, 255, 255, 0.15); color: white; }
+    .user-info {
+      margin-bottom: 20px;
+      color: #cbd5e1;
+    }
 
-    button { background: #06b6d4; color: white; font-weight: bold; cursor: pointer; transition: 0.3s; }
-    button:hover { background: #4f46e5; }
+    label {
+      font-weight: 600;
+      display: block;
+      margin: 12px 0 6px;
+      text-align: left;
+    }
 
-    .back-btn { background: #ef4444; }
-    .back-btn:hover { background: #dc2626; }
+    input,
+    select,
+    button {
+      width: 100%;
+      padding: 12px;
+      margin: 8px 0;
+      border: none;
+      border-radius: 12px;
+      font-size: 1rem;
+    }
 
-    .msg { margin-top: 15px; padding: 10px; border-radius: 10px; display: none; opacity: 0; transition: opacity 0.5s ease-in-out; }
-    .msg.show { display: block; opacity: 1; }
+    input,
+    select {
+      background: rgba(255, 255, 255, 0.15);
+      color: white;
+    }
 
-    .success { background: rgba(34, 197, 94, 0.2); color: #22c55e; }
-    .error { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+    button {
+      background: #06b6d4;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    button:hover {
+      background: #4f46e5;
+    }
+
+    .back-btn {
+      background: #ef4444;
+    }
+
+    .back-btn:hover {
+      background: #dc2626;
+    }
+
+    .msg {
+      margin-top: 15px;
+      padding: 10px;
+      border-radius: 10px;
+      display: none;
+      opacity: 0;
+      transition: opacity 0.5s ease-in-out;
+    }
+
+    .msg.show {
+      display: block;
+      opacity: 1;
+    }
+
+    .success {
+      background: rgba(34, 197, 94, 0.2);
+      color: #22c55e;
+    }
+
+    .error {
+      background: rgba(239, 68, 68, 0.2);
+      color: #ef4444;
+    }
   </style>
 </head>
 
 <body>
+
   <div class="container">
     <h1 id="pageTitle">💳 Confirm Payment</h1>
     <div class="user-info" id="userInfo">Loading user...</div>
@@ -81,25 +148,28 @@
   </div>
 
   <script>
+    const firebaseConfig = {
+     apiKey: "AIzaSyDFrctk2MZajP7OmECXe5npHAV0dODH9jk",
+      authDomain: "matrixmarketplace-1bd71.firebaseapp.com",
+      databaseURL: "https://matrixmarketplace-1bd71-default-rtdb.firebaseio.com",
+      projectId: "matrixmarketplace-1bd71",
+      storageBucket: "matrixmarketplace-1bd71.firebasestorage.app",
+      messagingSenderId: "10374416997",
+      appId: "1:10374416997:web:068ef937272b3de687548c",
+      measurementId: "G-EH1NNVS55W"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
     function getCurrentUser() {
-      return (
-        JSON.parse(localStorage.getItem("loggedInUser")) ||
-        JSON.parse(localStorage.getItem("currentUser")) ||
-        JSON.parse(localStorage.getItem("currentSeller")) ||
-        null
-      );
+      return JSON.parse(localStorage.getItem("currentSeller")) || JSON.parse(localStorage.getItem("currentUser")) || null;
     }
 
-    window.onload = function () {
+    window.onload = () => {
       let user = getCurrentUser();
       let infoBox = document.getElementById("userInfo");
-
       if (user) {
-        infoBox.innerHTML = `
-          👤 <b>${user.name || user.fullName || user.email}</b><br>
-          📧 ${user.email}<br>
-          📍 ${user.location || "Unknown"}
-        `;
+        infoBox.innerHTML = `👤 <b>${user.name || user.fullName || user.email}</b><br>📧 ${user.email}<br>📍 ${user.location || "Unknown"}`;
       } else {
         infoBox.innerHTML = "⚠️ You must be logged in.";
       }
@@ -110,30 +180,15 @@
       let method = document.getElementById("method").value;
       let successMsg = document.getElementById("successMsg");
       let errorMsg = document.getElementById("errorMsg");
-
       successMsg.classList.remove("show");
       errorMsg.classList.remove("show");
 
-      if (!method) {
-        errorMsg.innerText = "⚠️ Please select a payment method.";
-        errorMsg.classList.add("show");
-        return;
-      }
-      if (!amount || isNaN(amount) || amount <= 0) {
-        errorMsg.innerText = "⚠️ Please enter a valid amount.";
-        errorMsg.classList.add("show");
-        return;
-      }
+      if (!method) { errorMsg.innerText = "⚠️ Please select a payment method."; errorMsg.classList.add("show"); return; }
+      if (!amount || isNaN(amount) || amount <= 0) { errorMsg.innerText = "⚠️ Please enter a valid amount."; errorMsg.classList.add("show"); return; }
 
       let user = getCurrentUser();
-      if (!user) {
-        errorMsg.innerText = "⚠️ You must be logged in.";
-        errorMsg.classList.add("show");
-        return;
-      }
+      if (!user) { errorMsg.innerText = "⚠️ You must be logged in."; errorMsg.classList.add("show"); return; }
 
-      // Save payment request under user and pendingRequests
-      let requests = JSON.parse(localStorage.getItem("pendingRequests")) || [];
       let newRequest = {
         id: Date.now(),
         name: user.name || user.fullName || user.email,
@@ -144,20 +199,24 @@
         date: new Date().toLocaleString()
       };
 
-      requests.push(newRequest);
-      localStorage.setItem("pendingRequests", JSON.stringify(requests));
-
-      user.paymentStatus = "Pending";
-      user.amount = parseFloat(amount);
-      localStorage.setItem("currentUser", JSON.stringify(user));
-
-      successMsg.classList.add("show");
-
-      // Redirect to payment-status after success
-      setTimeout(() => {
-        window.location.href = "payment-status.html";
-      }, 1500);
+      // Save to Firebase
+      db.ref("pendingRequests/" + newRequest.id).set(newRequest)
+        .then(() => {
+          user.paymentStatus = "Pending";
+          user.amount = parseFloat(amount);
+          localStorage.setItem("currentSeller", JSON.stringify(user));
+          localStorage.setItem("currentUser", JSON.stringify(user));
+          successMsg.classList.add("show");
+          setTimeout(() => { window.location.href = "payment-status.html"; }, 1500);
+        })
+        .catch(err => {
+          console.error(err);
+          errorMsg.innerText = "⚠️ Failed to submit request.";
+          errorMsg.classList.add("show");
+        });
     }
   </script>
+
 </body>
+
 </html>

@@ -4,287 +4,208 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Seller Chat - MatrixMarket</title>
-    <link rel="icon" type="image/x-icon" href="matrixx.png">
+    <title>MatrixMarket - Sellers Chat</title>
+
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+
     <link rel="stylesheet" href="style.css">
     <style>
         body {
             font-family: "Poppins", sans-serif;
-            background: #0f172a;
+            background: linear-gradient(135deg, #0f172a, #1e293b, #4f46e5, #06b6d4);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
             color: white;
             margin: 0;
-            padding: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        @keyframes gradientBG {
+            0% {
+                background-position: 0% 50%;
+            }
+
+            50% {
+                background-position: 100% 50%;
+            }
+
+            100% {
+                background-position: 0% 50%;
+            }
         }
 
         header {
-            background: #1e1e1e;
-            padding: 15px;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            padding: 15px 30px;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px);
         }
 
-        nav a {
+        header .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #06b6d4;
+            text-shadow: 0 0 10px #06b6d4;
+        }
+
+        header nav a {
+            margin-left: 20px;
             color: white;
-            margin: 0 10px;
             text-decoration: none;
-        }
-
-        .chat-dashboard {
-            display: flex;
-            height: 85vh;
-            max-width: 1200px;
-            margin: 40px auto;
-            background: rgba(30, 41, 59, 0.95);
-            border-radius: 16px;
-            overflow: hidden;
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.6);
-        }
-
-        /* Left Sidebar - Chats List */
-        .chat-list {
-            width: 30%;
-            background: #1e293b;
-            border-right: 1px solid #334155;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .chat-list h3 {
-            text-align: center;
-            padding: 15px;
-            border-bottom: 1px solid #334155;
-            background: #06b6d4;
-            color: white;
-            font-size: 1.2rem;
-        }
-
-        .chat-item {
-            padding: 15px;
-            border-bottom: 1px solid #334155;
-            cursor: pointer;
             transition: 0.3s;
         }
 
-        .chat-item:hover {
-            background: #334155;
+        header nav a:hover {
+            color: #06b6d4;
         }
 
-        .chat-item.active {
-            background: linear-gradient(135deg, #06b6d4, #4f46e5);
-        }
-
-        .chat-item b {
-            color: #22c55e;
-        }
-
-        /* Chat window */
-        .chat-window {
+        .chat-container {
             flex: 1;
             display: flex;
             flex-direction: column;
-            background: #0f172a;
-        }
-
-        .chat-header {
-            padding: 15px;
-            text-align: center;
-            background: linear-gradient(135deg, #06b6d4, #4f46e5);
-            font-weight: bold;
-        }
-
-        .chat-messages {
-            flex: 1;
+            max-width: 800px;
+            margin: 20px auto;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 20px;
             padding: 20px;
+            box-shadow: 0 0 20px rgba(6, 182, 212, 0.5);
+        }
+
+        .messages {
+            flex: 1;
             overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
+            margin-bottom: 10px;
+            padding: 10px;
+            border-radius: 12px;
+            background: rgba(0, 0, 0, 0.2);
         }
 
-        .message {
-            max-width: 70%;
-            padding: 12px 16px;
-            border-radius: 18px;
-            font-size: 0.95rem;
-            line-height: 1.4;
-            display: flex;
-            align-items: flex-end;
-            gap: 10px;
-            animation: fadeIn 0.3s ease;
+        .messages div {
+            margin: 8px 0;
+            padding: 10px;
+            border-radius: 12px;
+            background: rgba(6, 182, 212, 0.2);
+            word-wrap: break-word;
         }
 
-        .message.user {
-            margin-left: auto;
-            background: #06b6d4;
-            color: white;
-            border-bottom-right-radius: 4px;
-            flex-direction: row-reverse;
-        }
-
-        .message.other {
-            margin-right: auto;
-            background: #334155;
-            color: #f1f5f9;
-            border-bottom-left-radius: 4px;
+        .my-message {
+            background: rgba(6, 182, 212, 0.5);
+            text-align: right;
         }
 
         .chat-input {
             display: flex;
-            padding: 15px;
-            background: rgba(15, 23, 42, 0.95);
-            border-top: 1px solid #1e293b;
         }
 
         .chat-input input {
             flex: 1;
-            padding: 12px 14px;
-            border-radius: 25px;
+            padding: 12px;
+            border-radius: 12px 0 0 12px;
             border: none;
-            outline: none;
-            font-size: 0.95rem;
+            font-size: 1rem;
+            background: rgba(255, 255, 255, 0.15);
+            color: white;
         }
 
         .chat-input button {
-            margin-left: 10px;
             padding: 12px 20px;
             border: none;
-            border-radius: 25px;
-            background: linear-gradient(135deg, #06b6d4, #4f46e5);
+            border-radius: 0 12px 12px 0;
+            background: #06b6d4;
             color: white;
-            font-weight: bold;
             cursor: pointer;
             transition: 0.3s;
         }
 
         .chat-input button:hover {
-            transform: scale(1.05);
-            background: linear-gradient(135deg, #4f46e5, #06b6d4);
-        }
-
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(5px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+            background: #4f46e5;
         }
     </style>
 </head>
 
 <body>
     <header>
-        <div class="logo">Matrix Store - Seller</div>
+        <div class="logo">MatrixMarket</div>
         <nav>
-            <a href="seller-dashboard.html">Dashboard</a>
-            <a href="seller-products.html">Products</a>
-            <a href="sellers-chat.html">Chat</a>
+            <a href="index.html">Home</a>
+            <a href="shop.html">Shop</a>
+            <a href="sellers-chat.html">💬 Chat</a>
+            <a href="settings.html">⚙ Settings</a>
+            <a href="admin.html">Admin Panel</a>
         </nav>
     </header>
 
-    <div class="chat-dashboard">
-        <!-- Sidebar -->
-        <div class="chat-list" id="chatList">
-            <h3>💬 Conversations</h3>
-            <div id="chatsContainer"></div>
-        </div>
-
-        <!-- Chat Window -->
-        <div class="chat-window">
-            <div class="chat-header" id="chatHeader">Select a Chat</div>
-            <div class="chat-messages" id="chatMessages"></div>
-            <div class="chat-input">
-                <input type="text" id="chatInput" placeholder="Type a message..." disabled>
-                <button id="sendBtn" disabled>Send</button>
-            </div>
+    <div class="chat-container">
+        <div class="messages" id="messages"></div>
+        <div class="chat-input">
+            <input type="text" id="messageInput" placeholder="Type your message...">
+            <button onclick="sendMessage()">Send</button>
         </div>
     </div>
 
     <script>
-        const seller = JSON.parse(localStorage.getItem("currentUser")) || { username: "Seller" };
-        const chatsContainer = document.getElementById("chatsContainer");
-        const chatMessages = document.getElementById("chatMessages");
-        const chatHeader = document.getElementById("chatHeader");
-        const input = document.getElementById("chatInput");
-        const sendBtn = document.getElementById("sendBtn");
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyDFrctk2MZajP7OmECXe5npHAV0dODH9jk",
+            authDomain: "matrixmarketplace-1bd71.firebaseapp.com",
+            databaseURL: "https://matrixmarketplace-1bd71-default-rtdb.firebaseio.com",
+            projectId: "matrixmarketplace-1bd71",
+            storageBucket: "matrixmarketplace-1bd71.firebasestorage.app",
+            messagingSenderId: "10374416997",
+            appId: "1:10374416997:web:068ef937272b3de687548c",
+            measurementId: "G-EH1NNVS55W"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.database();
 
-        let currentChatKey = null;
+        let currentUser;
 
-        function loadChatList() {
-            chatsContainer.innerHTML = "";
-            let allKeys = Object.keys(localStorage);
-            let sellerChats = allKeys.filter(k => k.startsWith("chat_") && k.includes(seller.username));
-
-            if (sellerChats.length === 0) {
-                chatsContainer.innerHTML = "<p style='text-align:center; opacity:0.7;'>No chats yet</p>";
-                return;
-            }
-
-            sellerChats.forEach(key => {
-                let messages = JSON.parse(localStorage.getItem(key)) || [];
-                let lastMessage = messages[messages.length - 1];
-                let otherUser = key.replace("chat_", "").split("_").find(n => n !== seller.username);
-
-                const chatDiv = document.createElement("div");
-                chatDiv.classList.add("chat-item");
-                chatDiv.innerHTML = `<b>${otherUser}</b><br><small>${lastMessage ? lastMessage.text.slice(0, 30) : "No messages yet"}</small>`;
-                chatDiv.onclick = () => openChat(key, otherUser);
-
-                chatsContainer.appendChild(chatDiv);
-            });
-        }
-
-        function openChat(key, buyerName) {
-            currentChatKey = key;
-            chatHeader.textContent = "Chat with " + buyerName;
-            input.disabled = false;
-            sendBtn.disabled = false;
-
-            document.querySelectorAll(".chat-item").forEach(el => el.classList.remove("active"));
-            event.target.closest(".chat-item").classList.add("active");
-
+        // Check authentication
+        auth.onAuthStateChanged(user => {
+            if (!user) return window.location.href = "login.html";
+            currentUser = user;
             loadMessages();
+        });
+
+        function sendMessage() {
+            const input = document.getElementById("messageInput");
+            const text = input.value.trim();
+            if (!text) return;
+
+            const newMsg = db.ref('chats').push();
+            newMsg.set({
+                uid: currentUser.uid,
+                name: currentUser.displayName || currentUser.email,
+                message: text,
+                timestamp: Date.now()
+            });
+            input.value = "";
         }
 
         function loadMessages() {
-            chatMessages.innerHTML = "";
-            let messages = JSON.parse(localStorage.getItem(currentChatKey)) || [];
-
-            messages.forEach(m => {
-                const div = document.createElement("div");
-                div.classList.add("message", m.sender === seller.username ? "user" : "other");
-                div.innerHTML = `<div>${m.text}</div>`;
-                chatMessages.appendChild(div);
+            const messagesDiv = document.getElementById("messages");
+            db.ref('chats').on('value', snapshot => {
+                messagesDiv.innerHTML = "";
+                const data = snapshot.val() || {};
+                const msgs = Object.values(data).sort((a, b) => a.timestamp - b.timestamp);
+                msgs.forEach(msg => {
+                    const div = document.createElement("div");
+                    div.textContent = `${msg.name}: ${msg.message}`;
+                    if (msg.uid === currentUser.uid) div.classList.add("my-message");
+                    messagesDiv.appendChild(div);
+                });
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
             });
-
-            chatMessages.scrollTop = chatMessages.scrollHeight;
         }
-
-        function sendMessage() {
-            const text = input.value.trim();
-            if (text === "" || !currentChatKey) return;
-
-            let messages = JSON.parse(localStorage.getItem(currentChatKey)) || [];
-            messages.push({
-                sender: seller.username,
-                text,
-                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-            });
-            localStorage.setItem(currentChatKey, JSON.stringify(messages));
-            input.value = "";
-            loadMessages();
-        }
-
-        sendBtn.addEventListener("click", sendMessage);
-        input.addEventListener("keypress", e => { if (e.key === "Enter") sendMessage(); });
-
-        window.onload = loadChatList;
     </script>
-
 </body>
 
 </html>

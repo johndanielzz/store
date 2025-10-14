@@ -5,6 +5,11 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>MatrixMarket - Seller Payment Status</title>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+
     <style>
         body {
             margin: 0;
@@ -33,7 +38,7 @@
         }
 
         header {
-            padding: 15px 30px;
+            padding: 15px;
             background: rgba(0, 0, 0, 0.4);
             display: flex;
             justify-content: space-between;
@@ -41,7 +46,7 @@
         }
 
         header .logo {
-            font-size: 1.4rem;
+            font-size: 1.3rem;
             font-weight: bold;
             color: #06b6d4;
         }
@@ -79,10 +84,9 @@
         }
 
         .card h1 {
-            font-size: 2rem;
+            font-size: 2.2rem;
             margin-bottom: 10px;
             color: #06b6d4;
-            text-shadow: 0 0 6px #06b6d4;
         }
 
         .status {
@@ -158,100 +162,7 @@
                 transform: translateY(0);
             }
         }
-
-        @media (max-width: 600px) {
-            .card {
-                padding: 25px;
-            }
-
-            .card h1 {
-                font-size: 1.6rem;
-            }
-        }
     </style>
-
-    <script>
-        // Retrieve current logged-in seller
-        const getCurrentSeller = () => {
-            return JSON.parse(localStorage.getItem("currentSeller")) ||
-                JSON.parse(localStorage.getItem("loggedInSeller")) || null;
-        };
-
-        const displayStatus = () => {
-            const seller = getCurrentSeller();
-            const titleEl = document.getElementById("title");
-            const statusEl = document.getElementById("statusMsg");
-            const detailsEl = document.getElementById("details");
-            const btnEl = document.getElementById("continueBtn");
-
-            if (!seller) {
-                titleEl.innerText = "⚠️ Not Logged In";
-                statusEl.innerText = "Please log in to view payment status.";
-                statusEl.className = "status declined";
-                detailsEl.style.display = "none";
-                btnEl.style.display = "none";
-                return;
-            }
-
-            const email = seller.email;
-            let requests = JSON.parse(localStorage.getItem("paymentRequests")) || [];
-
-            // For testing/demo purposes: create a request if none exists
-            let request = requests.find(r => r.email === email);
-            if (!request) {
-                request = { email, amount: 500, method: "Bank Transfer", date: new Date().toLocaleDateString(), status: "Approved" };
-                requests.push(request);
-                localStorage.setItem("paymentRequests", JSON.stringify(requests));
-            }
-
-            // Show details
-            detailsEl.style.display = "block";
-            document.getElementById("detailsName").innerText = seller.name || seller.fullName || email;
-            document.getElementById("detailsAmount").innerText = request.amount + " GMD";
-            document.getElementById("detailsMethod").innerText = request.method;
-            document.getElementById("detailsDate").innerText = request.date;
-
-            // Update UI based on request status
-            switch (request.status) {
-                case "Approved":
-                    titleEl.innerText = "✅ Payment Approved";
-                    statusEl.innerText = "Your withdrawal request has been approved!";
-                    statusEl.className = "status success";
-                    btnEl.style.display = "inline-block";
-                    btnEl.innerText = "Go to Subscription";
-                    btnEl.onclick = activateSubscription;
-                    break;
-                case "Declined":
-                    titleEl.innerText = "❌ Payment Declined";
-                    statusEl.innerText = "Your payment was declined by admin.";
-                    statusEl.className = "status declined";
-                    btnEl.style.display = "none";
-                    break;
-                default:
-                    titleEl.innerText = "⌛ Payment Pending";
-                    statusEl.innerText = "Waiting for admin approval...";
-                    statusEl.className = "status pending";
-                    btnEl.style.display = "none";
-            }
-        };
-
-        const activateSubscription = () => {
-            const seller = getCurrentSeller();
-            if (!seller) return;
-
-            let sellers = JSON.parse(localStorage.getItem("sellers")) || [];
-            sellers = sellers.map(s => s.email === seller.email ? { ...s, subscription: "active" } : s);
-            localStorage.setItem("sellers", JSON.stringify(sellers));
-            localStorage.setItem("currentSeller", JSON.stringify({ ...seller, subscription: "active" }));
-
-            window.location.href = "subscription-code.html";
-        };
-
-        window.onload = () => {
-            displayStatus();
-            setInterval(displayStatus, 4000);
-        };
-    </script>
 </head>
 
 <body>
@@ -282,6 +193,109 @@
     <footer>
         <p>© 2025 MatrixMarket | Seller Payment Status</p>
     </footer>
+
+    <script>
+        // ===== Firebase Config =====
+        const firebaseConfig = {
+            apiKey: "AIzaSyDFrctk2MZajP7OmECXe5npHAV0dODH9jk",
+            authDomain: "matrixmarketplace-1bd71.firebaseapp.com",
+            databaseURL: "https://matrixmarketplace-1bd71-default-rtdb.firebaseio.com",
+            projectId: "matrixmarketplace-1bd71",
+            storageBucket: "matrixmarketplace-1bd71.firebasestorage.app",
+            messagingSenderId: "10374416997",
+            appId: "1:10374416997:web:068ef937272b3de687548c",
+            measurementId: "G-EH1NNVS55W"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        function getSeller() {
+            return JSON.parse(localStorage.getItem("currentSeller")) || null;
+        }
+
+        async function updateStatus() {
+            const seller = getSeller();
+            const title = document.getElementById("title");
+            const msg = document.getElementById("statusMsg");
+            const details = document.getElementById("details");
+            const btn = document.getElementById("continueBtn");
+
+            if (!seller) {
+                title.innerText = "⚠️ Seller Not Logged In";
+                msg.innerText = "Please log in to view your payment status.";
+                msg.className = "status declined";
+                btn.style.display = "none";
+                details.style.display = "none";
+                return;
+            }
+
+            try {
+                // Fetch seller's latest pending payment request from Firebase
+                const snapshot = await db.ref("pendingRequests").orderByChild("email").equalTo(seller.email).limitToLast(1).get();
+                if (!snapshot.exists()) {
+                    title.innerText = "⌛ No Pending Payments";
+                    msg.innerText = "No payment requests found. Please complete a payment.";
+                    msg.className = "status pending";
+                    btn.style.display = "none";
+                    details.style.display = "none";
+                    return;
+                }
+
+                const request = Object.values(snapshot.val())[0];
+                details.style.display = "block";
+                document.getElementById("detailsName").innerText = seller.name || seller.fullName || seller.email;
+                document.getElementById("detailsAmount").innerText = request.amount + " GMD";
+                document.getElementById("detailsMethod").innerText = request.method || "N/A";
+                document.getElementById("detailsDate").innerText = request.date;
+
+                switch (request.status) {
+                    case "Approved":
+                        title.innerText = "✅ Payment Approved";
+                        msg.innerText = "Your payment has been approved by admin!";
+                        msg.className = "status success";
+                        btn.style.display = "inline-block";
+                        btn.innerText = "Go to Subscription";
+                        btn.onclick = goToSubscription;
+                        break;
+                    case "Declined":
+                        title.innerText = "❌ Payment Declined";
+                        msg.innerText = "Your payment was declined by admin.";
+                        msg.className = "status declined";
+                        btn.style.display = "none";
+                        break;
+                    default:
+                        title.innerText = "⌛ Payment Pending";
+                        msg.innerText = "Waiting for admin approval...";
+                        msg.className = "status pending";
+                        btn.style.display = "none";
+                }
+
+            } catch (err) {
+                console.error(err);
+                title.innerText = "⚠️ Error";
+                msg.innerText = "Failed to fetch payment status.";
+                msg.className = "status declined";
+                btn.style.display = "none";
+                details.style.display = "none";
+            }
+        }
+
+        function goToSubscription() {
+            const seller = getSeller();
+            db.ref("sellers").orderByChild("email").equalTo(seller.email).once("value", snapshot => {
+                const sellerId = Object.keys(snapshot.val())[0];
+                db.ref(`sellers/${sellerId}`).update({ subscription: "active" });
+                localStorage.setItem("currentSeller", JSON.stringify({ ...seller, subscription: "active" }));
+                window.location.href = "subscription-code.html";
+            });
+        }
+
+        window.onload = () => {
+            updateStatus();
+            setInterval(updateStatus, 5000); // real-time refresh every 5 seconds
+        }
+    </script>
+
 </body>
 
 </html>

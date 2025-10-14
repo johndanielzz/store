@@ -5,6 +5,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MatrixMarket Admin Dashboard</title>
+
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
     <style>
         body {
             font-family: "Poppins", sans-serif;
@@ -102,14 +107,6 @@
             color: #ddd;
         }
 
-        footer {
-            text-align: center;
-            padding: 15px;
-            background: rgba(255, 255, 255, 0.08);
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
-            margin-top: 40px;
-        }
-
         .section-title {
             text-align: center;
             margin-top: 50px;
@@ -145,7 +142,16 @@
         .declined {
             color: #ef4444;
         }
+
+        footer {
+            text-align: center;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.08);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            margin-top: 40px;
+        }
     </style>
+
 </head>
 
 <body>
@@ -155,9 +161,8 @@
             <a href="dashboard-admin.html">Dashboard</a>
             <a href="admin-sellers.html">Sellers</a>
             <a href="admin-users.html">Users</a>
-            <a href="admin-accept-payment.html">Accept payment</a>
+            <a href="admin-accept-payment.html">Accept Payment</a>
             <a href="admin-edit-user-seller.html">Edit</a>
-            <a href="admin-code.html">Codes</a>
         </nav>
     </header>
 
@@ -191,10 +196,8 @@
 
     <footer>© 2025 MatrixMarket | Admin Dashboard</footer>
 
-    <!-- Firebase -->
-    <script src="https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js"></script>
     <script>
+        // Firebase Setup
         const firebaseConfig = {
             apiKey: "AIzaSyDFrctk2MZajP7OmECXe5npHAV0dODH9jk",
             authDomain: "matrixmarketplace-1bd71.firebaseapp.com",
@@ -208,58 +211,59 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        const usersRef = db.ref('users');
-        const sellersRef = db.ref('sellers');
+        async function loadDashboard() {
+            const usersSnap = await db.ref('users').once('value');
+            const sellersSnap = await db.ref('sellers').once('value');
+            const requestsSnap = await db.ref('pendingRequests').once('value');
+
+            const users = usersSnap.val() ? Object.values(usersSnap.val()) : [];
+            const sellers = sellersSnap.val() ? Object.values(sellersSnap.val()) : [];
+            const requests = requestsSnap.val() ? Object.values(requestsSnap.val()) : [];
+
+            document.getElementById("totalUsers").textContent = users.length;
+            document.getElementById("totalSellers").textContent = sellers.length;
+
+            const pendingPayments = requests.filter(r => r.status === "Pending").length;
+            const approvedPayments = requests.filter(r => r.status === "Approved").length;
+
+            document.getElementById("pendingPayments").textContent = pendingPayments;
+            document.getElementById("approvedPayments").textContent = approvedPayments;
+
+            renderRecent("recentSellers", sellers, "Seller");
+            renderRecent("recentUsers", requests, "Payment");
+        }
 
         function renderRecent(tableId, list, type) {
             const table = document.getElementById(tableId);
             table.innerHTML = `
-        <tr>
-          <th>${type} Name</th>
-          <th>Email</th>
-          <th>Status</th>
-          <th>Country</th>
-        </tr>
-    `;
-            if (list.length === 0) {
+            <tr>
+                <th>${type} Name</th>
+                <th>Email</th>
+                <th>Status</th>
+                <th>Country</th>
+            </tr>
+        `;
+
+            if (!list.length) {
                 table.innerHTML += `<tr><td colspan="4">No ${type.toLowerCase()} records found.</td></tr>`;
                 return;
             }
+
             list.slice(-5).reverse().forEach(item => {
-                const statusClass = item.status === "Approved" ? "approved" : item.status === "Declined" ? "declined" : "pending";
+                const statusClass = item.status === "Approved" ? "approved" :
+                    item.status === "Declined" ? "declined" : "pending";
                 table.innerHTML += `
-          <tr>
-            <td>${item.name || "N/A"}</td>
-            <td>${item.email || "N/A"}</td>
-            <td class="${statusClass}">${item.status || "Pending"}</td>
-            <td>${item.country || "Unknown"}</td>
-          </tr>
-        `;
+                <tr>
+                    <td>${item.name || "N/A"}</td>
+                    <td>${item.email || "N/A"}</td>
+                    <td class="${statusClass}">${item.status || "Pending"}</td>
+                    <td>${item.country || "Unknown"}</td>
+                </tr>
+            `;
             });
         }
 
-        // Real-time dashboard
-        function updateDashboard() {
-            usersRef.on('value', snapshot => {
-                const usersObj = snapshot.val() || {};
-                const users = Object.values(usersObj);
-                document.getElementById("totalUsers").textContent = users.length;
-                const pending = users.filter(u => u.paymentStatus === "Pending" || u.status === "Pending").length;
-                const approved = users.filter(u => u.paymentStatus === "Paid" || u.status === "Approved").length;
-                document.getElementById("pendingPayments").textContent = pending;
-                document.getElementById("approvedPayments").textContent = approved;
-                renderRecent("recentUsers", users, "User");
-            });
-
-            sellersRef.on('value', snapshot => {
-                const sellersObj = snapshot.val() || {};
-                const sellers = Object.values(sellersObj);
-                document.getElementById("totalSellers").textContent = sellers.length;
-                renderRecent("recentSellers", sellers, "Seller");
-            });
-        }
-
-        window.onload = updateDashboard;
+        window.onload = loadDashboard;
     </script>
 </body>
 

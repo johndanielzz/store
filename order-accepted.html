@@ -14,6 +14,7 @@
             text-align: center;
             margin: 0;
             padding: 0;
+            overflow-x: hidden;
         }
 
         .container {
@@ -22,50 +23,41 @@
             background: rgba(255, 255, 255, 0.05);
             border-radius: 15px;
             padding: 30px;
-            box-shadow: 0 0 20px rgba(6, 182, 212, 0.3);
+            box-shadow: 0 0 30px rgba(6, 182, 212, 0.5);
             animation: fadeIn 1s ease-in-out;
+            position: relative;
         }
 
         h1 {
             color: #22c55e;
-            font-size: 2rem;
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+            text-shadow: 0 0 8px #22c55e;
         }
 
         p {
-            margin: 15px 0;
+            margin: 12px 0;
             font-size: 1.1rem;
-        }
-
-        ul {
-            list-style: none;
-            padding: 0;
-            margin: 15px 0;
-            text-align: left;
-        }
-
-        li {
-            margin: 8px 0;
-            background: rgba(255, 255, 255, 0.1);
-            padding: 10px;
-            border-radius: 8px;
         }
 
         .btn {
             display: inline-block;
-            margin: 10px 5px 0 5px;
-            padding: 12px 20px;
+            margin: 15px 10px 0 10px;
+            padding: 14px 28px;
             border: none;
-            border-radius: 10px;
-            background: #06b6d4;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #06b6d4, #4f46e5);
             color: white;
             font-size: 1rem;
+            font-weight: 600;
             cursor: pointer;
             transition: 0.3s;
             text-decoration: none;
         }
 
         .btn:hover {
-            background: #4f46e5;
+            transform: scale(1.05);
+            background: linear-gradient(135deg, #4f46e5, #06b6d4);
         }
 
         @keyframes fadeIn {
@@ -79,75 +71,129 @@
                 transform: translateY(0);
             }
         }
+
+        canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 999;
+        }
     </style>
+
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.24.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.24.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.24.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.24.0/firebase-storage-compat.js"></script>
+
+    <script>
+        // 🔹 Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyDFrctk2MZajP7OmECXe5npHAV0dODH9jk",
+            authDomain: "matrixmarketplace-1bd71.firebaseapp.com",
+            databaseURL: "https://matrixmarketplace-1bd71-default-rtdb.firebaseio.com",
+            projectId: "matrixmarketplace-1bd71",
+            storageBucket: "matrixmarketplace-1bd71.firebasestorage.app",
+            messagingSenderId: "10374416997",
+            appId: "1:10374416997:web:068ef937272b3de687548c",
+            measurementId: "G-EH1NNVS55W"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+        const auth = firebase.auth();
+        const storage = firebase.storage();
+    </script>
 </head>
 
 <body>
     <div class="container">
         <h1>🎉 Order Accepted!</h1>
-        <p>Your order has been placed successfully.</p>
-        <p>💌 A confirmation email/SMS will be sent shortly.</p>
-
-        <div id="orderDetails">
-            <h3>🛒 Order Summary</h3>
-            <ul id="orderItems"></ul>
-            <p><b>Total:</b> <span id="orderTotal">0 GMD</span></p>
-        </div>
+        <p id="orderInfo">Your order has been placed successfully.<br>Our seller will begin processing soon.</p>
+        <p>💌 A confirmation email/SMS will be sent to you shortly.</p>
 
         <a href="shop.html" class="btn">🛍 Continue Shopping</a>
-        <a href="buyer-orders.html" class="btn">📦 View My Orders</a>
+        <a href="order-receipt.html" class="btn">📄 View Order Receipt</a>
     </div>
 
-    <script type="module">
-        // Firebase initialization
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
-        import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore.js";
+    <canvas id="confetti"></canvas>
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyBZpLELrmplsK66YNPycGLO2Aab9jvxa9k",
-            authDomain: "matrixmarketpace.firebaseapp.com",
-            projectId: "matrixmarketpace",
-            storageBucket: "matrixmarketpace.firebasestorage.app",
-            messagingSenderId: "200867795667",
-            appId: "1:200867795667:web:64de1ece48ddc07fa4ba26",
-            measurementId: "G-10TFPP3LDD"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-
-        // Load cart and buyer info
-        const cart = JSON.parse(localStorage.getItem("checkoutCart")) || [];
-        const buyer = JSON.parse(localStorage.getItem("buyerInfo")) || {};
-
-        const itemsList = document.getElementById("orderItems");
-        let total = 0;
-
-        cart.forEach(item => {
-            const li = document.createElement("li");
-            li.textContent = `${item.name} - ${item.price} GMD x ${item.quantity || 1}`;
-            itemsList.appendChild(li);
-            total += parseFloat(item.price) * (item.quantity || 1);
-        });
-
-        document.getElementById("orderTotal").textContent = total.toFixed(2) + " GMD";
-
-        // Save order to Firebase
-        if (cart.length > 0 && buyer.name) {
-            addDoc(collection(db, "orders"), {
-                buyer,
-                cart,
-                total,
-                status: "pending",
-                placedAt: serverTimestamp()
-            }).then(() => {
-                console.log("Order saved to Firebase!");
-            }).catch(err => console.error("Firebase error:", err));
-
-            // Clear local cart
-            localStorage.removeItem("checkoutCart");
-            localStorage.removeItem("buyerInfo");
+    <script>
+        // Load latest order from Firebase or fallback to localStorage
+        async function loadLatestOrder() {
+            try {
+                const snapshot = await database.ref('buyerOrders').once('value');
+                const orders = snapshot.val() ? Object.values(snapshot.val()) : [];
+                if (orders.length > 0) {
+                    const latestOrder = orders[orders.length - 1];
+                    const info = document.getElementById("orderInfo");
+                    info.innerHTML = `Order #${orders.length}<br>Total: ${parseFloat(latestOrder.total).toFixed(2)} GMD<br>Our seller will begin processing soon.`;
+                }
+            } catch (err) {
+                console.warn("Firebase error, falling back to localStorage:", err);
+                const orders = JSON.parse(localStorage.getItem("buyerOrders")) || [];
+                if (orders.length > 0) {
+                    const latestOrder = orders[orders.length - 1];
+                    const info = document.getElementById("orderInfo");
+                    info.innerHTML = `Order #${orders.length}<br>Total: ${parseFloat(latestOrder.total).toFixed(2)} GMD<br>Our seller will begin processing soon.`;
+                }
+            }
         }
+
+        loadLatestOrder();
+
+        // Redirect to order-receipt.html after 8 seconds
+        setTimeout(() => window.location.href = "order-receipt.html", 8000);
+
+        // Confetti animation
+        const canvas = document.getElementById("confetti");
+        const ctx = canvas.getContext("2d");
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        const confetti = [];
+        const colors = ["#f43f5e", "#22c55e", "#3b82f6", "#facc15", "#06b6d4", "#a855f7"];
+
+        for (let i = 0; i < 200; i++) {
+            confetti.push({
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height - canvas.height,
+                r: Math.random() * 6 + 4,
+                d: Math.random() * 150 + 50,
+                color: colors[Math.floor(Math.random() * colors.length)],
+                tilt: Math.random() * 10 - 10,
+                tiltAngleIncrement: 0.05 + Math.random() / 10
+            });
+        }
+
+        function drawConfetti() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            confetti.forEach(c => {
+                ctx.beginPath();
+                ctx.lineWidth = c.r / 2;
+                ctx.strokeStyle = c.color;
+                ctx.moveTo(c.x + c.tilt, c.y);
+                ctx.lineTo(c.x + c.tilt + c.r, c.y + c.r);
+                ctx.stroke();
+            });
+            updateConfetti();
+        }
+
+        function updateConfetti() {
+            confetti.forEach(c => {
+                c.tilt += c.tiltAngleIncrement;
+                c.y += (Math.cos(c.d) + 3 + c.r / 2) / 2;
+                c.x += Math.sin(0.01 * c.d);
+                if (c.y > canvas.height) c.y = -10;
+            });
+        }
+
+        setInterval(drawConfetti, 20);
+        window.addEventListener('resize', () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; });
     </script>
 </body>
 

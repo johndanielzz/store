@@ -9,7 +9,6 @@
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
 
   <style>
-    /* ====== BODY & BACKGROUND ====== */
     body {
       margin: 0;
       font-family: "Poppins", sans-serif;
@@ -23,20 +22,11 @@
     }
 
     @keyframes gradientBG {
-      0% {
-        background-position: 0% 50%;
-      }
-
-      50% {
-        background-position: 100% 50%;
-      }
-
-      100% {
-        background-position: 0% 50%;
-      }
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
     }
 
-    /* ====== HEADER ====== */
     header {
       display: flex;
       justify-content: space-between;
@@ -61,11 +51,8 @@
       transition: 0.3s;
     }
 
-    header nav a:hover {
-      color: #06b6d4;
-    }
+    header nav a:hover { color: #06b6d4; }
 
-    /* ====== REGISTER CARD ====== */
     .register-container {
       flex: 1;
       display: flex;
@@ -86,186 +73,49 @@
       animation: fadeIn 1s ease-in-out;
     }
 
-    .register-card h1 {
-      margin-bottom: 10px;
-      font-size: 2.2rem;
-      text-shadow: 0 0 12px #06b6d4, 0 0 20px #4f46e5;
-    }
-
+    .register-card h1 { margin-bottom: 10px; font-size: 2.2rem; text-shadow: 0 0 12px #06b6d4, 0 0 20px #4f46e5; }
+    .register-card p { margin-bottom: 20px; font-size: 1rem; color: #cbd5e1; }
     .register-card input {
       width: 100%;
       padding: 14px;
       margin: 12px 0;
       border: none;
       border-radius: 12px;
-      background: rgba(255, 255, 255, 0.12);
+      background: rgba(255,255,255,0.12);
       color: #fff;
       font-size: 1rem;
       outline: none;
-      box-shadow: 0 0 8px rgba(255, 255, 255, 0.2);
+      box-shadow: 0 0 8px rgba(255,255,255,0.2);
       transition: all 0.3s ease-in-out;
     }
+    .register-card input:focus { box-shadow: 0 0 15px #06b6d4, 0 0 25px #4f46e5; }
 
-    .register-card input:focus {
-      box-shadow: 0 0 15px #06b6d4, 0 0 25px #4f46e5;
-    }
+    .error-msg { color: #f87171; font-size: 0.9rem; margin: 5px 0 10px; display: none; }
 
-    .error-msg {
-      color: #f87171;
-      font-size: 0.9rem;
-      margin: -5px 0 10px;
-      display: none;
-    }
-
-    /* ====== PLAN BOXES ====== */
-    .plans {
-      margin: 25px 0;
-      display: flex;
-      gap: 15px;
-      flex-wrap: wrap;
-      justify-content: center;
-    }
-
+    .plans { margin: 25px 0; display: flex; gap: 15px; flex-wrap: wrap; justify-content: center; }
     .plan {
-      flex: 1;
-      min-width: 140px;
-      background: rgba(255, 255, 255, 0.1);
+      flex: 1; min-width: 140px;
+      background: rgba(255,255,255,0.1);
       padding: 20px;
       border-radius: 16px;
       cursor: pointer;
       transition: all 0.3s ease-in-out;
-      box-shadow: 0 0 12px rgba(255, 255, 255, 0.15);
+      box-shadow: 0 0 12px rgba(255,255,255,0.15);
       text-align: center;
     }
+    .plan:hover { transform: scale(1.07); box-shadow: 0 0 25px #06b6d4; }
+    .plan strong { display: block; font-size: 1.2rem; margin-bottom: 5px; }
+    .plan span { display: block; font-size: 0.95rem; color: #06b6d4; }
+    .plan i { font-size: 2rem; margin-bottom: 10px; color: #4f46e5; }
 
-    .plan:hover {
-      transform: scale(1.07);
-      box-shadow: 0 0 25px #06b6d4;
-    }
-
-    .plan strong {
-      display: block;
-      font-size: 1.2rem;
-      margin-bottom: 5px;
-    }
-
-    .plan span {
-      display: block;
-      font-size: 0.95rem;
-      color: #06b6d4;
-    }
-
-    .plan i {
-      font-size: 2rem;
-      margin-bottom: 10px;
-      color: #4f46e5;
-    }
-
-    /* ====== FOOTER ====== */
-    footer {
-      text-align: center;
-      padding: 20px;
-      background: rgba(255, 255, 255, 0.08);
-      border-top: 1px solid rgba(255, 255, 255, 0.1);
-      font-size: 0.9rem;
-    }
-
-    /* ====== ANIMATIONS ====== */
-    @keyframes fadeIn {
-      from {
-        opacity: 0;
-        transform: translateY(-20px);
-      }
-
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-
-    @media (max-width: 600px) {
-      .register-card {
-        padding: 25px;
-      }
-
-      .register-card h1 {
-        font-size: 1.6rem;
-      }
-
-      .plans {
-        gap: 10px;
-      }
-    }
+    footer { text-align: center; padding: 20px; background: rgba(255,255,255,0.08); border-top: 1px solid rgba(255,255,255,0.1); font-size: 0.9rem; }
+    @keyframes fadeIn { from {opacity:0; transform:translateY(-20px);} to {opacity:1; transform:translateY(0);} }
   </style>
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
-    import { getFirestore, doc, setDoc, getDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore.js";
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyBZpLELrmplsK66YNPycGLO2Aab9jvxa9k",
-      authDomain: "matrixmarketpace.firebaseapp.com",
-      projectId: "matrixmarketpace",
-      storageBucket: "matrixmarketpace.firebasestorage.app",
-      messagingSenderId: "200867795667",
-      appId: "1:200867795667:web:64de1ece48ddc07fa4ba26",
-      measurementId: "G-10TFPP3LDD"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-
-    async function goToPayment(plan) {
-      const name = document.getElementById("name").value.trim();
-      const email = document.getElementById("email").value.trim();
-      const store = document.getElementById("store").value.trim();
-      const phone = document.getElementById("phone").value.trim();
-      const password = document.getElementById("password").value.trim();
-      const errorBox = document.getElementById("errorBox");
-      errorBox.style.display = "none";
-
-      // Basic validation
-      if (!name || !email || !store || !phone || !password) {
-        errorBox.innerText = "⚠️ Please fill in all your details!";
-        errorBox.style.display = "block";
-        return;
-      }
-
-      // Email format validation
-      const emailPattern = /\S+@\S+\.\S+/;
-      if (!emailPattern.test(email)) {
-        errorBox.innerText = "⚠️ Please enter a valid email address!";
-        errorBox.style.display = "block";
-        return;
-      }
-
-      // Check if seller already exists
-      const sellerRef = doc(db, "sellers", email);
-      const sellerSnap = await getDoc(sellerRef);
-      if (sellerSnap.exists()) {
-        errorBox.innerText = "⚠️ Email already registered. Try login instead.";
-        errorBox.style.display = "block";
-        return;
-      }
-
-      // Determine plan amount
-      let amount = 0;
-      if (plan.includes("Weekly")) amount = 1000;
-      else if (plan.includes("Monthly")) amount = 3000;
-      else if (plan.includes("Yearly")) amount = 20500;
-
-      // TODO: Hash password before storing (for security)
-      await setDoc(sellerRef, {
-        name, email, store, phone, password, plan, amount,
-        status: "Pending Approval",
-        createdAt: serverTimestamp()
-      });
-
-      // Redirect to checkout with query params
-      const params = new URLSearchParams({ plan, amount, name, email, store });
-      window.location.href = `checkout.html?${params.toString()}`;
-    }
-  </script>
 </head>
 
 <body>
@@ -283,7 +133,7 @@
       <h1>📝 Become a Seller</h1>
       <p>Register your store and choose a subscription plan to start selling on MatrixMarket.</p>
 
-      <form onsubmit="return false">
+      <form id="sellerForm" onsubmit="return false">
         <input type="text" id="name" placeholder="Full Name" required>
         <input type="email" id="email" placeholder="Business Email" required>
         <input type="text" id="store" placeholder="Store Name" required>
@@ -294,17 +144,17 @@
 
       <h2>Select Your Plan</h2>
       <div class="plans">
-        <div class="plan" onclick="goToPayment('Weekly - GMD1000/week')">
+        <div class="plan" onclick="submitSeller('Weekly - GMD1000/week')">
           <i class="fas fa-calendar-week"></i>
           <strong>Weekly</strong>
           <span>GMD 1000 / week</span>
         </div>
-        <div class="plan" onclick="goToPayment('Monthly - GMD3000/month')">
+        <div class="plan" onclick="submitSeller('Monthly - GMD3000/month')">
           <i class="fas fa-calendar-alt"></i>
           <strong>Monthly</strong>
           <span>GMD 3000 / month</span>
         </div>
-        <div class="plan" onclick="goToPayment('Yearly - GMD20500/year')">
+        <div class="plan" onclick="submitSeller('Yearly - GMD20500/year')">
           <i class="fas fa-calendar"></i>
           <strong>Yearly</strong>
           <span>GMD 20500 / year</span>
@@ -316,6 +166,78 @@
   <footer>
     <p>© 2025 MatrixMarket | Seller Registration</p>
   </footer>
-</body>
 
+  <script>
+    // ====== Firebase Config ======
+    const firebaseConfig = {
+      apiKey: "AIzaSyDFrctk2MZajP7OmECXe5npHAV0dODH9jk",
+      authDomain: "matrixmarketplace-1bd71.firebaseapp.com",
+      databaseURL: "https://matrixmarketplace-1bd71-default-rtdb.firebaseio.com",
+      projectId: "matrixmarketplace-1bd71",
+      storageBucket: "matrixmarketplace-1bd71.firebasestorage.app",
+      messagingSenderId: "10374416997",
+      appId: "1:10374416997:web:068ef937272b3de687548c",
+      measurementId: "G-EH1NNVS55W"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    async function submitSeller(plan) {
+      const name = document.getElementById("name").value.trim();
+      const email = document.getElementById("email").value.trim();
+      const store = document.getElementById("store").value.trim();
+      const phone = document.getElementById("phone").value.trim();
+      const password = document.getElementById("password").value.trim();
+      const errorBox = document.getElementById("errorBox");
+      errorBox.style.display = "none";
+
+      if (!name || !email || !store || !phone || !password) {
+        errorBox.innerText = "⚠️ Please fill in all your details!";
+        errorBox.style.display = "block";
+        return;
+      }
+
+      try {
+        // Check if email or store exists
+        const snapshot = await db.ref("sellers").orderByChild("email").equalTo(email).get();
+        if (snapshot.exists()) {
+          errorBox.innerText = "⚠️ Email already registered. Try login instead.";
+          errorBox.style.display = "block";
+          return;
+        }
+
+        const storeSnapshot = await db.ref("sellers").orderByChild("store").equalTo(store).get();
+        if (storeSnapshot.exists()) {
+          errorBox.innerText = "⚠️ Store name already taken.";
+          errorBox.style.display = "block";
+          return;
+        }
+
+        let amount = plan.includes("Weekly") ? 1000 :
+                     plan.includes("Monthly") ? 3000 : 20500;
+
+        // Push seller to DB
+        const newSellerRef = db.ref("sellers").push();
+        await newSellerRef.set({
+          name, email, store, phone, password, plan, amount,
+          status: "Pending Approval",
+          registeredAt: new Date().toISOString()
+        });
+
+        // Push pending payment request
+        const paymentRef = db.ref("pendingRequests").push();
+        await paymentRef.set({ name, email, store, phone, plan, amount, status: "Pending", date: new Date().toISOString() });
+
+        // Redirect to payment page
+        window.location.href = `payment-accept-decline.html?plan=${encodeURIComponent(plan)}&amount=${amount}&name=${encodeURIComponent(name)}&email=${encodeURIComponent(email)}&store=${encodeURIComponent(store)}`;
+
+      } catch (err) {
+        console.error(err);
+        errorBox.innerText = "❌ Failed to register. Try again.";
+        errorBox.style.display = "block";
+      }
+    }
+  </script>
+</body>
 </html>

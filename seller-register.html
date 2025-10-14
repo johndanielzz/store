@@ -8,6 +8,10 @@
     <link rel="stylesheet" href="style.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
 
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/9.24.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.24.0/firebase-database-compat.js"></script>
+
     <style>
         body {
             margin: 0;
@@ -91,7 +95,6 @@
 
         .register-card p {
             margin-bottom: 20px;
-            font-size: 1rem;
             color: #cbd5e1;
         }
 
@@ -141,9 +144,10 @@
             text-align: center;
         }
 
-        .plan:hover {
-            transform: scale(1.07);
+        .plan.selected {
+            border: 2px solid #06b6d4;
             box-shadow: 0 0 25px #06b6d4;
+            transform: scale(1.07);
         }
 
         .plan strong {
@@ -185,60 +189,97 @@
         }
     </style>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
-        import { getFirestore, doc, setDoc, getDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore.js";
-
+    <script>
+        // Firebase config
         const firebaseConfig = {
-            apiKey: "AIzaSyBZpLELrmplsK66YNPycGLO2Aab9jvxa9k",
-            authDomain: "matrixmarketpace.firebaseapp.com",
-            projectId: "matrixmarketpace",
-            storageBucket: "matrixmarketpace.firebasestorage.app",
-            messagingSenderId: "200867795667",
-            appId: "1:200867795667:web:64de1ece48ddc07fa4ba26"
+        apiKey: "AIzaSyDFrctk2MZajP7OmECXe5npHAV0dODH9jk",
+            authDomain: "matrixmarketplace-1bd71.firebaseapp.com",
+            databaseURL: "https://matrixmarketplace-1bd71-default-rtdb.firebaseio.com",
+            projectId: "matrixmarketplace-1bd71",
+            storageBucket: "matrixmarketplace-1bd71.firebasestorage.app",
+            messagingSenderId: "10374416997",
+            appId: "1:10374416997:web:068ef937272b3de687548c",
+            measurementId: "G-EH1NNVS55W"
         };
 
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
 
-        async function goToPayment(plan) {
+        const plans = [
+            { name: "Weekly", amount: 1000, period: "week" },
+            { name: "Monthly", amount: 3000, period: "month" },
+            { name: "Yearly", amount: 20500, period: "year" }
+        ];
+
+        let selectedPlan = null;
+
+        function renderPlans() {
+            const container = document.querySelector(".plans");
+            container.innerHTML = "";
+            plans.forEach((plan, index) => {
+                const div = document.createElement("div");
+                div.className = "plan";
+                div.onclick = () => selectPlan(index);
+                div.innerHTML = `
+        <i class="fas fa-calendar-${plan.period === 'week' ? 'week' : plan.period === 'month' ? 'alt' : ''}"></i>
+        <strong>${plan.name}</strong>
+        <span>GMD ${plan.amount} / ${plan.period}</span>
+      `;
+                container.appendChild(div);
+            });
+        }
+
+        function selectPlan(index) {
+            selectedPlan = plans[index];
+            document.querySelectorAll(".plan").forEach((p, i) => p.classList.toggle("selected", i === index));
+        }
+
+        function goToPayment() {
             const name = document.getElementById("name").value.trim();
             const email = document.getElementById("email").value.trim();
             const store = document.getElementById("store").value.trim();
             const phone = document.getElementById("phone").value.trim();
             const password = document.getElementById("password").value.trim();
             const errorBox = document.getElementById("errorBox");
-
             errorBox.style.display = "none";
+
             if (!name || !email || !store || !phone || !password) {
-                errorBox.innerText = "⚠️ Please fill in all your details!";
+                errorBox.innerText = "⚠️ Please fill in all fields!";
+                errorBox.style.display = "block";
+                return;
+            }
+            if (!selectedPlan) {
+                errorBox.innerText = "⚠️ Please select a subscription plan!";
+                errorBox.style.display = "block";
+                return;
+            }
+            if (!/^\+?\d{8,15}$/.test(phone)) {
+                errorBox.innerText = "⚠️ Invalid phone number!";
+                errorBox.style.display = "block";
+                return;
+            }
+            if (password.length < 6) {
+                errorBox.innerText = "⚠️ Password must be at least 6 characters!";
                 errorBox.style.display = "block";
                 return;
             }
 
-            const sellerRef = doc(db, "sellers", email);
-            const sellerSnap = await getDoc(sellerRef);
+            const newSeller = { name, email, store, phone, password, plan: selectedPlan.name, amount: selectedPlan.amount, status: "Pending", date: new Date().toLocaleString() };
 
-            if (sellerSnap.exists()) {
-                errorBox.innerText = "⚠️ Email already registered. Try login instead.";
-                errorBox.style.display = "block";
-                return;
-            }
-
-            // Amount based on plan
-            const amount = plan.includes("Weekly") ? 1000 : plan.includes("Monthly") ? 3000 : 20500;
-
-            // Save seller in Firestore
-            await setDoc(sellerRef, {
-                name, email, store, phone, password,
-                plan, amount,
-                status: "Pending Approval",
-                createdAt: serverTimestamp()
-            });
-
-            // Redirect to payment status page
-            window.location.href = "payment-status-sellers.html?email=" + encodeURIComponent(email);
+            // Save to Firebase
+            db.ref('sellers/' + email.replace('.', ',')).set(newSeller)
+                .then(() => {
+                    localStorage.setItem("currentSeller", JSON.stringify(newSeller));
+                    window.location.href = "payment-status-sellers.html";
+                })
+                .catch(err => {
+                    errorBox.innerText = "⚠️ Failed to register seller!";
+                    errorBox.style.display = "block";
+                    console.error(err);
+                });
         }
+
+        window.onload = () => renderPlans();
     </script>
 </head>
 
@@ -267,23 +308,12 @@
             </form>
 
             <h2>Select Your Plan</h2>
-            <div class="plans">
-                <div class="plan" onclick="goToPayment('Weekly - GMD1000/week')">
-                    <i class="fas fa-calendar-week"></i>
-                    <strong>Weekly</strong>
-                    <span>GMD 1000 / week</span>
-                </div>
-                <div class="plan" onclick="goToPayment('Monthly - GMD3000/month')">
-                    <i class="fas fa-calendar-alt"></i>
-                    <strong>Monthly</strong>
-                    <span>GMD 3000 / month</span>
-                </div>
-                <div class="plan" onclick="goToPayment('Yearly - GMD20500/year')">
-                    <i class="fas fa-calendar"></i>
-                    <strong>Yearly</strong>
-                    <span>GMD 20500 / year</span>
-                </div>
-            </div>
+            <div class="plans"></div>
+
+            <button class="btn" onclick="goToPayment()"
+                style="margin-top:15px;padding:12px 20px;background:#06b6d4;border:none;border-radius:10px;font-size:1rem;font-weight:600;cursor:pointer;">
+                ✅ Proceed to Payment
+            </button>
         </div>
     </div>
 

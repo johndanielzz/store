@@ -1,11 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
+   
+
+
+
+
 
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>MatrixMarket - Home</title>
-    <link rel="icon" type="image/x-icon" href="matrixx.png">
     <link rel="stylesheet" href="style.css" />
 
     <style>
@@ -323,14 +327,15 @@
             }
         }
     </style>
-</head>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
 
 <body>
     <div class="page-container">
         <!-- Header -->
         <header>
             <div class="logo">MatrixMarket</div>
-
             <nav>
                 <a href="index.html">Home</a>
                 <a href="shop.html">Shop</a>
@@ -372,7 +377,6 @@
         <!-- Products -->
         <section class="products">
             <h2>🛍️ Latest Products</h2>
-
             <div id="productList" class="product-grid" aria-live="polite">
                 <!-- product cards injected by JS -->
             </div>
@@ -384,70 +388,106 @@
     </div>
 
     <script>
-        // === REFRESH USER INFO ===
-        function refreshUserInfo() {
-            let user = JSON.parse(localStorage.getItem("currentUser") || "null");
-            let requests = JSON.parse(localStorage.getItem("pendingRequests") || "[]");
-            let balance = 0;
+        // ===============================
+        // Firebase Initialization
+        // ===============================
+        const firebaseConfig = {
+            apiKey: "AIzaSyDFrctk2MZajP7OmECXe5npHAV0dODH9jk",
+            authDomain: "matrixmarketplace-1bd71.firebaseapp.com",
+            databaseURL: "https://matrixmarketplace-1bd71-default-rtdb.firebaseio.com",
+            projectId: "matrixmarketplace-1bd71",
+            storageBucket: "matrixmarketplace-1bd71.appspot.com",
+            messagingSenderId: "10374416997",
+            appId: "1:10374416997:web:068ef937272b3de687548c",
+            measurementId: "G-EH1NNVS55W"
+        };
 
-            if (user) {
-                balance = parseFloat(user.balance || 0);
-                requests.forEach(req => {
-                    if (req.email === user.email && (req.status === "Approved" || req.status === "success") && !req.addedToBalance && req.type !== "subscription") {
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        let currentUser = null;
+
+        // ===============================
+        // REFRESH USER INFO
+        // ===============================
+        async function refreshUserInfo() {
+            const email = sessionStorage.getItem("currentUserEmail");
+            if (!email) {
+                currentUser = null;
+                updateHeaderUI();
+                return;
+            }
+
+            const snapshot = await db.ref("users").orderByChild("email").equalTo(email).get();
+            if (snapshot.exists()) {
+                currentUser = Object.values(snapshot.val())[0];
+
+                // Update balance from pendingRequests
+                const requestsSnap = await db.ref("pendingRequests").get();
+                const requests = requestsSnap.exists() ? Object.values(requestsSnap.val()) : [];
+                let balance = parseFloat(currentUser.balance || 0);
+
+                for (const req of requests) {
+                    if (req.email === currentUser.email &&
+                        (req.status === "Approved" || req.status === "success") &&
+                        !req.addedToBalance && req.type !== "subscription") {
                         balance += parseFloat(req.amount || 0);
                         req.addedToBalance = true;
+                        db.ref("pendingRequests/" + req.id).update({ addedToBalance: true });
                     }
-                });
+                }
 
-                user.balance = balance;
-                localStorage.setItem("pendingRequests", JSON.stringify(requests));
-                localStorage.setItem("currentUser", JSON.stringify(user));
-                localStorage.setItem("balance", balance);
-
-                document.getElementById("welcomeUser").innerText = "👋 " + (user.fullName ? user.fullName : user.email);
-                document.getElementById("userBalance").innerText = "Balance: " + balance.toFixed(2) + " GMD";
-                document.getElementById("accountLinks").innerHTML = `
-          <a href="buyers-orders.html">📦 My Orders</a>
-          <a href="settings.html">⚙ Settings</a>
-          <a href="#" onclick="logoutUser()">🚪 Logout</a>`;
+                currentUser.balance = balance;
+                await db.ref("users/" + currentUser.id).update({ balance });
             } else {
-                document.getElementById("welcomeUser").innerText = "";
-                document.getElementById("userBalance").innerText = "Balance: 0 GMD";
-                document.getElementById("accountLinks").innerHTML = `
-          <a href="login.html">🔑 Login</a>
-          <a href="register.html">📝 Sign Up</a>`;
+                currentUser = null;
+            }
+
+            updateHeaderUI();
+        }
+
+        function updateHeaderUI() {
+            const welcome = document.getElementById("welcomeUser");
+            const balanceBox = document.getElementById("userBalance");
+            const accountLinks = document.getElementById("accountLinks");
+
+            if (currentUser) {
+                welcome.innerText = "👋 " + (currentUser.fullName || currentUser.email);
+                balanceBox.innerText = "Balance: " + (parseFloat(currentUser.balance) || 0).toFixed(2) + " GMD";
+                accountLinks.innerHTML = `
+                    <a href="buyers-orders.html">📦 My Orders</a>
+                    <a href="settings.html">⚙ Settings</a>
+                    <a href="#" onclick="logoutUser()">🚪 Logout</a>`;
+            } else {
+                welcome.innerText = "";
+                balanceBox.innerText = "Balance: 0 GMD";
+                accountLinks.innerHTML = `
+                    <a href="login.html">🔑 Login</a>
+                    <a href="register.html">📝 Sign Up</a>`;
             }
         }
 
-        // === LOGOUT ===
+        // ===============================
+        // LOGOUT
+        // ===============================
         function logoutUser() {
-            localStorage.removeItem("currentUser");
-            refreshUserInfo();
+            sessionStorage.removeItem("currentUserEmail");
+            currentUser = null;
+            updateHeaderUI();
             alert("✅ Logged out successfully!");
         }
 
-        // === ADD TO CART ===
-        function addToCart(product) {
-            let cart = JSON.parse(localStorage.getItem("cart") || "[]");
-            cart.push(product);
-            localStorage.setItem("cart", JSON.stringify(cart));
-            alert("🛒 " + product.name + " added to cart!");
-        }
-
-        // === FILTER function (simple client-side) ===
-        function filterProducts() {
-            const q = (document.getElementById('searchInput').value || '').toLowerCase().trim();
-            const cat = document.getElementById('categoryFilter').value;
-            renderProducts(q, cat);
-        }
-
-        // === RENDER PRODUCTS ===
-        function renderProducts(filterText = '', filterCategory = '') {
+        // ===============================
+        // PRODUCTS RENDERING
+        // ===============================
+        async function renderProducts(filterText = '', filterCategory = '') {
             const productList = document.getElementById("productList");
-            const products = JSON.parse(localStorage.getItem("products") || "[]");
+            const snapshot = await db.ref("products").get();
+            const products = snapshot.exists() ? Object.values(snapshot.val()) : [];
 
             const filtered = products.filter(p => {
-                const matchesText = !filterText || (p.name && p.name.toLowerCase().includes(filterText)) || (p.category && p.category.toLowerCase().includes(filterText));
+                const matchesText = !filterText || (p.name && p.name.toLowerCase().includes(filterText)) ||
+                    (p.category && p.category.toLowerCase().includes(filterText));
                 const matchesCat = !filterCategory || p.category === filterCategory;
                 return matchesText && matchesCat;
             });
@@ -458,7 +498,7 @@
             }
 
             productList.innerHTML = filtered.map(p => {
-                const safe = (v) => (v === undefined || v === null) ? '' : String(v).replace(/"/g, '&quot;');
+                const safe = v => (v === undefined || v === null) ? '' : String(v).replace(/"/g, '&quot;');
                 return `
           <div class="product-card" role="article">
             <img class="product-thumb" src="${safe(p.image) || 'https://via.placeholder.com/400x300?text=No+Image'}" alt="${safe(p.name)}" />
@@ -472,43 +512,34 @@
             }).join('');
         }
 
-        // === PAGE LOAD ===
-        window.addEventListener('load', function () {
-            refreshUserInfo();
-            renderProducts();
-        });
+        // ===============================
+        // FILTER PRODUCTS
+        // ===============================
+        function filterProducts() {
+            const q = (document.getElementById('searchInput').value || '').toLowerCase().trim();
+            const cat = document.getElementById('categoryFilter').value;
+            renderProducts(q, cat);
+        }
 
-        // update on storage events
-        window.addEventListener("storage", function () {
+        // ===============================
+        // ADD TO CART
+        // ===============================
+        async function addToCart(product) {
+            if (!currentUser) { alert("❌ Please login to add products."); return; }
+            const cartRef = db.ref("carts/" + currentUser.email.replace('.', '_'));
+            const newItemRef = cartRef.push();
+            await newItemRef.set(product);
+            alert(`🛒 ${product.name} added to cart!`);
+        }
+
+        // ===============================
+        // PAGE LOAD
+        // ===============================
+        window.addEventListener('load', function () {
             refreshUserInfo();
             renderProducts();
         });
     </script>
 </body>
-<script type="module">
-  // Import the functions you need from the SDKs you need
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
-  import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-analytics.js";
-  // TODO: Add SDKs for Firebase products that you want to use
-  // https://firebase.google.com/docs/web/setup#available-libraries
-
-  // Your web app's Firebase configuration
-  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
-  const firebaseConfig = {
-    apiKey: "AIzaSyDFrctk2MZajP7OmECXe5npHAV0dODH9jk",
-      authDomain: "matrixmarketplace-1bd71.firebaseapp.com",
-      databaseURL: "https://matrixmarketplace-1bd71-default-rtdb.firebaseio.com",
-      projectId: "matrixmarketplace-1bd71",
-      storageBucket: "matrixmarketplace-1bd71.firebasestorage.app",
-      messagingSenderId: "10374416997",
-      appId: "1:10374416997:web:068ef937272b3de687548c",
-      measurementId: "G-EH1NNVS55W"
-  };
-
-  // Initialize Firebase
-  const app = initializeApp(firebaseConfig);
-  const analytics = getAnalytics(app);
-</script>
 
 </html>
-
