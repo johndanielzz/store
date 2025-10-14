@@ -2,239 +2,238 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MatrixMarket - Admin Seller Control</title>
-    <style>
-        body {
-            font-family: "Poppins", sans-serif;
-            background: linear-gradient(135deg, #0f172a, #1e293b, #4f46e5, #06b6d4);
-            background-size: 400% 400%;
-            animation: bgMove 15s ease infinite;
-            color: white;
-            margin: 0;
-            padding: 0;
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MatrixMarket - Admin Seller Control</title>
+  <style>
+    body {
+      font-family: "Poppins", sans-serif;
+      background: linear-gradient(135deg, #0f172a, #1e293b, #4f46e5, #06b6d4);
+      background-size: 400% 400%;
+      animation: bgMove 15s ease infinite;
+      color: white;
+      margin: 0;
+      padding: 0;
+    }
 
-        @keyframes bgMove {
+    @keyframes bgMove {
+      0%, 100% {
+        background-position: 0% 50%;
+      }
+      50% {
+        background-position: 100% 50%;
+      }
+    }
 
-            0%,
-            100% {
-                background-position: 0% 50%;
-            }
+    header {
+      background: rgba(0, 0, 0, 0.4);
+      padding: 15px 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      backdrop-filter: blur(10px);
+    }
 
-            50% {
-                background-position: 100% 50%;
-            }
-        }
+    header .logo {
+      font-size: 1.6rem;
+      color: #06b6d4;
+      font-weight: bold;
+      text-shadow: 0 0 10px #06b6d4;
+    }
 
-        header {
-            background: rgba(0, 0, 0, 0.4);
-            padding: 15px 30px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            backdrop-filter: blur(10px);
-        }
+    nav a {
+      color: white;
+      text-decoration: none;
+      margin-left: 15px;
+      font-weight: 500;
+      transition: 0.3s;
+    }
 
-        header .logo {
-            font-size: 1.6rem;
-            color: #06b6d4;
-            font-weight: bold;
-            text-shadow: 0 0 10px #06b6d4;
-        }
+    nav a:hover {
+      color: #06b6d4;
+    }
 
-        nav a {
-            color: white;
-            text-decoration: none;
-            margin-left: 15px;
-            font-weight: 500;
-            transition: 0.3s;
-        }
+    .container {
+      max-width: 1200px;
+      margin: 40px auto;
+      background: rgba(255, 255, 255, 0.08);
+      padding: 30px;
+      border-radius: 20px;
+      box-shadow: 0 0 20px rgba(6, 182, 212, 0.5);
+    }
 
-        nav a:hover {
-            color: #06b6d4;
-        }
+    h1 {
+      text-align: center;
+      text-shadow: 0 0 10px #06b6d4;
+    }
 
-        .container {
-            max-width: 1200px;
-            margin: 40px auto;
-            background: rgba(255, 255, 255, 0.08);
-            padding: 30px;
-            border-radius: 20px;
-            box-shadow: 0 0 20px rgba(6, 182, 212, 0.5);
-        }
+    input[type="text"] {
+      width: 100%;
+      padding: 10px;
+      border: none;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.1);
+      color: white;
+      margin-bottom: 15px;
+    }
 
-        h1 {
-            text-align: center;
-            text-shadow: 0 0 10px #06b6d4;
-        }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
 
-        input[type="text"] {
-            width: 100%;
-            padding: 10px;
-            border: none;
-            border-radius: 10px;
-            background: rgba(255, 255, 255, 0.1);
-            color: white;
-            margin-bottom: 15px;
-        }
+    th, td {
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 10px;
+      text-align: center;
+    }
 
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 10px;
-        }
+    th {
+      background: rgba(6, 182, 212, 0.3);
+    }
 
-        th,
-        td {
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            padding: 10px;
-            text-align: center;
-        }
+    img.proof {
+      width: 80px;
+      height: 80px;
+      border-radius: 10px;
+      border: 2px solid rgba(6, 182, 212, 0.4);
+      object-fit: cover;
+      cursor: pointer;
+      transition: 0.3s;
+    }
 
-        th {
-            background: rgba(6, 182, 212, 0.3);
-        }
+    img.proof:hover {
+      transform: scale(1.2);
+    }
 
-        img.proof {
-            width: 80px;
-            height: 80px;
-            border-radius: 10px;
-            border: 2px solid rgba(6, 182, 212, 0.4);
-            object-fit: cover;
-            cursor: pointer;
-            transition: 0.3s;
-        }
+    .btn {
+      padding: 6px 12px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      color: white;
+      margin: 2px;
+      font-weight: 500;
+    }
 
-        img.proof:hover {
-            transform: scale(1.2);
-        }
+    .approve {
+      background: #06b6d4;
+    }
 
-        .btn {
-            padding: 6px 12px;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            color: white;
-            margin: 2px;
-            font-weight: 500;
-        }
+    .decline {
+      background: #ef4444;
+    }
 
-        .approve {
-            background: #06b6d4;
-        }
+    .approve:hover {
+      background: #0891b2;
+    }
 
-        .decline {
-            background: #ef4444;
-        }
+    .decline:hover {
+      background: #b91c1c;
+    }
 
-        .approve:hover {
-            background: #0891b2;
-        }
+    .status {
+      padding: 5px 10px;
+      border-radius: 8px;
+      font-weight: bold;
+    }
 
-        .decline:hover {
-            background: #b91c1c;
-        }
+    .pending {
+      background: rgba(245, 158, 11, 0.2);
+      color: #f59e0b;
+    }
 
-        .status {
-            padding: 5px 10px;
-            border-radius: 8px;
-            font-weight: bold;
-        }
+    .approved {
+      background: rgba(34, 197, 94, 0.2);
+      color: #22c55e;
+    }
 
-        .pending {
-            background: rgba(245, 158, 11, 0.2);
-            color: #f59e0b;
-        }
+    .declined {
+      background: rgba(239, 68, 68, 0.2);
+      color: #ef4444;
+    }
 
-        .approved {
-            background: rgba(34, 197, 94, 0.2);
-            color: #22c55e;
-        }
+    footer {
+      text-align: center;
+      padding: 15px;
+      background: rgba(255, 255, 255, 0.08);
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      margin-top: 40px;
+    }
 
-        .declined {
-            background: rgba(239, 68, 68, 0.2);
-            color: #ef4444;
-        }
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 999;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.7);
+      justify-content: center;
+      align-items: center;
+    }
 
-        footer {
-            text-align: center;
-            padding: 15px;
-            background: rgba(255, 255, 255, 0.08);
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
-            margin-top: 40px;
-        }
-
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 999;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.7);
-            justify-content: center;
-            align-items: center;
-        }
-
-        .modal img {
-            max-width: 90%;
-            max-height: 80%;
-            border-radius: 15px;
-            border: 3px solid #06b6d4;
-        }
-    </style>
+    .modal img {
+      max-width: 90%;
+      max-height: 80%;
+      border-radius: 15px;
+      border: 3px solid #06b6d4;
+    }
+  </style>
 </head>
 
 <body>
-    <header>
-        <div class="logo">MatrixMarket Admin</div>
-        <nav>
-            <a href="dashboard-admin.html">Dashboard</a>
-            <a href="admin-sellers.html">Sellers</a>
-            <a href="admin-users.html">Users</a>
-            <a href="admin-code.html">Codes</a>
-        </nav>
-    </header>
+  <header>
+    <div class="logo">MatrixMarket Admin</div>
+    <nav>
+      <a href="dashboard-admin.html">Dashboard</a>
+      <a href="admin-sellers.html">Sellers</a>
+      <a href="admin-users.html">Users</a>
+      <a href="admin-code.html">Codes</a>
+    </nav>
+  </header>
 
-    <div class="container">
-        <h1>🧾 Manage Sellers & Payments</h1>
-        <input type="text" id="searchBox" placeholder="Search seller by name or email..." onkeyup="renderSellers()">
-        <table id="sellerTable"></table>
-    </div>
+  <div class="container">
+    <h1>🧾 Manage Sellers & Payments</h1>
+    <input type="text" id="searchBox" placeholder="Search seller by name or email..." onkeyup="renderSellers()">
+    <table id="sellerTable"></table>
+  </div>
 
-    <div class="modal" id="imageModal" onclick="this.style.display='none'">
-        <img id="modalImg" src="">
-    </div>
+  <div class="modal" id="imageModal" onclick="this.style.display='none'">
+    <img id="modalImg" src="">
+  </div>
 
-    <footer>© 2025 MatrixMarket | Admin Seller Control</footer>
+  <footer>© 2025 MatrixMarket | Admin Seller Control</footer>
 
-    <!-- Firebase (MODERN SDK) -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
-        import { getFirestore, collection, getDocs, updateDoc, doc } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore.js";
+  <!-- FIREBASE ADMIN CONTROL -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
+    import { 
+      getFirestore, collection, getDocs, updateDoc, doc, setDoc, serverTimestamp 
+    } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore.js";
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyDFrctk2MZajP7OmECXe5npHAV0dODH9jk",
-            authDomain: "matrixmarketplace-1bd71.firebaseapp.com",
-            databaseURL: "https://matrixmarketplace-1bd71-default-rtdb.firebaseio.com",
-            projectId: "matrixmarketplace-1bd71",
-            storageBucket: "matrixmarketplace-1bd71.firebasestorage.app",
-            messagingSenderId: "10374416997",
-            appId: "1:10374416997:web:9626c569e845c14a87548c",
-            measurementId: "G-DTC2GM9L92"
-        };
+    const firebaseConfig = {
+      apiKey: "AIzaSyDFrctk2MZajP7OmECXe5npHAV0dODH9jk",
+      authDomain: "matrixmarketplace-1bd71.firebaseapp.com",
+      projectId: "matrixmarketplace-1bd71",
+      storageBucket: "matrixmarketplace-1bd71.firebasestorage.app",
+      messagingSenderId: "10374416997",
+      appId: "1:10374416997:web:9626c569e845c14a87548c",
+      measurementId: "G-DTC2GM9L92"
+    };
 
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
 
-        async function renderSellers() {
-            const search = document.getElementById("searchBox").value.toLowerCase();
-            const table = document.getElementById("sellerTable");
-
-            table.innerHTML = `
+    // =====================
+    // Render Sellers Table
+    // =====================
+    async function renderSellers() {
+      const search = document.getElementById("searchBox").value.toLowerCase();
+      const table = document.getElementById("sellerTable");
+      table.innerHTML = `
         <tr>
           <th>Name</th>
           <th>Email</th>
@@ -246,30 +245,30 @@
         </tr>
       `;
 
-            const querySnapshot = await getDocs(collection(db, "sellers"));
-            let hasResults = false;
+      const querySnapshot = await getDocs(collection(db, "sellers"));
+      let hasResults = false;
 
-            querySnapshot.forEach((docSnap) => {
-                const seller = docSnap.data();
-                const id = docSnap.id;
+      querySnapshot.forEach((docSnap) => {
+        const seller = docSnap.data();
+        const id = docSnap.id;
 
-                if (
-                    seller.name?.toLowerCase().includes(search) ||
-                    seller.email?.toLowerCase().includes(search)
-                ) {
-                    hasResults = true;
-                    const statusClass =
-                        seller.status === "Approved"
-                            ? "approved"
-                            : seller.status === "Declined"
-                                ? "declined"
-                                : "pending";
+        if (
+          seller.name?.toLowerCase().includes(search) ||
+          seller.email?.toLowerCase().includes(search)
+        ) {
+          hasResults = true;
+          const statusClass =
+            seller.status === "Approved"
+              ? "approved"
+              : seller.status === "Declined"
+              ? "declined"
+              : "pending";
 
-                    const proofHTML = seller.paymentProof
-                        ? `<img src="${seller.paymentProof}" class="proof" onclick="viewProof('${seller.paymentProof}')">`
-                        : "No proof";
+          const proofHTML = seller.paymentProof
+            ? `<img src="${seller.paymentProof}" class="proof" onclick="viewProof('${seller.paymentProof}')">`
+            : "No proof";
 
-                    table.innerHTML += `
+          table.innerHTML += `
             <tr>
               <td>${seller.name || "-"}</td>
               <td>${seller.email}</td>
@@ -283,37 +282,82 @@
               </td>
             </tr>
           `;
-                }
-            });
-
-            if (!hasResults) {
-                table.innerHTML += `<tr><td colspan="7">No sellers found.</td></tr>`;
-            }
         }
+      });
 
-        async function updateSeller(id, action) {
-            const sellerRef = doc(db, "sellers", id);
-            await updateDoc(sellerRef, {
-                status: action,
-                paymentStatus: action === "Approved" ? "Paid" : "Unpaid",
-                subscription: action === "Approved" ? "Active" : "Inactive",
-            });
-            alert(`Seller ${action.toLowerCase()} successfully!`);
-            renderSellers();
+      if (!hasResults) {
+        table.innerHTML += `<tr><td colspan="7">No sellers found.</td></tr>`;
+      }
+    }
+
+    // =====================
+    // Approve / Decline Seller
+    // =====================
+    async function updateSeller(id, action) {
+      const sellerRef = doc(db, "sellers", id);
+      await updateDoc(sellerRef, {
+        status: action,
+        paymentStatus: action === "Approved" ? "Paid" : "Unpaid",
+        subscription: action === "Approved" ? "Active" : "Inactive",
+        updatedAt: serverTimestamp()
+      });
+
+      // If approved, create subscription
+      if (action === "Approved") {
+        const start = new Date();
+        const end = new Date(start);
+        end.setDate(end.getDate() + 30); // 30 days subscription
+
+        await setDoc(doc(db, "subscriptions", id), {
+          sellerId: id,
+          plan: "Monthly",
+          status: "Active",
+          startDate: start.toISOString(),
+          expiryDate: end.toISOString(),
+          createdAt: serverTimestamp()
+        });
+      }
+
+      alert(`Seller ${action.toLowerCase()} successfully!`);
+      renderSellers();
+    }
+
+    // =====================
+    // View Payment Proof
+    // =====================
+    window.viewProof = (src) => {
+      const modal = document.getElementById("imageModal");
+      const modalImg = document.getElementById("modalImg");
+      modalImg.src = src;
+      modal.style.display = "flex";
+    };
+
+    // =====================
+    // Auto Expiry Checker
+    // =====================
+    async function checkExpiredSubscriptions() {
+      const now = new Date().toISOString();
+      const subsSnap = await getDocs(collection(db, "subscriptions"));
+
+      subsSnap.forEach(async (docSnap) => {
+        const sub = docSnap.data();
+        if (sub.status === "Active" && sub.expiryDate < now) {
+          const subRef = doc(db, "subscriptions", docSnap.id);
+          const sellerRef = doc(db, "sellers", docSnap.id);
+          await updateDoc(subRef, { status: "Expired" });
+          await updateDoc(sellerRef, { subscription: "Expired", status: "Expired" });
+          console.log(`🔴 Expired subscription for seller: ${docSnap.id}`);
         }
+      });
+    }
 
-        window.viewProof = (src) => {
-            const modal = document.getElementById("imageModal");
-            const modalImg = document.getElementById("modalImg");
-            modalImg.src = src;
-            modal.style.display = "flex";
-        };
-
-        window.updateSeller = updateSeller;
-        window.renderSellers = renderSellers;
-
-        window.onload = renderSellers;
-    </script>
+    window.updateSeller = updateSeller;
+    window.renderSellers = renderSellers;
+    window.onload = () => {
+      renderSellers();
+      checkExpiredSubscriptions();
+    };
+    setInterval(checkExpiredSubscriptions, 10 * 60 * 1000); // check every 10 minutes
+  </script>
 </body>
-
 </html>
