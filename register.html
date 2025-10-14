@@ -2,265 +2,219 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <title>Register - Matrix Marketplace</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8">
+  <title>Register - Matrix Marketplace</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
 
-    <style>
-        /* =========================
-        Global Styles
-        ========================= */
-        * {
-            box-sizing: border-box;
-        }
+  <style>
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      min-height: 100vh;
+      font-family: "Poppins", sans-serif;
+      background: linear-gradient(135deg, #0f172a, #1e293b, #4f46e5, #06b6d4);
+      background-size: 400% 400%;
+      animation: gradientBG 15s ease infinite;
+      color: #fff;
+      margin: 0;
+    }
 
-        body {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            flex-direction: column;
-            min-height: 100vh;
-            font-family: "Poppins", sans-serif;
-            background: linear-gradient(135deg, #0f172a, #1e293b, #4f46e5, #06b6d4);
-            background-size: 400% 400%;
-            animation: gradientBG 15s ease infinite;
-            color: #fff;
-            margin: 0;
-        }
+    @keyframes gradientBG {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
 
-        @keyframes gradientBG {
-            0% {
-                background-position: 0% 50%;
-            }
+    .register-box {
+      background: rgba(30, 41, 59, 0.9);
+      padding: 40px 30px;
+      border-radius: 20px;
+      width: 100%;
+      max-width: 400px;
+      text-align: center;
+      box-shadow: 0 12px 35px rgba(0, 0, 0, 0.6);
+    }
 
-            50% {
-                background-position: 100% 50%;
-            }
+    .register-box h1 {
+      color: #06b6d4;
+      font-size: 2rem;
+      margin-bottom: 25px;
+    }
 
-            100% {
-                background-position: 0% 50%;
-            }
-        }
+    .register-box input,
+    .register-box select {
+      width: 100%;
+      padding: 14px;
+      margin: 12px 0;
+      border-radius: 12px;
+      border: none;
+      outline: none;
+      font-size: 1rem;
+      background: rgba(255, 255, 255, 0.12);
+      color: #fff;
+      box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.6);
+    }
 
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
+    .register-box button {
+      width: 100%;
+      padding: 14px;
+      margin-top: 18px;
+      border: none;
+      border-radius: 12px;
+      font-weight: 700;
+      font-size: 1rem;
+      cursor: pointer;
+      color: #fff;
+      background: linear-gradient(135deg, #06b6d4, #4f46e5);
+      transition: all 0.3s ease;
+    }
 
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
+    .register-box button:hover {
+      transform: translateY(-3px);
+    }
 
-        /* =========================
-        Register Box
-        ========================= */
-        .register-box {
-            background: rgba(30, 41, 59, 0.9);
-            padding: 40px 30px;
-            border-radius: 20px;
-            width: 100%;
-            max-width: 400px;
-            text-align: center;
-            box-shadow: 0 12px 35px rgba(0, 0, 0, 0.6);
-            animation: fadeIn 0.8s ease;
-        }
+    .msg {
+      margin-top: 15px;
+      padding: 10px;
+      border-radius: 10px;
+      display: none;
+    }
 
-        .register-box h1 {
-            color: #06b6d4;
-            font-size: 2rem;
-            margin-bottom: 25px;
-            text-shadow: 0 0 12px #06b6d4, 0 0 24px #4f46e5;
-        }
+    .msg.success {
+      background: rgba(34, 197, 94, 0.2);
+      color: #22c55e;
+    }
 
-        .register-box input,
-        .register-box select {
-            width: 100%;
-            padding: 14px;
-            margin: 12px 0;
-            border-radius: 12px;
-            border: none;
-            outline: none;
-            font-size: 1rem;
-            background: rgba(255, 255, 255, 0.12);
-            color: #fff;
-            box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.6);
-            transition: 0.3s;
-        }
-
-        .register-box input:focus,
-        .register-box select:focus {
-            background: rgba(255, 255, 255, 0.22);
-            box-shadow: 0 0 12px #06b6d4, 0 0 20px #4f46e5;
-        }
-
-        .register-box button {
-            width: 100%;
-            padding: 14px;
-            margin-top: 18px;
-            border: none;
-            border-radius: 12px;
-            font-weight: 700;
-            font-size: 1rem;
-            cursor: pointer;
-            color: #fff;
-            background: linear-gradient(135deg, #06b6d4, #4f46e5);
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.6);
-            transition: all 0.3s ease;
-        }
-
-        .register-box button:hover {
-            transform: translateY(-3px);
-            background: linear-gradient(135deg, #4f46e5, #06b6d4);
-            box-shadow: 0 12px 35px rgba(6, 182, 212, 0.6);
-        }
-
-        .register-box p {
-            margin-top: 20px;
-            font-size: 0.9rem;
-            color: #cbd5e1;
-        }
-
-        .register-box a {
-            color: #06b6d4;
-            text-decoration: none;
-            font-weight: 600;
-            transition: 0.3s;
-        }
-
-        .register-box a:hover {
-            text-shadow: 0 0 8px #06b6d4, 0 0 15px #4f46e5;
-        }
-
-        .msg {
-            margin-top: 15px;
-            padding: 10px;
-            border-radius: 10px;
-            display: none;
-        }
-
-        .msg.success {
-            background: rgba(34, 197, 94, 0.2);
-            color: #22c55e;
-        }
-
-        .msg.error {
-            background: rgba(239, 68, 68, 0.2);
-            color: #ef4444;
-        }
-    </style>
+    .msg.error {
+      background: rgba(239, 68, 68, 0.2);
+      color: #ef4444;
+    }
+  </style>
 </head>
 
 <body>
-    <div class="register-box">
-        <h1>Create Account</h1>
-        <form onsubmit="return registerUser(event)">
-            <input type="text" id="fullName" placeholder="Full Name" required>
-            <input type="email" id="email" placeholder="Email Address" required>
-            <input type="password" id="password" placeholder="Password" required>
-            <input type="text" id="location" placeholder="Location (e.g., Banjul)" required>
-            <select id="accountType" required>
-                <option value="">Select Account Type</option>
-                <option value="buyer">Buyer</option>
-                <option value="seller">Seller</option>
-            </select>
-            <button type="submit">Register</button>
-        </form>
-        <div class="msg success" id="successMsg">✅ Registration successful! Redirecting...</div>
-        <div class="msg error" id="errorMsg"></div>
-        <p>Already have an account? <a href="login.html">Login here</a></p>
-    </div>
+  <div class="register-box">
+    <h1>Create Account</h1>
+    <form onsubmit="return registerUser(event)">
+      <input type="text" id="fullName" placeholder="Full Name" required>
+      <input type="email" id="email" placeholder="Email Address" required>
+      <input type="password" id="password" placeholder="Password" required>
+      <input type="text" id="location" placeholder="Location (e.g., Banjul)" required>
+      <select id="accountType" required>
+        <option value="">Select Account Type</option>
+        <option value="buyer">Buyer</option>
+        <option value="seller">Seller</option>
+      </select>
+      <button type="submit">Register</button>
+    </form>
 
-    <script>
-        // ===============================
-        // Firebase Config & Initialization
-        // ===============================
-        const firebaseConfig = {
-           apiKey: "AIzaSyDFrctk2MZajP7OmECXe5npHAV0dODH9jk",
-  authDomain: "matrixmarketplace-1bd71.firebaseapp.com",
-  databaseURL: "https://matrixmarketplace-1bd71-default-rtdb.firebaseio.com",
-  projectId: "matrixmarketplace-1bd71",
-  storageBucket: "matrixmarketplace-1bd71.firebasestorage.app",
-  messagingSenderId: "10374416997",
-  appId: "1:10374416997:web:9626c569e845c14a87548c",
-  measurementId: "G-DTC2GM9L92"
-        };
+    <div class="msg success" id="successMsg">✅ Registration successful! Redirecting...</div>
+    <div class="msg error" id="errorMsg"></div>
 
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.database();
+    <p>Already have an account? <a href="login.html">Login here</a></p>
+  </div>
 
-        async function registerUser(event) {
-            event.preventDefault();
+  <script>
+    // ===============================
+    // Firebase Config & Init
+    // ===============================
+    const firebaseConfig = {
+      apiKey: "AIzaSyDFrctk2MZajP7OmECXe5npHAV0dODH9jk",
+      authDomain: "matrixmarketplace-1bd71.firebaseapp.com",
+      databaseURL: "https://matrixmarketplace-1bd71-default-rtdb.firebaseio.com",
+      projectId: "matrixmarketplace-1bd71",
+      storageBucket: "matrixmarketplace-1bd71.firebasestorage.app",
+      messagingSenderId: "10374416997",
+      appId: "1:10374416997:web:9626c569e845c14a87548c",
+      measurementId: "G-DTC2GM9L92"
+    };
 
-            const fullName = document.getElementById("fullName").value.trim();
-            const email = document.getElementById("email").value.trim().toLowerCase();
-            const password = document.getElementById("password").value;
-            const location = document.getElementById("location").value.trim();
-            const accountType = document.getElementById("accountType").value;
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.database();
 
-            const successMsg = document.getElementById("successMsg");
-            const errorMsg = document.getElementById("errorMsg");
-            errorMsg.style.display = "none";
-            successMsg.style.display = "none";
+    // ===============================
+    // Register User
+    // ===============================
+    async function registerUser(event) {
+      event.preventDefault();
 
-            if (!fullName || !email || !password || !location || !accountType) {
-                errorMsg.innerText = "⚠️ Please fill in all fields.";
-                errorMsg.style.display = "block";
-                return;
-            }
+      const fullName = document.getElementById("fullName").value.trim();
+      const email = document.getElementById("email").value.trim().toLowerCase();
+      const password = document.getElementById("password").value;
+      const location = document.getElementById("location").value.trim();
+      const accountType = document.getElementById("accountType").value;
 
-            try {
-                // Check if email already exists
-                const snapshot = await db.ref("users").orderByChild("email").equalTo(email).get();
-                if (snapshot.exists()) {
-                    errorMsg.innerText = "⚠️ Email already registered.";
-                    errorMsg.style.display = "block";
-                    return;
-                }
+      const successMsg = document.getElementById("successMsg");
+      const errorMsg = document.getElementById("errorMsg");
+      errorMsg.style.display = "none";
+      successMsg.style.display = "none";
 
-                // Add user
-                const newUserRef = db.ref("users").push();
-                await newUserRef.set({
-                    fullName,
-                    email,
-                    password,
-                    location,
-                    accountType,
-                    balance: 0,
-                    subscription: "inactive",
-                    isSeller: accountType === "seller",
-                    createdAt: new Date().toISOString()
-                });
+      if (!fullName || !email || !password || !location || !accountType) {
+        errorMsg.innerText = "⚠️ Please fill in all fields.";
+        errorMsg.style.display = "block";
+        return;
+      }
 
-                // If seller → add to sellerRequests
-                if (accountType === "seller") {
-                    const sellerRef = db.ref("sellerRequests").push();
-                    await sellerRef.set({
-                        name: fullName,
-                        email,
-                        plan: "Basic",
-                        status: "pending",
-                        requestedAt: new Date().toISOString()
-                    });
-                }
+      try {
+        // Create Auth User
+        const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+        const user = userCredential.user;
 
-                successMsg.style.display = "block";
-                setTimeout(() => { window.location.href = "login.html"; }, 2000);
+        // Add user details to Realtime Database
+        await db.ref("users/" + user.uid).set({
+          fullName,
+          email,
+          location,
+          accountType,
+          balance: 0,
+          subscription: "inactive",
+          isSeller: accountType === "seller",
+          createdAt: new Date().toISOString()
+        });
 
-            } catch (err) {
-                console.error(err);
-                errorMsg.innerText = "❌ Registration failed. Try again.";
-                errorMsg.style.display = "block";
-            }
+        // If seller → Add to sellerRequests
+        if (accountType === "seller") {
+          const sellerRef = db.ref("sellerRequests").push();
+          await sellerRef.set({
+            name: fullName,
+            email,
+            plan: "Basic",
+            status: "pending",
+            requestedAt: new Date().toISOString()
+          });
         }
-    </script>
+
+        successMsg.style.display = "block";
+        setTimeout(() => window.location.href = "login.html", 2000);
+
+      } catch (err) {
+        console.error("Registration error:", err);
+        let msg = "❌ Registration failed. Try again.";
+
+        switch (err.code) {
+          case "auth/email-already-in-use":
+            msg = "⚠️ Email already registered. Try logging in.";
+            break;
+          case "auth/invalid-email":
+            msg = "❌ Invalid email format.";
+            break;
+          case "auth/weak-password":
+            msg = "⚠️ Password should be at least 6 characters.";
+            break;
+        }
+
+        errorMsg.innerText = msg;
+        errorMsg.style.display = "block";
+      }
+    }
+  </script>
 </body>
-
 </html>
-
