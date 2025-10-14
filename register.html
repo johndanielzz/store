@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>Login - Matrix Marketplace</title>
+    <title>Register - Matrix Marketplace</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <!-- Firebase SDK -->
@@ -56,7 +56,7 @@
             }
         }
 
-        .login-box {
+        .register-box {
             background: rgba(30, 41, 59, 0.9);
             padding: 40px 30px;
             border-radius: 20px;
@@ -67,14 +67,15 @@
             animation: fadeIn 0.8s ease;
         }
 
-        .login-box h1 {
+        .register-box h1 {
             color: #06b6d4;
             font-size: 2rem;
             margin-bottom: 25px;
             text-shadow: 0 0 12px #06b6d4, 0 0 24px #4f46e5;
         }
 
-        .login-box input {
+        .register-box input,
+        .register-box select {
             width: 100%;
             padding: 14px;
             margin: 12px 0;
@@ -88,32 +89,13 @@
             transition: 0.3s;
         }
 
-        .login-box input:focus {
+        .register-box input:focus,
+        .register-box select:focus {
             background: rgba(255, 255, 255, 0.22);
             box-shadow: 0 0 12px #06b6d4, 0 0 20px #4f46e5;
         }
 
-        .password-box {
-            position: relative;
-        }
-
-        .password-box i {
-            position: absolute;
-            right: 12px;
-            top: 36%;
-            cursor: pointer;
-            color: #06b6d4;
-        }
-
-        .remember-me {
-            display: flex;
-            align-items: center;
-            justify-content: start;
-            gap: 8px;
-            margin: 8px 0;
-        }
-
-        .login-box button {
+        .register-box button {
             width: 100%;
             padding: 14px;
             margin-top: 18px;
@@ -128,57 +110,27 @@
             transition: all 0.3s ease;
         }
 
-        .login-box button:hover {
+        .register-box button:hover {
             transform: translateY(-3px);
             background: linear-gradient(135deg, #4f46e5, #06b6d4);
             box-shadow: 0 12px 35px rgba(6, 182, 212, 0.6);
         }
 
-        .login-box p {
+        .register-box p {
             margin-top: 20px;
             font-size: 0.9rem;
             color: #cbd5e1;
         }
 
-        .login-box a {
+        .register-box a {
             color: #06b6d4;
             text-decoration: none;
             font-weight: 600;
             transition: 0.3s;
         }
 
-        .login-box a:hover {
+        .register-box a:hover {
             text-shadow: 0 0 8px #06b6d4, 0 0 15px #4f46e5;
-        }
-
-        .support {
-            margin-top: 25px;
-            text-align: center;
-            background: rgba(255, 255, 255, 0.08);
-            padding: 20px;
-            border-radius: 15px;
-            backdrop-filter: blur(15px);
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.5);
-            width: 360px;
-            animation: fadeIn 1s ease;
-        }
-
-        .support a {
-            display: inline-block;
-            margin: 6px;
-            padding: 10px 18px;
-            border-radius: 10px;
-            background: linear-gradient(135deg, #06b6d4, #4f46e5);
-            color: white;
-            font-weight: 600;
-            text-decoration: none;
-            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5);
-            transition: 0.3s;
-        }
-
-        .support a:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 25px rgba(6, 182, 212, 0.6);
         }
 
         .msg {
@@ -201,35 +153,31 @@
 </head>
 
 <body>
-    <div class="login-box">
-        <h1>Login</h1>
-        <form onsubmit="return loginUser(event)">
+    <div class="register-box">
+        <h1>Create Account</h1>
+        <form onsubmit="return registerUser(event)">
+            <input type="text" id="fullName" placeholder="Full Name" required>
             <input type="email" id="email" placeholder="Email Address" required>
-            <div class="password-box">
-                <input type="password" id="password" placeholder="Password" required>
-                <i onclick="togglePassword()">👁️</i>
-            </div>
-            <div class="remember-me">
-                <input type="checkbox" id="rememberMe" style="width: 20px;">
-                <label for="rememberMe">Remember Me</label>
-            </div>
-            <button type="submit">Login</button>
+            <input type="password" id="password" placeholder="Password" required>
+            <input type="text" id="location" placeholder="Location (e.g., Banjul)" required>
+            <select id="accountType" required>
+                <option value="">Select Account Type</option>
+                <option value="buyer">Buyer</option>
+                <option value="seller">Seller</option>
+            </select>
+            <button type="submit">Register</button>
         </form>
-        <div class="msg success" id="successMsg">✅ Login successful! Redirecting...</div>
-        <div class="msg error" id="errorMsg"></div>
-        <p>Don’t have an account? <a href="register.html">Register here</a></p>
-    </div>
 
-    <div class="support">
-        <h2>Need Help?</h2>
-        <p>Our customer care is available 24/7. Reach us anytime:</p>
-        <a href="mailto:matrixxcustomercare@gmail.com">📧 Email Support</a>
-        <a href="tel:+2206785316">📞 Call Us</a>
-        <a href="https://wa.me/qr/FDKDUI5V625OE1">💬 Live Chat</a>
+        <div class="msg success" id="successMsg">✅ Registration successful! Redirecting...</div>
+        <div class="msg error" id="errorMsg"></div>
+
+        <p>Already have an account? <a href="login.html">Login here</a></p>
     </div>
 
     <script>
-        // Firebase Config
+        // ===============================
+        // Firebase Config & Init
+        // ===============================
         const firebaseConfig = {
             apiKey: "AIzaSyDFrctk2MZajP7OmECXe5npHAV0dODH9jk",
             authDomain: "matrixmarketplace-1bd71.firebaseapp.com",
@@ -240,66 +188,82 @@
             appId: "1:10374416997:web:9626c569e845c14a87548c",
             measurementId: "G-DTC2GM9L92"
         };
+
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.database();
 
-        function togglePassword() {
-            const p = document.getElementById("password");
-            p.type = p.type === "password" ? "text" : "password";
-        }
-
-        async function loginUser(event) {
+        // ===============================
+        // Register User
+        // ===============================
+        async function registerUser(event) {
             event.preventDefault();
+
+            const fullName = document.getElementById("fullName").value.trim();
             const email = document.getElementById("email").value.trim().toLowerCase();
             const password = document.getElementById("password").value;
-            const remember = document.getElementById("rememberMe").checked;
-            const errorMsg = document.getElementById("errorMsg");
+            const location = document.getElementById("location").value.trim();
+            const accountType = document.getElementById("accountType").value;
+
             const successMsg = document.getElementById("successMsg");
-            errorMsg.style.display = successMsg.style.display = "none";
+            const errorMsg = document.getElementById("errorMsg");
+            errorMsg.style.display = "none";
+            successMsg.style.display = "none";
+
+            if (!fullName || !email || !password || !location || !accountType) {
+                errorMsg.innerText = "⚠️ Please fill in all fields.";
+                errorMsg.style.display = "block";
+                return;
+            }
 
             try {
-                const userCredential = await auth.signInWithEmailAndPassword(email, password);
+                const userCredential = await auth.createUserWithEmailAndPassword(email, password);
                 const user = userCredential.user;
 
-                const snapshot = await db.ref("users").orderByChild("email").equalTo(email).get();
-                if (!snapshot.exists()) throw new Error("User not found in database");
+                await db.ref("users/" + user.uid).set({
+                    fullName,
+                    email,
+                    location,
+                    accountType,
+                    balance: 0,
+                    subscription: "inactive",
+                    isSeller: accountType === "seller",
+                    createdAt: new Date().toISOString()
+                });
 
-                let userData;
-                snapshot.forEach(child => userData = child.val());
+                if (accountType === "seller") {
+                    await db.ref("sellerRequests").push({
+                        name: fullName,
+                        email,
+                        plan: "Basic",
+                        status: "pending",
+                        requestedAt: new Date().toISOString()
+                    });
+                }
 
-                sessionStorage.setItem("currentUser", JSON.stringify(userData));
-                if (remember) localStorage.setItem("rememberedUser", JSON.stringify(userData));
                 successMsg.style.display = "block";
-
-                setTimeout(() => {
-                    if (email === "admin@matrixmarket.com") window.location.href = "admin-dashboard.html";
-                    else if (userData.accountType === "seller") window.location.href = "seller-dashboard.html";
-                    else window.location.href = "index.html";
-                }, 1500);
+                setTimeout(() => window.location.href = "login.html", 2000);
 
             } catch (err) {
-                console.error(err);
-                let msg = "❌ Login failed. Please try again.";
-                if (err.code === "auth/user-not-found") msg = "⚠️ No user found with this email.";
-                else if (err.code === "auth/wrong-password") msg = "⚠️ Incorrect password.";
-                else if (err.code === "auth/invalid-email") msg = "⚠️ Invalid email format.";
+                console.error("Registration error:", err);
+                let msg = "❌ Registration failed. Try again.";
+
+                switch (err.code) {
+                    case "auth/email-already-in-use":
+                        msg = "⚠️ Email already registered. Try logging in.";
+                        break;
+                    case "auth/invalid-email":
+                        msg = "❌ Invalid email format.";
+                        break;
+                    case "auth/weak-password":
+                        msg = "⚠️ Password should be at least 6 characters.";
+                        break;
+                }
+
                 errorMsg.innerText = msg;
                 errorMsg.style.display = "block";
             }
         }
-
-        // Auto-login if remembered
-        window.addEventListener("load", () => {
-            const saved = localStorage.getItem("rememberedUser");
-            if (saved) {
-                const userData = JSON.parse(saved);
-                sessionStorage.setItem("currentUser", saved);
-                if (userData.email === "admin@matrixmarket.com") window.location.href = "admin-dashboard.html";
-                else if (userData.accountType === "seller") window.location.href = "seller-dashboard.html";
-                else window.location.href = "index.html";
-            }
-        });
     </script>
 </body>
 
