@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Admin Analytics | Matrix Marketplace</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        body {
+            font-family: "Poppins", sans-serif;
+            background: linear-gradient(135deg, #0f172a, #1e293b, #4f46e5, #06b6d4);
+            background-size: 400% 400%;
+            animation: bgMove 12s ease infinite;
+            color: #fff;
+            margin: 0;
+            padding: 20px;
+        }
+
+        @keyframes bgMove {
+            0% {
+                background-position: 0% 50%;
+            }
+
+            50% {
+                background-position: 100% 50%;
+            }
+
+            100% {
+                background-position: 0% 50%;
+            }
+        }
+
+        h1 {
+            text-align: center;
+            color: #06b6d4;
+            margin-bottom: 25px;
+            text-shadow: 0 0 10px #06b6d4, 0 0 20px #4f46e5;
+        }
+
+        .stats-container {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .stat-box {
+            background: rgba(30, 41, 59, 0.9);
+            border-radius: 16px;
+            padding: 20px;
+            text-align: center;
+            min-width: 180px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.6);
+        }
+
+        .stat-box h2 {
+            margin: 5px 0;
+            color: #06b6d4;
+        }
+
+        canvas {
+            background: rgba(30, 41, 59, 0.85);
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+            padding: 20px;
+        }
+
+        .chart-section {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>📊 Matrix Admin Live Dashboard</h1>
+
+    <div class="stats-container">
+        <div class="stat-box">
+            <h2 id="totalUsers">0</h2>
+            <p>Total Users</p>
+        </div>
+        <div class="stat-box">
+            <h2 id="totalSellers">0</h2>
+            <p>Total Sellers</p>
+        </div>
+        <div class="stat-box">
+            <h2 id="totalDeposits">0</h2>
+            <p>Total Deposits ($)</p>
+        </div>
+        <div class="stat-box">
+            <h2 id="totalWithdrawals">0</h2>
+            <p>Total Withdrawals ($)</p>
+        </div>
+    </div>
+
+    <div class="chart-section">
+        <canvas id="userGrowthChart" height="100"></canvas>
+    </div>
+
+    <script>
+        // ==========================
+        // Firebase Config
+        // ==========================
+        const firebaseConfig = {
+            apiKey: "AIzaSyDFrctk2MZajP7OmECXe5npHAV0dODH9jk",
+            authDomain: "matrixmarketplace-1bd71.firebaseapp.com",
+            databaseURL: "https://matrixmarketplace-1bd71-default-rtdb.firebaseio.com",
+            projectId: "matrixmarketplace-1bd71",
+            storageBucket: "matrixmarketplace-1bd71.firebasestorage.app",
+            messagingSenderId: "10374416997",
+            appId: "1:10374416997:web:068ef937272b3de687548c",
+            measurementId: "G-EH1NNVS55W"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        const totalUsersEl = document.getElementById('totalUsers');
+        const totalSellersEl = document.getElementById('totalSellers');
+        const totalDepositsEl = document.getElementById('totalDeposits');
+        const totalWithdrawalsEl = document.getElementById('totalWithdrawals');
+
+        // ==========================
+        // Chart Setup
+        // ==========================
+        const ctx = document.getElementById('userGrowthChart').getContext('2d');
+        const userGrowthChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: [],
+                datasets: [
+                    {
+                        label: 'New Users',
+                        backgroundColor: '#06b6d4',
+                        borderColor: '#4f46e5',
+                        borderWidth: 2,
+                        data: []
+                    },
+                    {
+                        label: 'New Sellers',
+                        backgroundColor: '#4f46e5',
+                        borderColor: '#06b6d4',
+                        borderWidth: 2,
+                        data: []
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { color: '#fff' },
+                        grid: { color: 'rgba(255,255,255,0.1)' }
+                    },
+                    x: {
+                        ticks: { color: '#fff' },
+                        grid: { color: 'rgba(255,255,255,0.1)' }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        labels: { color: '#fff' }
+                    }
+                }
+            }
+        });
+
+        // ==========================
+        // Fetch Data from Firebase
+        // ==========================
+        db.ref('users').on('value', (snapshot) => {
+            const users = snapshot.val() || {};
+            const totalUsers = Object.keys(users).length;
+            const sellers = Object.values(users).filter(u => u.accountType === 'seller');
+            const totalSellers = sellers.length;
+
+            totalUsersEl.innerText = totalUsers;
+            totalSellersEl.innerText = totalSellers;
+
+            // Group by Date
+            const userGrowth = {};
+            Object.values(users).forEach(u => {
+                const date = u.createdAt ? u.createdAt.split('T')[0] : 'Unknown';
+                if (!userGrowth[date]) userGrowth[date] = { users: 0, sellers: 0 };
+                userGrowth[date].users++;
+                if (u.accountType === 'seller') userGrowth[date].sellers++;
+            });
+
+            const dates = Object.keys(userGrowth);
+            userGrowthChart.data.labels = dates;
+            userGrowthChart.data.datasets[0].data = dates.map(d => userGrowth[d].users);
+            userGrowthChart.data.datasets[1].data = dates.map(d => userGrowth[d].sellers);
+            userGrowthChart.update();
+        });
+
+        db.ref('transactions').on('value', (snapshot) => {
+            const txs = snapshot.val() || {};
+            let deposits = 0;
+            let withdrawals = 0;
+
+            Object.values(txs).forEach(tx => {
+                if (tx.type === 'deposit') deposits += parseFloat(tx.amount || 0);
+                if (tx.type === 'withdrawal') withdrawals += parseFloat(tx.amount || 0);
+            });
+
+            totalDepositsEl.innerText = deposits.toFixed(2);
+            totalWithdrawalsEl.innerText = withdrawals.toFixed(2);
+        });
+    </script>
+</body>
+
+</html>
