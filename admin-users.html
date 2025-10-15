@@ -2,270 +2,257 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MatrixMarket - Admin User Control</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MatrixMarket - Admin User Control</title>
+  <style>
+    body {
+      font-family: "Poppins", sans-serif;
+      background: linear-gradient(135deg, #0f172a, #1e293b, #4f46e5, #06b6d4);
+      background-size: 400% 400%;
+      animation: bgMove 15s ease infinite;
+      color: white;
+      margin: 0;
+      padding: 0;
+    }
 
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+    @keyframes bgMove {
+      0%, 100% {
+        background-position: 0% 50%;
+      }
 
-    <style>
-        body {
-            font-family: "Poppins", sans-serif;
-            background: linear-gradient(135deg, #0f172a, #1e293b, #4f46e5, #06b6d4);
-            background-size: 400% 400%;
-            animation: bgMove 15s ease infinite;
-            color: white;
-            margin: 0;
-            padding: 0;
-        }
+      50% {
+        background-position: 100% 50%;
+      }
+    }
 
-        @keyframes bgMove {
+    header {
+      background: rgba(0, 0, 0, 0.4);
+      padding: 15px 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      backdrop-filter: blur(10px);
+    }
 
-            0%,
-            100% {
-                background-position: 0% 50%;
-            }
+    header .logo {
+      font-size: 1.6rem;
+      color: #06b6d4;
+      font-weight: bold;
+      text-shadow: 0 0 10px #06b6d4;
+    }
 
-            50% {
-                background-position: 100% 50%;
-            }
-        }
+    nav a {
+      color: white;
+      text-decoration: none;
+      margin-left: 15px;
+      font-weight: 500;
+      transition: 0.3s;
+    }
 
-        header {
-            background: rgba(0, 0, 0, 0.4);
-            padding: 15px 30px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            backdrop-filter: blur(10px);
-        }
+    nav a:hover {
+      color: #06b6d4;
+    }
 
-        header .logo {
-            font-size: 1.6rem;
-            color: #06b6d4;
-            font-weight: bold;
-            text-shadow: 0 0 10px #06b6d4;
-        }
+    .container {
+      max-width: 1200px;
+      margin: 40px auto;
+      background: rgba(255, 255, 255, 0.08);
+      padding: 30px;
+      border-radius: 20px;
+      box-shadow: 0 0 20px rgba(6, 182, 212, 0.5);
+    }
 
-        nav a {
-            color: white;
-            text-decoration: none;
-            margin-left: 15px;
-            font-weight: 500;
-            transition: 0.3s;
-        }
+    h1 {
+      text-align: center;
+      text-shadow: 0 0 10px #06b6d4;
+    }
 
-        nav a:hover {
-            color: #06b6d4;
-        }
+    input[type="text"] {
+      width: 100%;
+      padding: 10px;
+      border: none;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.1);
+      color: white;
+      margin-bottom: 15px;
+    }
 
-        .container {
-            max-width: 1200px;
-            margin: 40px auto;
-            background: rgba(255, 255, 255, 0.08);
-            padding: 30px;
-            border-radius: 20px;
-            box-shadow: 0 0 20px rgba(6, 182, 212, 0.5);
-        }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
 
-        h1 {
-            text-align: center;
-            text-shadow: 0 0 10px #06b6d4;
-        }
+    th,
+    td {
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 10px;
+      text-align: center;
+    }
 
-        input[type="text"] {
-            width: 100%;
-            padding: 10px;
-            border: none;
-            border-radius: 10px;
-            background: rgba(255, 255, 255, 0.1);
-            color: white;
-            margin-bottom: 15px;
-        }
+    th {
+      background: rgba(6, 182, 212, 0.3);
+    }
 
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 10px;
-        }
+    img.proof {
+      width: 80px;
+      height: 80px;
+      border-radius: 10px;
+      border: 2px solid rgba(6, 182, 212, 0.4);
+      object-fit: cover;
+      cursor: pointer;
+      transition: 0.3s;
+    }
 
-        th,
-        td {
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            padding: 10px;
-            text-align: center;
-        }
+    img.proof:hover {
+      transform: scale(1.2);
+    }
 
-        th {
-            background: rgba(6, 182, 212, 0.3);
-        }
+    .btn {
+      padding: 6px 12px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      color: white;
+      margin: 2px;
+      font-weight: 500;
+    }
 
-        img.proof {
-            width: 80px;
-            height: 80px;
-            border-radius: 10px;
-            border: 2px solid rgba(6, 182, 212, 0.4);
-            object-fit: cover;
-            cursor: pointer;
-            transition: 0.3s;
-        }
+    .approve {
+      background: #06b6d4;
+    }
 
-        img.proof:hover {
-            transform: scale(1.2);
-        }
+    .approve:hover {
+      background: #0891b2;
+    }
 
-        .btn {
-            padding: 6px 12px;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            color: white;
-            margin: 2px;
-            font-weight: 500;
-        }
+    .decline {
+      background: #ef4444;
+    }
 
-        .approve {
-            background: #06b6d4;
-        }
+    .decline:hover {
+      background: #b91c1c;
+    }
 
-        .decline {
-            background: #ef4444;
-        }
+    .status {
+      padding: 5px 10px;
+      border-radius: 8px;
+      font-weight: bold;
+    }
 
-        .approve:hover {
-            background: #0891b2;
-        }
+    .pending {
+      background: rgba(245, 158, 11, 0.2);
+      color: #f59e0b;
+    }
 
-        .decline:hover {
-            background: #b91c1c;
-        }
+    .approved {
+      background: rgba(34, 197, 94, 0.2);
+      color: #22c55e;
+    }
 
-        .status {
-            padding: 5px 10px;
-            border-radius: 8px;
-            font-weight: bold;
-        }
+    .declined {
+      background: rgba(239, 68, 68, 0.2);
+      color: #ef4444;
+    }
 
-        .pending {
-            background: rgba(245, 158, 11, 0.2);
-            color: #f59e0b;
-        }
+    footer {
+      text-align: center;
+      padding: 15px;
+      background: rgba(255, 255, 255, 0.08);
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      margin-top: 40px;
+    }
 
-        .approved {
-            background: rgba(34, 197, 94, 0.2);
-            color: #22c55e;
-        }
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 999;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.7);
+      justify-content: center;
+      align-items: center;
+    }
 
-        .declined {
-            background: rgba(239, 68, 68, 0.2);
-            color: #ef4444;
-        }
-
-        footer {
-            text-align: center;
-            padding: 15px;
-            background: rgba(255, 255, 255, 0.08);
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
-            margin-top: 40px;
-        }
-
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 999;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.7);
-            justify-content: center;
-            align-items: center;
-        }
-
-        .modal img {
-            max-width: 90%;
-            max-height: 80%;
-            border-radius: 15px;
-            border: 3px solid #06b6d4;
-        }
-    </style>
+    .modal img {
+      max-width: 90%;
+      max-height: 80%;
+      border-radius: 15px;
+      border: 3px solid #06b6d4;
+    }
+  </style>
 </head>
 
 <body>
-    <header>
-        <div class="logo">MatrixMarket Admin</div>
-        <nav>
-            <a href="dashboard-admin.html">Dashboard</a>
-            <a href="admin-sellers.html">Sellers</a>
-            <a href="admin-users.html">Users</a>
-        </nav>
-    </header>
+  <header>
+    <div class="logo">MatrixMarket Admin</div>
+    <nav>
+      <a href="dashboard-admin.html">Dashboard</a>
+      <a href="admin-sellers.html">Sellers</a>
+      <a href="admin-users.html">Users</a>
+    </nav>
+  </header>
 
-    <div class="container">
-        <h1>👥 Manage Buyers & Payments</h1>
-        <input type="text" id="searchBox" placeholder="Search user by name or email..." onkeyup="renderUsers()">
-        <table id="userTable"></table>
-    </div>
+  <div class="container">
+    <h1>👥 Manage Buyers & Payments</h1>
+    <input type="text" id="searchBox" placeholder="Search user by name or email..." onkeyup="renderUsers()">
+    <table id="userTable"></table>
+  </div>
 
-    <div class="modal" id="imageModal" onclick="this.style.display='none'">
-        <img id="modalImg" src="">
-    </div>
+  <div class="modal" id="imageModal" onclick="this.style.display='none'">
+    <img id="modalImg" src="">
+  </div>
 
-    <footer>© 2025 MatrixMarket | Admin User Control</footer>
+  <footer>© 2025 MatrixMarket | Admin User Control</footer>
 
-    <script>
-        // Firebase configuration
-        const firebaseConfig = {
-           apiKey: "AIzaSyDFrctk2MZajP7OmECXe5npHAV0dODH9jk",
-  authDomain: "matrixmarketplace-1bd71.firebaseapp.com",
-  databaseURL: "https://matrixmarketplace-1bd71-default-rtdb.firebaseio.com",
-  projectId: "matrixmarketplace-1bd71",
-  storageBucket: "matrixmarketplace-1bd71.firebasestorage.app",
-  messagingSenderId: "10374416997",
-  appId: "1:10374416997:web:9626c569e845c14a87548c",
-  measurementId: "G-DTC2GM9L92"
-        };
+  <!-- Firebase Modular SDK -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
+    import { getDatabase, ref, get, update } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
 
-        // Initialize Firebase
-        const app = firebase.initializeApp(firebaseConfig);
-        const db = firebase.database();
+    const firebaseConfig = {
+      apiKey: "AIzaSyDFrctk2MZajP7OmECXe5npHAV0dODH9jk",
+      authDomain: "matrixmarketplace-1bd71.firebaseapp.com",
+      databaseURL: "https://matrixmarketplace-1bd71-default-rtdb.firebaseio.com",
+      projectId: "matrixmarketplace-1bd71",
+      storageBucket: "matrixmarketplace-1bd71.appspot.com",
+      messagingSenderId: "10374416997",
+      appId: "1:10374416997:web:068ef937272b3de687548c"
+    };
 
-        async function fetchUsers() {
-            const snapshot = await db.ref('users').once('value');
-            const users = snapshot.val() || {};
-            return Object.keys(users).map(key => ({ id: key, ...users[key] }));
-        }
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
 
-        async function renderUsers() {
-            const users = await fetchUsers();
-            const search = document.getElementById("searchBox").value.toLowerCase();
-            const table = document.getElementById("userTable");
+    async function renderUsers() {
+      const search = document.getElementById("searchBox").value.toLowerCase();
+      const snapshot = await get(ref(db, 'users'));
+      const usersObj = snapshot.val() || {};
+      const users = Object.entries(usersObj); // [ [id, data], ...]
+      const table = document.getElementById("userTable");
 
-            const filtered = users.filter(u =>
-                u.email?.toLowerCase().includes(search) || u.name?.toLowerCase().includes(search)
-            );
-
-            table.innerHTML = `
+      table.innerHTML = `
         <tr>
-          <th>Name</th>
-          <th>Email</th>
-          <th>Country</th>
-          <th>Balance</th>
-          <th>Status</th>
-          <th>Proof</th>
-          <th>Action</th>
+          <th>Name</th><th>Email</th><th>Country</th><th>Balance</th><th>Status</th><th>Proof</th><th>Action</th>
         </tr>
       `;
 
-            filtered.forEach(u => {
-                const statusClass = u.status === "Approved" || u.paymentStatus === "Paid" ? "approved" :
-                    u.status === "Declined" || u.paymentStatus === "Unpaid" ? "declined" : "pending";
+      const filtered = users.filter(([id, u]) => u.email?.toLowerCase().includes(search) || u.name?.toLowerCase().includes(search));
 
-                const proofHTML = u.proof ? `<img src="${u.proof}" class="proof" onclick="viewProof('${u.proof}')">` : "No proof";
+      if (!filtered.length) {
+        table.innerHTML += `<tr><td colspan="7">No users found.</td></tr>`;
+        return;
+      }
 
-                table.innerHTML += `
+      filtered.forEach(([id, u]) => {
+        const statusClass = u.paymentStatus === "Paid" || u.status === "Approved" ? "approved" :
+          u.paymentStatus === "Declined" || u.status === "Declined" ? "declined" : "pending";
+
+        const proofHTML = u.proof ? `<img src="${u.proof}" class="proof" onclick="viewProof('${u.proof}')">` : "No proof";
+
+        table.innerHTML += `
           <tr>
             <td>${u.name || "-"}</td>
             <td>${u.email}</td>
@@ -274,32 +261,33 @@
             <td><span class="status ${statusClass}">${u.paymentStatus || u.status || "Pending"}</span></td>
             <td>${proofHTML}</td>
             <td>
-              <button class="btn approve" onclick="updateUserStatus('${u.id}','Approved')">Approve</button>
-              <button class="btn decline" onclick="updateUserStatus('${u.id}','Declined')">Decline</button>
+              <button class="btn approve" onclick="updateUser('${id}','Approved')">Approve</button>
+              <button class="btn decline" onclick="updateUser('${id}','Declined')">Decline</button>
             </td>
           </tr>
         `;
-            });
-        }
+      });
+    }
 
-        async function updateUserStatus(userId, status) {
-            await db.ref('users/' + userId).update({
-                status: status,
-                paymentStatus: status === 'Approved' ? 'Paid' : 'Unpaid'
-            });
-            alert(`User ${status}!`);
-            renderUsers();
-        }
+    function viewProof(src) {
+      const modal = document.getElementById("imageModal");
+      document.getElementById("modalImg").src = src;
+      modal.style.display = "flex";
+    }
 
-        function viewProof(src) {
-            const modal = document.getElementById("imageModal");
-            document.getElementById("modalImg").src = src;
-            modal.style.display = "flex";
-        }
+    async function updateUser(id, action) {
+      const updates = {
+        status: action,
+        paymentStatus: action === "Approved" ? "Paid" : "Unpaid",
+        subscription: action === "Approved" ? "Active" : "Inactive"
+      };
 
-        window.onload = renderUsers;
-    </script>
+      await update(ref(db, 'users/' + id), updates);
+      alert(`${action === 'Approved' ? '✅ User approved' : '❌ User declined'} successfully!`);
+      renderUsers();
+    }
+
+    window.onload = renderUsers;
+  </script>
 </body>
-
-
 </html>
