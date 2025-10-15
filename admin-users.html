@@ -17,13 +17,8 @@
     }
 
     @keyframes bgMove {
-      0%, 100% {
-        background-position: 0% 50%;
-      }
-
-      50% {
-        background-position: 100% 50%;
-      }
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
     }
 
     header {
@@ -50,9 +45,7 @@
       transition: 0.3s;
     }
 
-    nav a:hover {
-      color: #06b6d4;
-    }
+    nav a:hover { color: #06b6d4; }
 
     .container {
       max-width: 1200px;
@@ -84,16 +77,13 @@
       margin-top: 10px;
     }
 
-    th,
-    td {
+    th, td {
       border: 1px solid rgba(255, 255, 255, 0.2);
       padding: 10px;
       text-align: center;
     }
 
-    th {
-      background: rgba(6, 182, 212, 0.3);
-    }
+    th { background: rgba(6, 182, 212, 0.3); }
 
     img.proof {
       width: 80px;
@@ -105,9 +95,7 @@
       transition: 0.3s;
     }
 
-    img.proof:hover {
-      transform: scale(1.2);
-    }
+    img.proof:hover { transform: scale(1.2); }
 
     .btn {
       padding: 6px 12px;
@@ -119,21 +107,11 @@
       font-weight: 500;
     }
 
-    .approve {
-      background: #06b6d4;
-    }
+    .approve { background: #06b6d4; }
+    .approve:hover { background: #0891b2; }
 
-    .approve:hover {
-      background: #0891b2;
-    }
-
-    .decline {
-      background: #ef4444;
-    }
-
-    .decline:hover {
-      background: #b91c1c;
-    }
+    .decline { background: #ef4444; }
+    .decline:hover { background: #b91c1c; }
 
     .status {
       padding: 5px 10px;
@@ -141,20 +119,9 @@
       font-weight: bold;
     }
 
-    .pending {
-      background: rgba(245, 158, 11, 0.2);
-      color: #f59e0b;
-    }
-
-    .approved {
-      background: rgba(34, 197, 94, 0.2);
-      color: #22c55e;
-    }
-
-    .declined {
-      background: rgba(239, 68, 68, 0.2);
-      color: #ef4444;
-    }
+    .pending { background: rgba(245, 158, 11, 0.2); color: #f59e0b; }
+    .approved { background: rgba(34, 197, 94, 0.2); color: #22c55e; }
+    .declined { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
 
     footer {
       text-align: center;
@@ -213,14 +180,16 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
     import { getDatabase, ref, get, update } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
 
+    // ✅ Updated Firebase Config
     const firebaseConfig = {
       apiKey: "AIzaSyDFrctk2MZajP7OmECXe5npHAV0dODH9jk",
       authDomain: "matrixmarketplace-1bd71.firebaseapp.com",
       databaseURL: "https://matrixmarketplace-1bd71-default-rtdb.firebaseio.com",
       projectId: "matrixmarketplace-1bd71",
-      storageBucket: "matrixmarketplace-1bd71.appspot.com",
+      storageBucket: "matrixmarketplace-1bd71.firebasestorage.app",
       messagingSenderId: "10374416997",
-      appId: "1:10374416997:web:068ef937272b3de687548c"
+      appId: "1:10374416997:web:9626c569e845c14a87548c",
+      measurementId: "G-DTC2GM9L92"
     };
 
     const app = initializeApp(firebaseConfig);
@@ -230,7 +199,7 @@
       const search = document.getElementById("searchBox").value.toLowerCase();
       const snapshot = await get(ref(db, 'users'));
       const usersObj = snapshot.val() || {};
-      const users = Object.entries(usersObj); // [ [id, data], ...]
+      const users = Object.entries(usersObj);
       const table = document.getElementById("userTable");
 
       table.innerHTML = `
@@ -239,7 +208,9 @@
         </tr>
       `;
 
-      const filtered = users.filter(([id, u]) => u.email?.toLowerCase().includes(search) || u.name?.toLowerCase().includes(search));
+      const filtered = users.filter(([id, u]) =>
+        u.email?.toLowerCase().includes(search) || u.name?.toLowerCase().includes(search)
+      );
 
       if (!filtered.length) {
         table.innerHTML += `<tr><td colspan="7">No users found.</td></tr>`;
@@ -247,10 +218,15 @@
       }
 
       filtered.forEach(([id, u]) => {
-        const statusClass = u.paymentStatus === "Paid" || u.status === "Approved" ? "approved" :
-          u.paymentStatus === "Declined" || u.status === "Declined" ? "declined" : "pending";
+        const statusClass = u.paymentStatus === "Paid" || u.status === "Approved"
+          ? "approved"
+          : u.paymentStatus === "Declined" || u.status === "Declined"
+          ? "declined"
+          : "pending";
 
-        const proofHTML = u.proof ? `<img src="${u.proof}" class="proof" onclick="viewProof('${u.proof}')">` : "No proof";
+        const proofHTML = u.proof
+          ? `<img src="${u.proof}" class="proof" onclick="viewProof('${u.proof}')">`
+          : "No proof";
 
         table.innerHTML += `
           <tr>
