@@ -5,11 +5,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>MatrixMarket - Confirm Payment</title>
-
-  <!-- Firebase SDK -->
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
-
   <style>
     body {
       font-family: "Poppins", sans-serif;
@@ -123,7 +118,6 @@
 </head>
 
 <body>
-
   <div class="container">
     <h1 id="pageTitle">💳 Confirm Payment</h1>
     <div class="user-info" id="userInfo">Loading user...</div>
@@ -147,77 +141,116 @@
     <div class="msg error" id="errorMsg">⚠️ Something went wrong. Try again.</div>
   </div>
 
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js"></script>
+
   <script>
+    // ✅ Firebase Configuration
     const firebaseConfig = {
-    apiKey: "AIzaSyDFrctk2MZajP7OmECXe5npHAV0dODH9jk",
-  authDomain: "matrixmarketplace-1bd71.firebaseapp.com",
-  databaseURL: "https://matrixmarketplace-1bd71-default-rtdb.firebaseio.com",
-  projectId: "matrixmarketplace-1bd71",
-  storageBucket: "matrixmarketplace-1bd71.firebasestorage.app",
-  messagingSenderId: "10374416997",
-  appId: "1:10374416997:web:9626c569e845c14a87548c",
-  measurementId: "G-DTC2GM9L92"
+      apiKey: "AIzaSyDFrctk2MZajP7OmECXe5npHAV0dODH9jk",
+      authDomain: "matrixmarketplace-1bd71.firebaseapp.com",
+      databaseURL: "https://matrixmarketplace-1bd71-default-rtdb.firebaseio.com",
+      projectId: "matrixmarketplace-1bd71",
+      storageBucket: "matrixmarketplace-1bd71.firebasestorage.app",
+      messagingSenderId: "10374416997",
+      appId: "1:10374416997:web:9626c569e845c14a87548c",
+      measurementId: "G-DTC2GM9L92"
     };
+
+    // Initialize Firebase
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
     function getCurrentUser() {
-      return JSON.parse(localStorage.getItem("currentSeller")) || JSON.parse(localStorage.getItem("currentUser")) || null;
+      return (
+        JSON.parse(localStorage.getItem("loggedInUser")) ||
+        JSON.parse(localStorage.getItem("currentUser")) ||
+        JSON.parse(localStorage.getItem("currentSeller")) ||
+        null
+      );
     }
 
-    window.onload = () => {
+    // Display user info
+    window.onload = function () {
       let user = getCurrentUser();
       let infoBox = document.getElementById("userInfo");
+
       if (user) {
-        infoBox.innerHTML = `👤 <b>${user.name || user.fullName || user.email}</b><br>📧 ${user.email}<br>📍 ${user.location || "Unknown"}`;
+        infoBox.innerHTML = `
+          👤 <b>${user.name || user.fullName || user.email}</b><br>
+          📧 ${user.email}<br>
+          📍 ${user.location || "Unknown"}
+        `;
       } else {
         infoBox.innerHTML = "⚠️ You must be logged in.";
       }
     };
 
-    function requestPayment() {
+    // ✅ Submit Payment Request to Firebase
+    async function requestPayment() {
       let amount = document.getElementById("amount").value.trim();
       let method = document.getElementById("method").value;
       let successMsg = document.getElementById("successMsg");
       let errorMsg = document.getElementById("errorMsg");
+
       successMsg.classList.remove("show");
       errorMsg.classList.remove("show");
 
-      if (!method) { errorMsg.innerText = "⚠️ Please select a payment method."; errorMsg.classList.add("show"); return; }
-      if (!amount || isNaN(amount) || amount <= 0) { errorMsg.innerText = "⚠️ Please enter a valid amount."; errorMsg.classList.add("show"); return; }
+      if (!method) {
+        errorMsg.innerText = "⚠️ Please select a payment method.";
+        errorMsg.classList.add("show");
+        return;
+      }
+      if (!amount || isNaN(amount) || amount <= 0) {
+        errorMsg.innerText = "⚠️ Please enter a valid amount.";
+        errorMsg.classList.add("show");
+        return;
+      }
 
       let user = getCurrentUser();
-      if (!user) { errorMsg.innerText = "⚠️ You must be logged in."; errorMsg.classList.add("show"); return; }
+      if (!user) {
+        errorMsg.innerText = "⚠️ You must be logged in.";
+        errorMsg.classList.add("show");
+        return;
+      }
 
-      let newRequest = {
-        id: Date.now(),
-        name: user.name || user.fullName || user.email,
-        email: user.email,
-        amount: parseFloat(amount),
-        method: method,
-        status: "Pending",
-        date: new Date().toLocaleString()
-      };
+      try {
+        const paymentData = {
+          userId: user.id || user.uid || Date.now(),
+          name: user.name || user.fullName || user.email,
+          email: user.email,
+          amount: parseFloat(amount),
+          method: method,
+          status: "Pending",
+          date: new Date().toISOString()
+        };
 
-      // Save to Firebase
-      db.ref("pendingRequests/" + newRequest.id).set(newRequest)
-        .then(() => {
-          user.paymentStatus = "Pending";
-          user.amount = parseFloat(amount);
-          localStorage.setItem("currentSeller", JSON.stringify(user));
-          localStorage.setItem("currentUser", JSON.stringify(user));
-          successMsg.classList.add("show");
-          setTimeout(() => { window.location.href = "payment-status.html"; }, 1500);
-        })
-        .catch(err => {
-          console.error(err);
-          errorMsg.innerText = "⚠️ Failed to submit request.";
-          errorMsg.classList.add("show");
-        });
+        // ✅ Save to /payments
+        const newPaymentRef = db.ref("payments").push();
+        await newPaymentRef.set(paymentData);
+
+        // ✅ Update user status
+        if (user.email) {
+          const usersRef = db.ref("users");
+          usersRef.orderByChild("email").equalTo(user.email).once("value", snapshot => {
+            snapshot.forEach(child => {
+              db.ref("users/" + child.key).update({ paymentStatus: "Pending" });
+            });
+          });
+        }
+
+        successMsg.classList.add("show");
+        setTimeout(() => {
+          window.location.href = "payment-status.html";
+        }, 1500);
+      } catch (error) {
+        console.error("Error saving payment:", error);
+        errorMsg.innerText = "⚠️ Failed to send payment request.";
+        errorMsg.classList.add("show");
+      }
     }
   </script>
-
 </body>
-
 
 </html>
