@@ -93,7 +93,7 @@
     <label for="proof">Upload Proof of Payment (Image)</label>
     <input type="file" id="proof" accept="image/*">
 
-    <button type="button" id="submitBtn">📩 Submit Request</button>
+    <button type="button" id="submitBtn" disabled>📩 Submit Request</button>
     <button class="back-btn" onclick="window.location.href='index.html'">⬅ Back</button>
 
     <div class="toast success" id="successMsg">✅ Payment submitted successfully!</div>
@@ -103,7 +103,9 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
     import { getDatabase, ref as dbRef, push, set } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
-    import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-storage.js";
+    import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.www.gstatic.com/firebasejs/12.4.0/firebase-storage.js";
+    // NEW: Import getAuth and onAuthStateChanged
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyDFrctk2MZajP7OmECXe5npHAV0dODH9jk",
@@ -119,40 +121,69 @@
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
     const storage = getStorage(app);
+    const auth = getAuth(app); // NEW: Initialize Firebase Auth
 
-    function getCurrentUser() {
-      return JSON.parse(localStorage.getItem("currentUser") || "null");
-    }
-
-    window.onload = function () {
-      const user = getCurrentUser();
-      const infoBox = document.getElementById("userInfo");
-      if (user) {
-        infoBox.innerHTML = `
-          👤 <b>${user.fullName || user.name || user.email}</b><br>
-          📧 ${user.email}<br>
-          💰 Balance: ${user.balance || 0} GMD
-        `;
-      } else {
-        infoBox.innerHTML = "⚠️ You must be logged in first.";
-      }
-    };
+    let firebaseUser = null; // This will hold our authenticated user object
 
     const submitBtn = document.getElementById("submitBtn");
+    const userInfoBox = document.getElementById("userInfo");
+    const methodSelect = document.getElementById("method");
+    const amountInput = document.getElementById("amount");
+    const proofInput = document.getElementById("proof");
+
+    // Helper to show errors
+    function showError(msg) {
+      const errorMsg = document.getElementById("errorMsg");
+      errorMsg.innerText = msg;
+      errorMsg.classList.add("show");
+      document.getElementById("successMsg").classList.remove("show"); // Hide success if error occurs
+    }
+
+    // Helper to hide messages
+    function hideMessages() {
+      document.getElementById("successMsg").classList.remove("show");
+      document.getElementById("errorMsg").classList.remove("show");
+    }
+
+    // NEW: Listen for Firebase Auth state changes
+    onAuthStateChanged(auth, (user) => {
+      firebaseUser = user; // Update our global user object
+      hideMessages(); // Clear any previous messages
+
+      if (user) {
+        // User is signed in.
+        userInfoBox.innerHTML = `
+          👤 <b>${user.displayName || user.email || "User"}</b><br>
+          📧 ${user.email}<br>
+          <!-- Balance info from your localStorage concept would need to be fetched from RTDB/Firestore if it's not part of the Firebase Auth user object -->
+          <!-- 💰 Balance: ${user.balance || 0} GMD -->
+          <span style="color: #22c55e;">✅ Logged in to Firebase</span>
+        `;
+        submitBtn.disabled = false; // Enable the submit button
+        submitBtn.innerText = "📩 Submit Request";
+      } else {
+        // User is signed out.
+        userInfoBox.innerHTML = "⚠️ You must be logged in to Firebase to submit a payment. Please log in.";
+        submitBtn.disabled = true; // Disable the submit button
+        submitBtn.innerText = "Please Log In";
+        showError("You are not logged in. Please log in to your account.");
+      }
+    });
+
     submitBtn.addEventListener("click", submitPayment);
 
     async function submitPayment() {
-      const user = getCurrentUser();
-      const method = document.getElementById("method").value;
-      const amount = parseFloat(document.getElementById("amount").value);
-      const proofFile = document.getElementById("proof").files[0];
-      const successMsg = document.getElementById("successMsg");
-      const errorMsg = document.getElementById("errorMsg");
+      hideMessages(); // Clear messages on new submission attempt
 
-      successMsg.classList.remove("show");
-      errorMsg.classList.remove("show");
+      // Use firebaseUser, which is set by onAuthStateChanged
+      if (!firebaseUser) {
+        return showError("⚠️ You are not logged in to Firebase. Please log in.");
+      }
 
-      if (!user) return showError("⚠️ Please log in first.");
+      const method = methodSelect.value;
+      const amount = parseFloat(amountInput.value);
+      const proofFile = proofInput.files[0];
+
       if (!method) return showError("⚠️ Select a payment method.");
       if (!amount || amount <= 0) return showError("⚠️ Enter a valid amount.");
       if (!proofFile) return showError("⚠️ Please upload proof of payment.");
@@ -162,17 +193,17 @@
         submitBtn.disabled = true;
         submitBtn.innerText = "⏳ Uploading...";
 
-        // Upload proof
-        const proofRef = storageRef(storage, `payment_proofs/${Date.now()}_${proofFile.name}`);
+        // Upload proof to Firebase Storage
+        const proofRef = storageRef(storage, `payment_proofs/${firebaseUser.uid}/${Date.now()}_${proofFile.name}`);
         await uploadBytes(proofRef, proofFile);
         const proofURL = await getDownloadURL(proofRef);
 
-        // Save payment request
+        // Save payment request to Realtime Database
         const newPaymentRef = push(dbRef(db, "pendingRequests"));
         await set(newPaymentRef, {
-          userId: user.uid || user.id || Date.now(),
-          name: user.fullName || user.name || "Unknown",
-          email: user.email,
+          userId: firebaseUser.uid, // Use Firebase UID
+          name: firebaseUser.displayName || firebaseUser.email || "Unknown",
+          email: firebaseUser.email,
           method,
           amount,
           proofURL,
@@ -180,22 +211,34 @@
           date: new Date().toLocaleString()
         });
 
-        successMsg.classList.add("show");
+        document.getElementById("successMsg").classList.add("show");
         submitBtn.innerText = "✅ Submitted";
+
+        // Clear form fields after successful submission
+        methodSelect.value = "";
+        amountInput.value = "";
+        proofInput.value = ""; // Clear file input
 
         setTimeout(() => window.location.href = "payment-status.html", 2000);
 
       } catch (err) {
         console.error("Upload error:", err);
-        showError("⚠️ Error uploading proof or saving payment.");
+        // Display a user-friendly error message
+        if (err.code === 'storage/unauthorized') {
+            showError("⚠️ Permission denied! Check Firebase Storage rules or ensure you're logged in correctly.");
+        } else if (err.message.includes("auth.currentUser is null") || err.message.includes("no-auth")) {
+            showError("⚠️ You must be logged in to Firebase to submit a payment.");
+        }
+        else {
+            showError("⚠️ Error uploading proof or saving payment. Please try again.");
+        }
         submitBtn.innerText = "📩 Submit Request";
       } finally {
-        submitBtn.disabled = false;
-      }
-
-      function showError(msg) {
-        errorMsg.innerText = msg;
-        errorMsg.classList.add("show");
+        submitBtn.disabled = false; // Re-enable button (unless user is not logged in)
+        if (!firebaseUser) {
+            submitBtn.disabled = true;
+            submitBtn.innerText = "Please Log In";
+        }
       }
     }
   </script>
