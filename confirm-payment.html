@@ -5,7 +5,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>MatrixMarket - Confirm Payment</title>
-
   <style>
     body {
       font-family: "Poppins", sans-serif;
@@ -36,70 +35,41 @@
       backdrop-filter: blur(12px);
     }
 
-    h1 {
-      margin-bottom: 10px;
-      text-shadow: 0 0 10px #06b6d4;
-      font-size: 1.8rem;
-    }
+    h1 { margin-bottom: 10px; text-shadow: 0 0 10px #06b6d4; font-size: 1.8rem; }
 
-    .user-info {
-      margin-bottom: 25px;
-      color: #cbd5e1;
-      line-height: 1.6;
-    }
+    .user-info { margin-bottom: 25px; color: #cbd5e1; line-height: 1.6; }
 
-    label {
-      font-weight: 600;
-      display: block;
-      margin: 12px 0 6px;
-      text-align: left;
-    }
+    label { font-weight: 600; display: block; margin: 12px 0 6px; text-align: left; }
 
     input, select, button {
-      width: 100%;
-      padding: 12px;
-      margin: 8px 0;
-      border: none;
-      border-radius: 12px;
-      font-size: 1rem;
+      width: 100%; padding: 12px; margin: 8px 0; border: none; border-radius: 12px; font-size: 1rem;
     }
 
-    input, select {
-      background: rgba(255, 255, 255, 0.15);
-      color: white;
-    }
-
+    input, select { background: rgba(255, 255, 255, 0.15); color: white; }
     input::placeholder { color: #cbd5e1; }
 
     button {
       background: linear-gradient(45deg, #06b6d4, #4f46e5);
-      color: white;
-      font-weight: bold;
-      cursor: pointer;
-      transition: 0.3s;
-      box-shadow: 0 0 10px rgba(6, 182, 212, 0.5);
+      color: white; font-weight: bold; cursor: pointer;
+      transition: 0.3s; box-shadow: 0 0 10px rgba(6, 182, 212, 0.5);
     }
 
-    button:hover {
-      transform: scale(1.05);
-      background: linear-gradient(45deg, #4f46e5, #06b6d4);
-    }
-
+    button:hover { transform: scale(1.05); background: linear-gradient(45deg, #4f46e5, #06b6d4); }
     .back-btn { background: #ef4444; }
     .back-btn:hover { background: #dc2626; }
 
     .toast {
-      margin-top: 15px;
-      padding: 12px;
-      border-radius: 10px;
-      display: none;
-      opacity: 0;
-      transition: opacity 0.4s ease-in-out;
+      margin-top: 15px; padding: 12px; border-radius: 10px;
+      display: none; opacity: 0; transition: opacity 0.4s ease-in-out;
     }
 
     .toast.show { display: block; opacity: 1; }
+
     .success { background: rgba(34, 197, 94, 0.2); color: #22c55e; }
     .error { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+
+    .loading { animation: pulse 1s infinite; }
+    @keyframes pulse { 0% { opacity: 0.6; } 50% { opacity: 1; } 100% { opacity: 0.6; } }
   </style>
 </head>
 
@@ -132,10 +102,9 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
-    import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
-    import { getStorage, ref as sRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-storage.js";
+    import { getDatabase, ref as dbRef, push, set } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
+    import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-storage.js";
 
-    // ✅ Correct Firebase Config
     const firebaseConfig = {
       apiKey: "AIzaSyDFrctk2MZajP7OmECXe5npHAV0dODH9jk",
       authDomain: "matrixmarketplace-1bd71.firebaseapp.com",
@@ -169,14 +138,14 @@
       }
     };
 
-    document.getElementById("submitBtn").addEventListener("click", submitPayment);
+    const submitBtn = document.getElementById("submitBtn");
+    submitBtn.addEventListener("click", submitPayment);
 
     async function submitPayment() {
       const user = getCurrentUser();
-      const amount = parseFloat(document.getElementById("amount").value);
       const method = document.getElementById("method").value;
+      const amount = parseFloat(document.getElementById("amount").value);
       const proofFile = document.getElementById("proof").files[0];
-      const btn = document.getElementById("submitBtn");
       const successMsg = document.getElementById("successMsg");
       const errorMsg = document.getElementById("errorMsg");
 
@@ -187,43 +156,41 @@
       if (!method) return showError("⚠️ Select a payment method.");
       if (!amount || amount <= 0) return showError("⚠️ Enter a valid amount.");
       if (!proofFile) return showError("⚠️ Please upload proof of payment.");
+      if (proofFile.size > 5 * 1024 * 1024) return showError("⚠️ File must be under 5MB.");
 
       try {
-        btn.disabled = true;
-        btn.innerText = "⏳ Uploading...";
+        submitBtn.disabled = true;
+        submitBtn.innerText = "⏳ Uploading...";
 
-        // ✅ Upload proof to Firebase Storage
-        const proofRef = sRef(storage, `payment_proofs/${user.uid || Date.now()}_${proofFile.name}`);
+        // Upload proof
+        const proofRef = storageRef(storage, `payment_proofs/${Date.now()}_${proofFile.name}`);
         await uploadBytes(proofRef, proofFile);
         const proofURL = await getDownloadURL(proofRef);
 
-        // ✅ Save data under 'users'
-        const userId = user.uid || user.id || `user_${Date.now()}`;
-        await set(ref(db, "users/" + userId), {
+        // Save payment request
+        const newPaymentRef = push(dbRef(db, "pendingRequests"));
+        await set(newPaymentRef, {
+          userId: user.uid || user.id || Date.now(),
           name: user.fullName || user.name || "Unknown",
           email: user.email,
-          country: user.country || "N/A",
-          balance: amount,
-          proof: proofURL,
-          paymentMethod: method,
-          paymentStatus: "Pending",
+          method,
+          amount,
+          proofURL,
           status: "Pending",
           date: new Date().toLocaleString()
         });
 
         successMsg.classList.add("show");
-        btn.innerText = "✅ Submitted";
+        submitBtn.innerText = "✅ Submitted";
 
-        setTimeout(() => {
-          window.location.href = "payment-status.html";
-        }, 2000);
+        setTimeout(() => window.location.href = "payment-status.html", 2000);
 
       } catch (err) {
-        console.error(err);
+        console.error("Upload error:", err);
         showError("⚠️ Error uploading proof or saving payment.");
+        submitBtn.innerText = "📩 Submit Request";
       } finally {
-        btn.disabled = false;
-        btn.innerText = "📩 Submit Request";
+        submitBtn.disabled = false;
       }
 
       function showError(msg) {
