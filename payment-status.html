@@ -1,279 +1,250 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>MatrixMarket - Payment Status</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MatrixMarket - Payment Status</title>
 
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+  <!-- Firebase v12 Modular SDK -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
+    import { getDatabase, ref, query, orderByChild, equalTo, get } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
 
-    <style>
-        body {
-            margin: 0;
-            font-family: "Poppins", sans-serif;
-            background: linear-gradient(-45deg, #1e293b, #0f172a, #4f46e5, #06b6d4);
-            background-size: 400% 400%;
-            animation: gradientBG 15s ease infinite;
-            color: #fff;
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
-        }
+    const firebaseConfig = {
+      apiKey: "AIzaSyDFrctk2MZajP7OmECXe5npHAV0dODH9jk",
+      authDomain: "matrixmarketplace-1bd71.firebaseapp.com",
+      databaseURL: "https://matrixmarketplace-1bd71-default-rtdb.firebaseio.com",
+      projectId: "matrixmarketplace-1bd71",
+      storageBucket: "matrixmarketplace-1bd71.appspot.com",
+      messagingSenderId: "10374416997",
+      appId: "1:10374416997:web:9626c569e845c14a87548c",
+    };
 
-        @keyframes gradientBG {
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
 
-            0%,
-            100% {
-                background-position: 0% 50%
-            }
+    function getCurrentUser() {
+      return JSON.parse(localStorage.getItem("currentUser")) || null;
+    }
 
-            50% {
-                background-position: 100% 50%
-            }
-        }
+    async function updatePaymentStatus() {
+      const user = getCurrentUser();
+      const title = document.getElementById("statusTitle");
+      const msg = document.getElementById("statusMessage");
+      const detailsBox = document.querySelector(".details-box");
+      const btn = document.getElementById("continueBtn");
 
-        header {
-            padding: 15px;
-            background: rgba(0, 0, 0, 0.4);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
+      if (!user) {
+        title.innerText = "⚠️ No User Found";
+        msg.innerText = "Please log in to check your payment status.";
+        msg.className = "status-message declined";
+        detailsBox.style.display = "none";
+        btn.style.display = "none";
+        return;
+      }
 
-        header .logo {
-            font-size: 1.3rem;
-            font-weight: bold;
-            color: #06b6d4;
-        }
+      // Fetch user's latest payment
+      const q = query(ref(db, "payments"), orderByChild("email"), equalTo(user.email));
+      const snapshot = await get(q);
 
-        header nav a {
-            margin: 0 10px;
-            color: #fff;
-            text-decoration: none;
-            font-weight: 500;
-        }
+      if (!snapshot.exists()) {
+        title.innerText = "⌛ No Payment Found";
+        msg.innerText = "No recent payment requests found.";
+        msg.className = "status-message pending";
+        detailsBox.style.display = "none";
+        btn.style.display = "none";
+        return;
+      }
 
-        header nav a:hover {
-            color: #06b6d4;
-        }
+      const payments = Object.values(snapshot.val());
+      const lastPayment = payments[payments.length - 1]; // Most recent payment
 
-        .status-container {
-            flex: 1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-        }
+      // Fill in payment details
+      detailsBox.style.display = "block";
+      document.getElementById("detailsName").innerText = user.fullName || user.name || user.email;
+      document.getElementById("detailsPlan").innerText = lastPayment.method || "N/A";
+      document.getElementById("detailsAmount").innerText = lastPayment.amount + " GMD";
+      document.getElementById("detailsDate").innerText = new Date(lastPayment.date).toLocaleString();
 
-        .status-card {
-            background: rgba(255, 255, 255, 0.08);
-            backdrop-filter: blur(15px);
-            border-radius: 20px;
-            padding: 40px;
-            width: 100%;
-            max-width: 600px;
-            text-align: center;
-            box-shadow: 0 0 25px rgba(6, 182, 212, 0.6);
-            animation: fadeIn 1s ease-in-out;
-        }
+      switch (lastPayment.status) {
+        case "Approved":
+          title.innerText = "✅ Payment Approved";
+          msg.innerText = "Your payment has been verified and approved!";
+          msg.className = "status-message success";
+          btn.style.display = "inline-block";
+          btn.onclick = () => {
+            window.location.href = "subscription-code.html";
+          };
+          break;
 
-        h1 {
-            font-size: 2.2rem;
-            margin-bottom: 10px;
-        }
+        case "Declined":
+          title.innerText = "❌ Payment Declined";
+          msg.innerText = "Your payment was rejected by admin.";
+          msg.className = "status-message declined";
+          btn.style.display = "none";
+          break;
 
-        .status-message {
-            font-size: 1.2rem;
-            margin: 15px 0 25px;
-        }
+        default:
+          title.innerText = "⌛ Payment Pending";
+          msg.innerText = "Waiting for admin approval...";
+          msg.className = "status-message pending";
+          btn.style.display = "none";
+      }
+    }
 
-        .success {
-            color: #22c55e;
-            text-shadow: 0 0 8px #22c55e;
-        }
+    window.onload = () => {
+      updatePaymentStatus();
+      setInterval(updatePaymentStatus, 5000); // Refresh every 5s
+    };
+  </script>
 
-        .declined {
-            color: #ef4444;
-            text-shadow: 0 0 8px #ef4444;
-        }
+  <style>
+    body {
+      margin: 0;
+      font-family: "Poppins", sans-serif;
+      background: linear-gradient(-45deg, #1e293b, #0f172a, #4f46e5, #06b6d4);
+      background-size: 400% 400%;
+      animation: gradientBG 15s ease infinite;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
 
-        .pending {
-            color: #facc15;
-            text-shadow: 0 0 8px #facc15;
-        }
+    @keyframes gradientBG {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+    }
 
-        .details-box {
-            background: rgba(255, 255, 255, 0.1);
-            padding: 18px;
-            border-radius: 12px;
-            margin-top: 20px;
-            text-align: left;
-            display: none;
-        }
+    header {
+      padding: 15px;
+      background: rgba(0, 0, 0, 0.4);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
 
-        .btn {
-            margin-top: 25px;
-            padding: 14px 24px;
-            border: none;
-            border-radius: 12px;
-            background: linear-gradient(45deg, #06b6d4, #4f46e5);
-            color: white;
-            font-size: 1rem;
-            cursor: pointer;
-            box-shadow: 0 0 12px rgba(6, 182, 212, 0.5);
-            transition: all 0.3s ease-in-out;
-            display: none;
-        }
+    header .logo {
+      font-size: 1.3rem;
+      font-weight: bold;
+      color: #06b6d4;
+    }
 
-        .btn:hover {
-            transform: scale(1.05);
-            box-shadow: 0 0 25px #06b6d4;
-        }
+    header nav a {
+      margin: 0 10px;
+      color: #fff;
+      text-decoration: none;
+      font-weight: 500;
+    }
 
-        footer {
-            text-align: center;
-            padding: 20px;
-            background: rgba(255, 255, 255, 0.08);
-            font-size: 0.9rem;
-        }
+    header nav a:hover {
+      color: #06b6d4;
+    }
 
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(-20px);
-            }
+    .status-container {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
 
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-    </style>
+    .status-card {
+      background: rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(15px);
+      border-radius: 20px;
+      padding: 40px;
+      width: 100%;
+      max-width: 600px;
+      text-align: center;
+      box-shadow: 0 0 25px rgba(6, 182, 212, 0.6);
+      animation: fadeIn 1s ease-in-out;
+    }
+
+    h1 {
+      font-size: 2.2rem;
+      margin-bottom: 10px;
+    }
+
+    .status-message {
+      font-size: 1.2rem;
+      margin: 15px 0 25px;
+    }
+
+    .success { color: #22c55e; text-shadow: 0 0 8px #22c55e; }
+    .declined { color: #ef4444; text-shadow: 0 0 8px #ef4444; }
+    .pending { color: #facc15; text-shadow: 0 0 8px #facc15; }
+
+    .details-box {
+      background: rgba(255, 255, 255, 0.1);
+      padding: 18px;
+      border-radius: 12px;
+      margin-top: 20px;
+      text-align: left;
+      display: none;
+    }
+
+    .btn {
+      margin-top: 25px;
+      padding: 14px 24px;
+      border: none;
+      border-radius: 12px;
+      background: linear-gradient(45deg, #06b6d4, #4f46e5);
+      color: white;
+      font-size: 1rem;
+      cursor: pointer;
+      box-shadow: 0 0 12px rgba(6, 182, 212, 0.5);
+      transition: all 0.3s ease-in-out;
+      display: none;
+    }
+
+    .btn:hover {
+      transform: scale(1.05);
+      box-shadow: 0 0 25px #06b6d4;
+    }
+
+    footer {
+      text-align: center;
+      padding: 20px;
+      background: rgba(255, 255, 255, 0.08);
+      font-size: 0.9rem;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
 </head>
 
 <body>
+  <header>
+    <div class="logo">MatrixMarket</div>
+    <nav>
+      <a href="index.html">Home</a>
+      <a href="shop.html">Shop</a>
+      <a href="seller-login.html">Sellers</a>
+    </nav>
+  </header>
 
-    <header>
-        <div class="logo">MatrixMarket</div>
-        <nav>
-            <a href="index.html">Home</a>
-            <a href="shop.html">Shop</a>
-            <a href="seller-login.html">Sellers</a>
-        </nav>
-    </header>
+  <div class="status-container">
+    <div class="status-card">
+      <h1 id="statusTitle">Loading...</h1>
+      <p id="statusMessage" class="status-message"></p>
 
-    <div class="status-container">
-        <div class="status-card">
-            <h1 id="statusTitle">Loading...</h1>
-            <p id="statusMessage" class="status-message"></p>
+      <div class="details-box">
+        <p><strong>Name:</strong> <span id="detailsName"></span></p>
+        <p><strong>Plan:</strong> <span id="detailsPlan"></span></p>
+        <p><strong>Amount:</strong> <span id="detailsAmount"></span></p>
+        <p><strong>Payment Date:</strong> <span id="detailsDate"></span></p>
+      </div>
 
-            <div class="details-box">
-                <p><strong>Name:</strong> <span id="detailsName"></span></p>
-                <p><strong>Plan:</strong> <span id="detailsPlan"></span></p>
-                <p><strong>Amount:</strong> <span id="detailsAmount"></span></p>
-                <p><strong>Payment Date:</strong> <span id="detailsDate"></span></p>
-            </div>
-
-            <button id="continueBtn" class="btn">Go to Subscription</button>
-        </div>
+      <button id="continueBtn" class="btn">Go to Subscription</button>
     </div>
+  </div>
 
-    <footer>
-        <p>© 2025 MatrixMarket | Payment Status</p>
-    </footer>
-
-    <script>
-        const firebaseConfig = {
-           apiKey: "AIzaSyDFrctk2MZajP7OmECXe5npHAV0dODH9jk",
-  authDomain: "matrixmarketplace-1bd71.firebaseapp.com",
-  databaseURL: "https://matrixmarketplace-1bd71-default-rtdb.firebaseio.com",
-  projectId: "matrixmarketplace-1bd71",
-  storageBucket: "matrixmarketplace-1bd71.firebasestorage.app",
-  messagingSenderId: "10374416997",
-  appId: "1:10374416997:web:9626c569e845c14a87548c",
-  measurementId: "G-DTC2GM9L92"
-        };
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.database();
-
-        function getCurrentSeller() {
-            return JSON.parse(localStorage.getItem("currentSeller")) || null;
-        }
-
-        async function updatePaymentStatus() {
-            const seller = getCurrentSeller();
-            const title = document.getElementById("statusTitle");
-            const msg = document.getElementById("statusMessage");
-            const detailsBox = document.querySelector(".details-box");
-            const btn = document.getElementById("continueBtn");
-
-            if (!seller) {
-                title.innerText = "⚠️ No User Found";
-                msg.innerText = "Please log in to check your payment status.";
-                msg.className = "status-message declined";
-                detailsBox.style.display = "none";
-                btn.style.display = "none";
-                return;
-            }
-
-            const snapshot = await db.ref("pendingRequests").orderByChild("email").equalTo(seller.email).limitToLast(1).get();
-            if (!snapshot.exists()) {
-                title.innerText = "⌛ No Pending Payments";
-                msg.innerText = "No payment requests found.";
-                msg.className = "status-message pending";
-                detailsBox.style.display = "none";
-                btn.style.display = "none";
-                return;
-            }
-
-            const request = Object.values(snapshot.val())[0];
-            detailsBox.style.display = "block";
-            document.getElementById("detailsName").innerText = seller.name || seller.fullName || seller.email;
-            document.getElementById("detailsPlan").innerText = request.plan || "Standard";
-            document.getElementById("detailsAmount").innerText = request.amount + " GMD";
-            document.getElementById("detailsDate").innerText = request.date || "N/A";
-
-            switch (request.status) {
-                case "Approved":
-                    title.innerText = "✅ Payment Approved";
-                    msg.innerText = "Your payment has been approved!";
-                    msg.className = "status-message success";
-                    btn.style.display = "inline-block";
-                    btn.onclick = activateSubscription;
-                    break;
-                case "Declined":
-                    title.innerText = "❌ Payment Declined";
-                    msg.innerText = "Your payment was rejected by admin.";
-                    msg.className = "status-message declined";
-                    btn.style.display = "none";
-                    break;
-                default:
-                    title.innerText = "⌛ Payment Pending";
-                    msg.innerText = "Waiting for admin approval...";
-                    msg.className = "status-message pending";
-                    btn.style.display = "none";
-            }
-        }
-
-        function activateSubscription() {
-            const seller = getCurrentSeller();
-            db.ref("sellers").orderByChild("email").equalTo(seller.email).once("value", snap => {
-                const key = Object.keys(snap.val())[0];
-                db.ref("sellers/" + key).update({ subscription: "active" });
-                localStorage.setItem("currentSeller", JSON.stringify({ ...seller, subscription: "active" }));
-                window.location.href = "subscription-code.html";
-            });
-        }
-
-        window.onload = () => {
-            updatePaymentStatus();
-            setInterval(updatePaymentStatus, 5000);
-        };
-    </script>
+  <footer>
+    <p>© 2025 MatrixMarket | Payment Status</p>
+  </footer>
 </body>
-
-
 </html>
