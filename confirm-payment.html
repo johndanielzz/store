@@ -144,45 +144,37 @@
     <div class="msg error" id="errorMsg">⚠️ Something went wrong. Try again.</div>
   </div>
 
-  <!-- Firebase SDKs -->
-  <script src="https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/12.4.0/firebase-storage.js"></script>
+  <!-- Firebase Modular SDK -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
+    import { getDatabase, ref as dbRef, push, set } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
+    import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-storage.js";
 
-  <script>
-    // 🔥 Firebase Config
     const firebaseConfig = {
       apiKey: "AIzaSyDFrctk2MZajP7OmECXe5npHAV0dODH9jk",
       authDomain: "matrixmarketplace-1bd71.firebaseapp.com",
       databaseURL: "https://matrixmarketplace-1bd71-default-rtdb.firebaseio.com",
       projectId: "matrixmarketplace-1bd71",
-      storageBucket: "matrixmarketplace-1bd71.firebasestorage.app",
+      storageBucket: "matrixmarketplace-1bd71.appspot.com",
       messagingSenderId: "10374416997",
-      appId: "1:10374416997:web:9626c569e845c14a87548c",
-      measurementId: "G-DTC2GM9L92"
+      appId: "1:10374416997:web:9626c569e845c14a87548c"
     };
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
-    const storage = firebase.storage();
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    const storage = getStorage(app);
 
     function getCurrentUser() {
-      return (
-        JSON.parse(localStorage.getItem("currentUser")) ||
-        JSON.parse(localStorage.getItem("loggedInUser")) ||
-        JSON.parse(localStorage.getItem("currentSeller")) ||
-        null
-      );
+      return JSON.parse(localStorage.getItem("currentUser") || "null");
     }
 
     window.onload = function () {
       const user = getCurrentUser();
       const infoBox = document.getElementById("userInfo");
       if (user) {
-        infoBox.innerHTML = `
-          👤 <b>${user.fullName || user.name || user.email}</b><br>
-          📧 ${user.email}<br>
-          💰 Current Balance: ${user.balance || 0} GMD
-        `;
+        infoBox.innerHTML = `👤 <b>${user.fullName || user.name || user.email}</b><br>
+                             📧 ${user.email}<br>
+                             💰 Current Balance: ${user.balance || 0} GMD`;
       } else {
         infoBox.innerHTML = "⚠️ You must be logged in first.";
       }
@@ -198,36 +190,20 @@
       errorMsg.classList.remove("show");
 
       const user = getCurrentUser();
-      if (!user) {
-        errorMsg.innerText = "⚠️ Please log in first.";
-        errorMsg.classList.add("show");
-        return;
-      }
-      if (!method) {
-        errorMsg.innerText = "⚠️ Select a payment method.";
-        errorMsg.classList.add("show");
-        return;
-      }
-      if (!amount || amount <= 0) {
-        errorMsg.innerText = "⚠️ Enter a valid amount.";
-        errorMsg.classList.add("show");
-        return;
-      }
-      if (!proofFile) {
-        errorMsg.innerText = "⚠️ Please upload a proof of payment image.";
-        errorMsg.classList.add("show");
-        return;
-      }
+      if (!user) return showError("⚠️ Please log in first.");
+      if (!method) return showError("⚠️ Select a payment method.");
+      if (!amount || amount <= 0) return showError("⚠️ Enter a valid amount.");
+      if (!proofFile) return showError("⚠️ Please upload a proof of payment image.");
 
       try {
-        // 📸 Upload proof image
-        const storageRef = storage.ref(`payment_proofs/${Date.now()}_${proofFile.name}`);
-        await storageRef.put(proofFile);
-        const proofURL = await storageRef.getDownloadURL();
+        // Upload proof
+        const proofRef = storageRef(storage, `payment_proofs/${Date.now()}_${proofFile.name}`);
+        await uploadBytes(proofRef, proofFile);
+        const proofURL = await getDownloadURL(proofRef);
 
-        // 💾 Save payment info
-        const newRef = db.ref("payments").push();
-        await newRef.set({
+        // Save payment to DB
+        const newPaymentRef = push(dbRef(db, "payments"));
+        await set(newPaymentRef, {
           userId: user.uid || user.id || Date.now(),
           name: user.fullName || user.name || "Unknown",
           email: user.email,
@@ -242,7 +218,11 @@
         setTimeout(() => window.location.href = "payment-status.html", 2000);
       } catch (err) {
         console.error(err);
-        errorMsg.innerText = "⚠️ Error uploading proof or saving payment.";
+        showError("⚠️ Error uploading proof or saving payment.");
+      }
+
+      function showError(msg) {
+        errorMsg.innerText = msg;
         errorMsg.classList.add("show");
       }
     }
