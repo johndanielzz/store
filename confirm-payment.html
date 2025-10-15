@@ -2,196 +2,117 @@
 <html lang="en">
 
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MatrixMarket - Admin Payment Control</title>
+  <title>MatrixMarket - Confirm Payment</title>
   <style>
     body {
       font-family: "Poppins", sans-serif;
       background: linear-gradient(135deg, #0f172a, #1e293b, #4f46e5, #06b6d4);
       background-size: 400% 400%;
-      animation: bgMove 15s ease infinite;
+      animation: gradientBG 15s ease infinite;
       color: white;
       margin: 0;
-      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
     }
 
-    @keyframes bgMove {
+    @keyframes gradientBG {
       0%, 100% { background-position: 0% 50%; }
       50% { background-position: 100% 50%; }
     }
 
-    header {
-      background: rgba(0, 0, 0, 0.4);
-      padding: 15px 30px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      backdrop-filter: blur(10px);
-    }
-
-    header .logo {
-      font-size: 1.6rem;
-      color: #06b6d4;
-      font-weight: bold;
-      text-shadow: 0 0 10px #06b6d4;
-    }
-
-    nav a {
-      color: white;
-      text-decoration: none;
-      margin-left: 15px;
-      font-weight: 500;
-      transition: 0.3s;
-    }
-
-    nav a:hover { color: #06b6d4; }
-
     .container {
-      max-width: 1200px;
-      margin: 40px auto;
-      background: rgba(255, 255, 255, 0.08);
+      width: 95%;
+      max-width: 520px;
+      background: rgba(255, 255, 255, 0.1);
       padding: 30px;
       border-radius: 20px;
-      box-shadow: 0 0 20px rgba(6, 182, 212, 0.5);
-    }
-
-    h1 {
+      box-shadow: 0 0 30px rgba(6, 182, 212, 0.4);
       text-align: center;
-      text-shadow: 0 0 10px #06b6d4;
+      backdrop-filter: blur(12px);
     }
 
-    input[type="text"] {
-      width: 100%;
-      padding: 10px;
-      border: none;
-      border-radius: 10px;
-      background: rgba(255, 255, 255, 0.1);
-      color: white;
-      margin-bottom: 15px;
+    h1 { margin-bottom: 10px; text-shadow: 0 0 10px #06b6d4; font-size: 1.8rem; }
+
+    .user-info { margin-bottom: 25px; color: #cbd5e1; line-height: 1.6; }
+
+    label { font-weight: 600; display: block; margin: 12px 0 6px; text-align: left; }
+
+    input, select, button {
+      width: 100%; padding: 12px; margin: 8px 0; border: none; border-radius: 12px; font-size: 1rem;
     }
 
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 10px;
+    input, select { background: rgba(255, 255, 255, 0.15); color: white; }
+    input::placeholder { color: #cbd5e1; }
+
+    button {
+      background: linear-gradient(45deg, #06b6d4, #4f46e5);
+      color: white; font-weight: bold; cursor: pointer;
+      transition: 0.3s; box-shadow: 0 0 10px rgba(6, 182, 212, 0.5);
     }
 
-    th, td {
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      padding: 10px;
-      text-align: center;
-      vertical-align: middle; /* Align content vertically in the middle */
+    button:hover { transform: scale(1.05); background: linear-gradient(45deg, #4f46e5, #06b6d4); }
+    .back-btn { background: #ef4444; }
+    .back-btn:hover { background: #dc2626; }
+
+    .toast {
+      margin-top: 15px; padding: 12px; border-radius: 10px;
+      display: none; opacity: 0; transition: opacity 0.4s ease-in-out;
     }
 
-    th { background: rgba(6, 182, 212, 0.3); }
+    .toast.show { display: block; opacity: 1; }
 
-    img.proof {
-      width: 80px;
-      height: 80px;
-      border-radius: 10px;
-      border: 2px solid rgba(6, 182, 212, 0.4);
-      object-fit: cover;
-      cursor: pointer;
-      transition: 0.3s;
-    }
+    .success { background: rgba(34, 197, 94, 0.2); color: #22c55e; }
+    .error { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
 
-    img.proof:hover { transform: scale(1.2); }
-
-    .btn {
-      padding: 6px 12px;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      color: white;
-      margin: 2px;
-      font-weight: 500;
-      transition: 0.2s ease-in-out;
-    }
-
-    .approve { background: #06b6d4; }
-    .approve:hover { background: #0891b2; transform: translateY(-1px); }
-
-    .decline { background: #ef4444; }
-    .decline:hover { background: #b91c1c; transform: translateY(-1px); }
-
-    .status {
-      padding: 5px 10px;
-      border-radius: 8px;
-      font-weight: bold;
-    }
-
-    .pending { background: rgba(245, 158, 11, 0.2); color: #f59e0b; }
-    .approved { background: rgba(34, 197, 94, 0.2); color: #22c55e; }
-    .declined { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
-
-    footer {
-      text-align: center;
-      padding: 15px;
-      background: rgba(255, 255, 255, 0.08);
-      border-top: 1px solid rgba(255, 255, 255, 0.1);
-      margin-top: 40px;
-    }
-
-    .modal {
-      display: none;
-      position: fixed;
-      z-index: 999;
-      left: 0;
-      top: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.7);
-      justify-content: center;
-      align-items: center;
-    }
-
-    .modal img {
-      max-width: 90%;
-      max-height: 80%;
-      border-radius: 15px;
-      border: 3px solid #06b6d4;
-    }
+    .loading { animation: pulse 1s infinite; }
+    @keyframes pulse { 0% { opacity: 0.6; } 50% { opacity: 1; } 100% { opacity: 0.6; } }
   </style>
 </head>
 
 <body>
-  <header>
-    <div class="logo">MatrixMarket Admin</div>
-    <nav>
-      <a href="dashboard-admin.html">Dashboard</a>
-      <a href="admin-sellers.html">Sellers</a>
-      <a href="admin-users.html">Users</a>
-      <a href="admin-payments.html">Payments</a> <!-- Added for clarity, as this page is now payments -->
-    </nav>
-  </header>
-
   <div class="container">
-    <h1>💸 Manage Payment Requests</h1>
-    <input type="text" id="searchBox" placeholder="Search by user email or payment method..." onkeyup="renderPaymentRequests()">
-    <table id="paymentRequestTable"></table>
+    <h1>💳 Confirm Payment</h1>
+    <div class="user-info" id="userInfo">Loading user...</div>
+
+    <label for="method">Select Payment Method</label>
+    <select id="method">
+      <option value="">-- Choose Method --</option>
+      <option value="Wave">Wave (6785316)</option>
+      <option value="ComCash">ComCash (6785316)</option>
+      <option value="Wallet">Wallet</option>
+      <option value="Card">Card</option>
+    </select>
+
+    <label for="amount">Enter Amount (GMD)</label>
+    <input type="number" id="amount" placeholder="Enter amount" min="1">
+
+    <label for="proof">Upload Proof of Payment (Image)</label>
+    <input type="file" id="proof" accept="image/*">
+
+    <button type="button" id="submitBtn" disabled>📩 Submit Request</button>
+    <button class="back-btn" onclick="window.location.href='index.html'">⬅ Back</button>
+
+    <div class="toast success" id="successMsg">✅ Payment submitted successfully!</div>
+    <div class="toast error" id="errorMsg">⚠️ Something went wrong. Try again.</div>
   </div>
 
-  <div class="modal" id="imageModal" onclick="this.style.display='none'">
-    <img id="modalImg" src="">
-  </div>
-
-  <footer>© 2025 MatrixMarket | Admin Payment Control</footer>
-
-  <!-- Firebase Modular SDK -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
-    import { getDatabase, ref, get, update } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
-    // Assuming you have getAuth and onAuthStateChanged imported if you implement admin authentication
-    // import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
+    import { getDatabase, ref as dbRef, push, set } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
+    // FIX: Corrected typo in Firebase Storage import URL and changed to uploadBytesResumable
+    import { getStorage, ref as storageRef, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-storage.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
 
-    // ✅ Updated Firebase Config
     const firebaseConfig = {
       apiKey: "AIzaSyDFrctk2MZajP7OmECXe5npHAV0dODH9jk",
       authDomain: "matrixmarketplace-1bd71.firebaseapp.com",
       databaseURL: "https://matrixmarketplace-1bd71-default-rtdb.firebaseio.com",
       projectId: "matrixmarketplace-1bd71",
-      storageBucket: "matrixmarketplace-1bd71.firebasestorage.app", // Corrected storageBucket if needed
+      storageBucket: "matrixmarketplace-1bd71.appspot.com",
       messagingSenderId: "10374416997",
       appId: "1:10374416997:web:9626c569e845c14a87548c",
       measurementId: "G-DTC2GM9L92"
@@ -199,144 +120,153 @@
 
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
-    // const auth = getAuth(app); // For admin authentication
+    const storage = getStorage(app);
+    const auth = getAuth(app);
 
-    // Function to render payment requests
-    async function renderPaymentRequests() {
-      const search = document.getElementById("searchBox").value.toLowerCase();
-      const table = document.getElementById("paymentRequestTable");
+    let firebaseUser = null;
 
-      // Fetch all pending requests
-      const snapshot = await get(ref(db, 'pendingRequests'));
-      const requestsObj = snapshot.val() || {};
-      const requests = Object.entries(requestsObj); // Convert to array of [key, value] pairs
+    const submitBtn = document.getElementById("submitBtn");
+    const userInfoBox = document.getElementById("userInfo");
+    const methodSelect = document.getElementById("method");
+    const amountInput = document.getElementById("amount");
+    const proofInput = document.getElementById("proof");
 
-      table.innerHTML = `
-        <tr>
-          <th>User Email</th>
-          <th>Method</th>
-          <th>Amount</th>
-          <th>Proof</th>
-          <th>Status</th>
-          <th>Date</th>
-          <th>Action</th>
-        </tr>
-      `;
+    function showError(msg) {
+      const errorMsg = document.getElementById("errorMsg");
+      errorMsg.innerText = msg;
+      errorMsg.classList.add("show");
+      document.getElementById("successMsg").classList.remove("show");
+    }
 
-      const filtered = requests.filter(([id, request]) =>
-        request.email?.toLowerCase().includes(search) ||
-        request.method?.toLowerCase().includes(search) ||
-        request.status?.toLowerCase().includes(search)
-      );
+    function hideMessages() {
+      document.getElementById("successMsg").classList.remove("show");
+      document.getElementById("errorMsg").classList.remove("show");
+    }
 
-      if (!filtered.length) {
-        table.innerHTML += `<tr><td colspan="7">No payment requests found matching your search.</td></tr>`;
-        return;
+    onAuthStateChanged(auth, (user) => {
+      firebaseUser = user;
+      hideMessages();
+
+      if (user) {
+        userInfoBox.innerHTML = `
+          👤 <b>${user.displayName || user.email || "User"}</b><br>
+          📧 ${user.email}<br>
+          <span style="color: #22c55e;">✅ Logged in to Firebase</span>
+        `;
+        submitBtn.disabled = false;
+        submitBtn.innerText = "📩 Submit Request";
+      } else {
+        userInfoBox.innerHTML = "⚠️ You must be logged in to Firebase to submit a payment. Please log in.";
+        submitBtn.disabled = true;
+        submitBtn.innerText = "Please Log In";
+        showError("You are not logged in. Please log in to your account.");
+      }
+    });
+
+    submitBtn.addEventListener("click", submitPayment);
+
+    async function submitPayment() {
+      hideMessages();
+
+      if (!firebaseUser) {
+        return showError("⚠️ You are not logged in to Firebase. Please log in.");
       }
 
-      filtered.forEach(([requestId, req]) => {
-        const statusClass = req.status === "Approved"
-          ? "approved"
-          : req.status === "Declined"
-          ? "declined"
-          : "pending";
+      const method = methodSelect.value;
+      const amount = parseFloat(amountInput.value);
+      const proofFile = proofInput.files[0];
 
-        const proofHTML = req.proofURL
-          ? `<img src="${req.proofURL}" class="proof" onclick="viewProof('${req.proofURL}')">`
-          : "No proof";
+      if (!method) return showError("⚠️ Select a payment method.");
+      if (!amount || amount <= 0) return showError("⚠️ Enter a valid amount.");
+      if (!proofFile) return showError("⚠️ Please upload proof of payment.");
+      if (proofFile.size > 5 * 1024 * 1024) return showError("⚠️ File must be under 5MB.");
 
-        table.innerHTML += `
-          <tr>
-            <td>${req.email || "N/A"}</td>
-            <td>${req.method}</td>
-            <td>${req.amount} GMD</td>
-            <td>${proofHTML}</td>
-            <td><span class="status ${statusClass}">${req.status}</span></td>
-            <td>${req.date || "N/A"}</td>
-            <td>
-              <button class="btn approve" onclick="updatePaymentRequest('${requestId}', 'Approved', '${req.userId}', ${req.amount})">Approve</button>
-              <button class="btn decline" onclick="updatePaymentRequest('${requestId}', 'Declined', '${req.userId}', ${req.amount})">Decline</button>
-            </td>
-          </tr>
-        `;
-      });
-    }
+      submitBtn.disabled = true; // Disable button immediately
 
-    // Function to view the proof image in a modal
-    function viewProof(src) {
-      const modal = document.getElementById("imageModal");
-      document.getElementById("modalImg").src = src;
-      modal.style.display = "flex";
-    }
-
-    // Function to update a payment request status and potentially user balance
-    async function updatePaymentRequest(requestId, action, userId, amount) {
       try {
-        // 1. Update the status of the specific payment request
-        await update(ref(db, 'pendingRequests/' + requestId), {
-          status: action,
-          adminActionDate: new Date().toLocaleString()
+        // 1. Upload proof to Firebase Storage with progress tracking
+        const proofRef = storageRef(storage, `payment_proofs/${firebaseUser.uid}/${Date.now()}_${proofFile.name}`);
+        const uploadTask = uploadBytesResumable(proofRef, proofFile); // Use uploadBytesResumable
+
+        // Listen for state changes, errors, and completion of the upload.
+        await new Promise((resolve, reject) => {
+            uploadTask.on('state_changed',
+                (snapshot) => {
+                    const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                    submitBtn.innerText = `⏳ Uploading... ${progress.toFixed(0)}%`;
+                    // You can add more visual feedback here, e.g., to a dedicated progress bar
+                },
+                (error) => {
+                    // Handle unsuccessful uploads
+                    console.error("Storage upload failed:", error);
+                    let errorMessage = "⚠️ Error uploading proof. Please try again.";
+                    if (error.code === 'storage/unauthorized') {
+                        errorMessage = "⚠️ Permission denied! Check Firebase Storage rules for 'payment_proofs'.";
+                    } else if (error.code === 'storage/canceled') {
+                        errorMessage = "⚠️ Upload canceled.";
+                    }
+                    showError(errorMessage);
+                    reject(error); // Reject the promise to trigger the outer catch block
+                },
+                () => {
+                    // Handle successful uploads on complete
+                    console.log('Proof upload complete!');
+                    resolve(); // Resolve the promise when upload is done
+                }
+            );
         });
 
-        // 2. If approved, potentially update the user's balance.
-        // This assumes you store user balances under a 'users' node,
-        // with each user's data keyed by their userId.
-        if (action === 'Approved') {
-          const userSnapshot = await get(ref(db, `users/${userId}`));
-          if (userSnapshot.exists()) {
-            const userData = userSnapshot.val();
-            const currentBalance = userData.balance || 0;
-            const newBalance = currentBalance + amount;
+        // 2. Get the download URL after successful upload
+        const proofURL = await getDownloadURL(uploadTask.snapshot.ref);
 
-            await update(ref(db, `users/${userId}`), {
-              balance: newBalance,
-              lastDepositAmount: amount,
-              lastDepositDate: new Date().toLocaleString()
-            });
-            alert(`✅ Payment request ${action.toLowerCase()} and user balance updated!`);
-          } else {
-            console.warn(`User with ID ${userId} not found, could not update balance.`);
-            alert(`✅ Payment request ${action.toLowerCase()}, but user balance could not be updated (user not found).`);
-          }
-        } else {
-          alert(`❌ Payment request ${action.toLowerCase()}!`);
+        // 3. Save payment request to Realtime Database
+        submitBtn.innerText = "💾 Saving data..."; // Update button text for next step
+        const newPaymentRef = push(dbRef(db, "pendingRequests"));
+        await set(newPaymentRef, {
+          userId: firebaseUser.uid,
+          name: firebaseUser.displayName || firebaseUser.email || "Unknown",
+          email: firebaseUser.email,
+          method,
+          amount,
+          proofURL,
+          status: "Pending",
+          date: new Date().toLocaleString()
+        });
+
+        document.getElementById("successMsg").classList.add("show");
+        submitBtn.innerText = "✅ Submitted"; // Final success message
+
+        // Clear form fields after successful submission
+        methodSelect.value = "";
+        amountInput.value = "";
+        proofInput.value = ""; // Clear file input
+
+        setTimeout(() => window.location.href = "payment-status.html", 2000);
+
+      } catch (err) {
+        console.error("Payment submission error:", err);
+        // This catch block handles errors from both upload and database set operations
+        if (err.code && err.code.startsWith('storage/')) {
+            // Error message already set by the uploadTask.on error handler
+        } else if (err.message.includes("auth.currentUser is null") || err.message.includes("no-auth")) {
+            showError("⚠️ You must be logged in to Firebase to submit a payment.");
+        } else if (err.message) {
+            showError(`⚠️ Error: ${err.message}`);
         }
-
-        // Re-render the list to show updated status
-        renderPaymentRequests();
-
-      } catch (error) {
-        console.error("Error updating payment request or user balance:", error);
-        alert("⚠️ An error occurred while processing the request. Check console for details.");
+        else {
+            showError("⚠️ An unexpected error occurred during submission. Please try again.");
+        }
+        submitBtn.innerText = "📩 Submit Request"; // Reset button text on error
+      } finally {
+        // Re-enable button ONLY if user is logged in
+        if (firebaseUser) {
+            submitBtn.disabled = false;
+        } else {
+            submitBtn.disabled = true; // Keep disabled if user is not logged in
+            submitBtn.innerText = "Please Log In";
+        }
       }
     }
-
-    // Assign global functions
-    window.renderPaymentRequests = renderPaymentRequests;
-    window.viewProof = viewProof;
-    window.updatePaymentRequest = updatePaymentRequest;
-
-    // Initial render when the page loads
-    window.onload = renderPaymentRequests;
-
-    // IMPORTANT: For a real admin panel, you MUST implement Firebase Authentication
-    // to restrict access to only authorized administrators.
-    // Example (uncomment and implement proper admin check):
-    /*
-    onAuthStateChanged(auth, (user) => {
-        if (user) {
-            // Check if this user is an admin (e.g., by looking up their role in a database)
-            // If they are admin, call renderPaymentRequests()
-            // Else, redirect them away or show an access denied message
-            console.log("Admin user logged in:", user.email);
-            // Simulate admin check for now
-            renderPaymentRequests();
-        } else {
-            // No user logged in, redirect to login page
-            window.location.href = "login.html"; // Or show an unauthorized message
-        }
-    });
-    */
   </script>
 </body>
 </html>
