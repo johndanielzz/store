@@ -5,6 +5,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>MatrixMarket - Confirm Payment</title>
+
   <style>
     body {
       font-family: "Poppins", sans-serif;
@@ -13,38 +14,42 @@
       animation: gradientBG 15s ease infinite;
       color: white;
       margin: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
     }
 
     @keyframes gradientBG {
-
-      0%,
-      100% {
+      0%, 100% {
         background-position: 0% 50%;
       }
-
       50% {
         background-position: 100% 50%;
       }
     }
 
     .container {
+      width: 95%;
       max-width: 520px;
-      margin: 80px auto;
-      background: rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.1);
       padding: 30px;
       border-radius: 20px;
-      box-shadow: 0 0 20px rgba(6, 182, 212, 0.5);
+      box-shadow: 0 0 30px rgba(6, 182, 212, 0.4);
       text-align: center;
+      backdrop-filter: blur(12px);
     }
 
     h1 {
       margin-bottom: 10px;
       text-shadow: 0 0 10px #06b6d4;
+      font-size: 1.8rem;
     }
 
     .user-info {
-      margin-bottom: 20px;
+      margin-bottom: 25px;
       color: #cbd5e1;
+      line-height: 1.6;
     }
 
     label {
@@ -71,16 +76,22 @@
       color: white;
     }
 
+    input::placeholder {
+      color: #cbd5e1;
+    }
+
     button {
-      background: #06b6d4;
+      background: linear-gradient(45deg, #06b6d4, #4f46e5);
       color: white;
       font-weight: bold;
       cursor: pointer;
       transition: 0.3s;
+      box-shadow: 0 0 10px rgba(6, 182, 212, 0.5);
     }
 
     button:hover {
-      background: #4f46e5;
+      transform: scale(1.05);
+      background: linear-gradient(45deg, #4f46e5, #06b6d4);
     }
 
     .back-btn {
@@ -91,16 +102,16 @@
       background: #dc2626;
     }
 
-    .msg {
+    .toast {
       margin-top: 15px;
-      padding: 10px;
+      padding: 12px;
       border-radius: 10px;
       display: none;
       opacity: 0;
-      transition: opacity 0.5s ease-in-out;
+      transition: opacity 0.4s ease-in-out;
     }
 
-    .msg.show {
+    .toast.show {
       display: block;
       opacity: 1;
     }
@@ -113,6 +124,16 @@
     .error {
       background: rgba(239, 68, 68, 0.2);
       color: #ef4444;
+    }
+
+    .loading {
+      animation: pulse 1s infinite;
+    }
+
+    @keyframes pulse {
+      0% { opacity: 0.6; }
+      50% { opacity: 1; }
+      100% { opacity: 0.6; }
     }
   </style>
 </head>
@@ -132,16 +153,16 @@
     </select>
 
     <label for="amount">Enter Amount (GMD)</label>
-    <input type="number" id="amount" placeholder="Enter amount">
+    <input type="number" id="amount" placeholder="Enter amount" min="1">
 
     <label for="proof">Upload Proof of Payment (Image)</label>
     <input type="file" id="proof" accept="image/*">
 
-    <button type="button" onclick="submitPayment()">📩 Submit Request</button>
+    <button type="button" id="submitBtn">📩 Submit Request</button>
     <button class="back-btn" onclick="window.location.href='index.html'">⬅ Back</button>
 
-    <div class="msg success" id="successMsg">✅ Request submitted successfully!</div>
-    <div class="msg error" id="errorMsg">⚠️ Something went wrong. Try again.</div>
+    <div class="toast success" id="successMsg">✅ Payment submitted successfully!</div>
+    <div class="toast error" id="errorMsg">⚠️ Something went wrong. Try again.</div>
   </div>
 
   <!-- Firebase Modular SDK -->
@@ -151,13 +172,14 @@
     import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-storage.js";
 
     const firebaseConfig = {
-      apiKey: "AIzaSyDFrctk2MZajP7OmECXe5npHAV0dODH9jk",
-      authDomain: "matrixmarketplace-1bd71.firebaseapp.com",
-      databaseURL: "https://matrixmarketplace-1bd71-default-rtdb.firebaseio.com",
-      projectId: "matrixmarketplace-1bd71",
-      storageBucket: "matrixmarketplace-1bd71.appspot.com",
-      messagingSenderId: "10374416997",
-      appId: "1:10374416997:web:9626c569e845c14a87548c"
+       apiKey: "AIzaSyDFrctk2MZajP7OmECXe5npHAV0dODH9jk",
+  authDomain: "matrixmarketplace-1bd71.firebaseapp.com",
+  databaseURL: "https://matrixmarketplace-1bd71-default-rtdb.firebaseio.com",
+  projectId: "matrixmarketplace-1bd71",
+  storageBucket: "matrixmarketplace-1bd71.firebasestorage.app",
+  messagingSenderId: "10374416997",
+  appId: "1:10374416997:web:9626c569e845c14a87548c",
+  measurementId: "G-DTC2GM9L92"
     };
 
     const app = initializeApp(firebaseConfig);
@@ -172,13 +194,17 @@
       const user = getCurrentUser();
       const infoBox = document.getElementById("userInfo");
       if (user) {
-        infoBox.innerHTML = `👤 <b>${user.fullName || user.name || user.email}</b><br>
-                             📧 ${user.email}<br>
-                             💰 Current Balance: ${user.balance || 0} GMD`;
+        infoBox.innerHTML = `
+          👤 <b>${user.fullName || user.name || user.email}</b><br>
+          📧 ${user.email}<br>
+          💰 Balance: ${user.balance || 0} GMD
+        `;
       } else {
         infoBox.innerHTML = "⚠️ You must be logged in first.";
       }
     };
+
+    document.getElementById("submitBtn").addEventListener("click", submitPayment);
 
     async function submitPayment() {
       const amount = parseFloat(document.getElementById("amount").value);
@@ -186,6 +212,8 @@
       const proofFile = document.getElementById("proof").files[0];
       const successMsg = document.getElementById("successMsg");
       const errorMsg = document.getElementById("errorMsg");
+      const btn = document.getElementById("submitBtn");
+
       successMsg.classList.remove("show");
       errorMsg.classList.remove("show");
 
@@ -193,16 +221,18 @@
       if (!user) return showError("⚠️ Please log in first.");
       if (!method) return showError("⚠️ Select a payment method.");
       if (!amount || amount <= 0) return showError("⚠️ Enter a valid amount.");
-      if (!proofFile) return showError("⚠️ Please upload a proof of payment image.");
+      if (!proofFile) return showError("⚠️ Please upload proof of payment.");
+      if (proofFile.size > 5 * 1024 * 1024) return showError("⚠️ File must be under 5MB.");
 
       try {
-        // Upload proof
+        btn.disabled = true;
+        btn.innerText = "⏳ Uploading...";
+
         const proofRef = storageRef(storage, `payment_proofs/${Date.now()}_${proofFile.name}`);
         await uploadBytes(proofRef, proofFile);
         const proofURL = await getDownloadURL(proofRef);
 
-        // Save payment to DB
-        const newPaymentRef = push(dbRef(db, "payments"));
+        const newPaymentRef = push(dbRef(db, "pendingRequests"));
         await set(newPaymentRef, {
           userId: user.uid || user.id || Date.now(),
           name: user.fullName || user.name || "Unknown",
@@ -211,14 +241,18 @@
           amount,
           proofURL,
           status: "Pending",
-          date: new Date().toISOString()
+          date: new Date().toLocaleString()
         });
 
         successMsg.classList.add("show");
-        setTimeout(() => window.location.href = "payment-status.html", 2000);
+        btn.innerText = "✅ Submitted";
+        setTimeout(() => (window.location.href = "payment-status.html"), 2000);
       } catch (err) {
         console.error(err);
         showError("⚠️ Error uploading proof or saving payment.");
+      } finally {
+        btn.disabled = false;
+        btn.innerText = "📩 Submit Request";
       }
 
       function showError(msg) {
