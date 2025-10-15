@@ -103,8 +103,8 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
     import { getDatabase, ref as dbRef, push, set } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
-    import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.www.gstatic.com/firebasejs/12.4.0/firebase-storage.js";
-    // NEW: Import getAuth and onAuthStateChanged
+    // FIX: Corrected typo in Firebase Storage import URL and changed to uploadBytesResumable
+    import { getStorage, ref as storageRef, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-storage.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
 
     const firebaseConfig = {
@@ -121,9 +121,9 @@
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
     const storage = getStorage(app);
-    const auth = getAuth(app); // NEW: Initialize Firebase Auth
+    const auth = getAuth(app);
 
-    let firebaseUser = null; // This will hold our authenticated user object
+    let firebaseUser = null;
 
     const submitBtn = document.getElementById("submitBtn");
     const userInfoBox = document.getElementById("userInfo");
@@ -131,40 +131,33 @@
     const amountInput = document.getElementById("amount");
     const proofInput = document.getElementById("proof");
 
-    // Helper to show errors
     function showError(msg) {
       const errorMsg = document.getElementById("errorMsg");
       errorMsg.innerText = msg;
       errorMsg.classList.add("show");
-      document.getElementById("successMsg").classList.remove("show"); // Hide success if error occurs
+      document.getElementById("successMsg").classList.remove("show");
     }
 
-    // Helper to hide messages
     function hideMessages() {
       document.getElementById("successMsg").classList.remove("show");
       document.getElementById("errorMsg").classList.remove("show");
     }
 
-    // NEW: Listen for Firebase Auth state changes
     onAuthStateChanged(auth, (user) => {
-      firebaseUser = user; // Update our global user object
-      hideMessages(); // Clear any previous messages
+      firebaseUser = user;
+      hideMessages();
 
       if (user) {
-        // User is signed in.
         userInfoBox.innerHTML = `
           👤 <b>${user.displayName || user.email || "User"}</b><br>
           📧 ${user.email}<br>
-          <!-- Balance info from your localStorage concept would need to be fetched from RTDB/Firestore if it's not part of the Firebase Auth user object -->
-          <!-- 💰 Balance: ${user.balance || 0} GMD -->
           <span style="color: #22c55e;">✅ Logged in to Firebase</span>
         `;
-        submitBtn.disabled = false; // Enable the submit button
+        submitBtn.disabled = false;
         submitBtn.innerText = "📩 Submit Request";
       } else {
-        // User is signed out.
         userInfoBox.innerHTML = "⚠️ You must be logged in to Firebase to submit a payment. Please log in.";
-        submitBtn.disabled = true; // Disable the submit button
+        submitBtn.disabled = true;
         submitBtn.innerText = "Please Log In";
         showError("You are not logged in. Please log in to your account.");
       }
@@ -173,9 +166,8 @@
     submitBtn.addEventListener("click", submitPayment);
 
     async function submitPayment() {
-      hideMessages(); // Clear messages on new submission attempt
+      hideMessages();
 
-      // Use firebaseUser, which is set by onAuthStateChanged
       if (!firebaseUser) {
         return showError("⚠️ You are not logged in to Firebase. Please log in.");
       }
@@ -189,19 +181,49 @@
       if (!proofFile) return showError("⚠️ Please upload proof of payment.");
       if (proofFile.size > 5 * 1024 * 1024) return showError("⚠️ File must be under 5MB.");
 
+      submitBtn.disabled = true; // Disable button immediately
+
       try {
-        submitBtn.disabled = true;
-        submitBtn.innerText = "⏳ Uploading...";
-
-        // Upload proof to Firebase Storage
+        // 1. Upload proof to Firebase Storage with progress tracking
         const proofRef = storageRef(storage, `payment_proofs/${firebaseUser.uid}/${Date.now()}_${proofFile.name}`);
-        await uploadBytes(proofRef, proofFile);
-        const proofURL = await getDownloadURL(proofRef);
+        const uploadTask = uploadBytesResumable(proofRef, proofFile); // Use uploadBytesResumable
 
-        // Save payment request to Realtime Database
+        // Listen for state changes, errors, and completion of the upload.
+        await new Promise((resolve, reject) => {
+            uploadTask.on('state_changed',
+                (snapshot) => {
+                    const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                    submitBtn.innerText = `⏳ Uploading... ${progress.toFixed(0)}%`;
+                    // You can add more visual feedback here, e.g., to a dedicated progress bar
+                },
+                (error) => {
+                    // Handle unsuccessful uploads
+                    console.error("Storage upload failed:", error);
+                    let errorMessage = "⚠️ Error uploading proof. Please try again.";
+                    if (error.code === 'storage/unauthorized') {
+                        errorMessage = "⚠️ Permission denied! Check Firebase Storage rules for 'payment_proofs'.";
+                    } else if (error.code === 'storage/canceled') {
+                        errorMessage = "⚠️ Upload canceled.";
+                    }
+                    showError(errorMessage);
+                    reject(error); // Reject the promise to trigger the outer catch block
+                },
+                () => {
+                    // Handle successful uploads on complete
+                    console.log('Proof upload complete!');
+                    resolve(); // Resolve the promise when upload is done
+                }
+            );
+        });
+
+        // 2. Get the download URL after successful upload
+        const proofURL = await getDownloadURL(uploadTask.snapshot.ref);
+
+        // 3. Save payment request to Realtime Database
+        submitBtn.innerText = "💾 Saving data..."; // Update button text for next step
         const newPaymentRef = push(dbRef(db, "pendingRequests"));
         await set(newPaymentRef, {
-          userId: firebaseUser.uid, // Use Firebase UID
+          userId: firebaseUser.uid,
           name: firebaseUser.displayName || firebaseUser.email || "Unknown",
           email: firebaseUser.email,
           method,
@@ -212,7 +234,7 @@
         });
 
         document.getElementById("successMsg").classList.add("show");
-        submitBtn.innerText = "✅ Submitted";
+        submitBtn.innerText = "✅ Submitted"; // Final success message
 
         // Clear form fields after successful submission
         methodSelect.value = "";
@@ -222,21 +244,25 @@
         setTimeout(() => window.location.href = "payment-status.html", 2000);
 
       } catch (err) {
-        console.error("Upload error:", err);
-        // Display a user-friendly error message
-        if (err.code === 'storage/unauthorized') {
-            showError("⚠️ Permission denied! Check Firebase Storage rules or ensure you're logged in correctly.");
+        console.error("Payment submission error:", err);
+        // This catch block handles errors from both upload and database set operations
+        if (err.code && err.code.startsWith('storage/')) {
+            // Error message already set by the uploadTask.on error handler
         } else if (err.message.includes("auth.currentUser is null") || err.message.includes("no-auth")) {
             showError("⚠️ You must be logged in to Firebase to submit a payment.");
+        } else if (err.message) {
+            showError(`⚠️ Error: ${err.message}`);
         }
         else {
-            showError("⚠️ Error uploading proof or saving payment. Please try again.");
+            showError("⚠️ An unexpected error occurred during submission. Please try again.");
         }
-        submitBtn.innerText = "📩 Submit Request";
+        submitBtn.innerText = "📩 Submit Request"; // Reset button text on error
       } finally {
-        submitBtn.disabled = false; // Re-enable button (unless user is not logged in)
-        if (!firebaseUser) {
-            submitBtn.disabled = true;
+        // Re-enable button ONLY if user is logged in
+        if (firebaseUser) {
+            submitBtn.disabled = false;
+        } else {
+            submitBtn.disabled = true; // Keep disabled if user is not logged in
             submitBtn.innerText = "Please Log In";
         }
       }
@@ -244,3 +270,4 @@
   </script>
 </body>
 </html>
+
