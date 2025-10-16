@@ -81,12 +81,13 @@
       border: 1px solid rgba(255, 255, 255, 0.2);
       padding: 10px;
       text-align: center;
-      vertical-align: middle; /* Align content vertically in the middle */
+      vertical-align: middle;
     }
 
     th { background: rgba(6, 182, 212, 0.3); }
 
-    img.proof {
+    /* Removed .proof image styles as there is no proof to display */
+    /* img.proof {
       width: 80px;
       height: 80px;
       border-radius: 10px;
@@ -96,7 +97,7 @@
       transition: 0.3s;
     }
 
-    img.proof:hover { transform: scale(1.2); }
+    img.proof:hover { transform: scale(1.2); } */
 
     .btn {
       padding: 6px 12px;
@@ -133,7 +134,8 @@
       margin-top: 40px;
     }
 
-    .modal {
+    /* Removed modal styles as there is no proof to view */
+    /* .modal {
       display: none;
       position: fixed;
       z-index: 999;
@@ -151,7 +153,7 @@
       max-height: 80%;
       border-radius: 15px;
       border: 3px solid #06b6d4;
-    }
+    } */
   </style>
 </head>
 
@@ -162,7 +164,7 @@
       <a href="dashboard-admin.html">Dashboard</a>
       <a href="admin-sellers.html">Sellers</a>
       <a href="admin-users.html">Users</a>
-      <a href="admin-payments.html">Payments</a> <!-- Added for clarity, as this page is now payments -->
+      <a href="admin-payments.html">Payments</a>
     </nav>
   </header>
 
@@ -172,9 +174,10 @@
     <table id="paymentRequestTable"></table>
   </div>
 
-  <div class="modal" id="imageModal" onclick="this.style.display='none'">
+  <!-- Removed: Image modal as there's no proof to view -->
+  <!-- <div class="modal" id="imageModal" onclick="this.style.display='none'">
     <img id="modalImg" src="">
-  </div>
+  </div> -->
 
   <footer>© 2025 MatrixMarket | Admin Payment Control</footer>
 
@@ -185,13 +188,13 @@
     // Assuming you have getAuth and onAuthStateChanged imported if you implement admin authentication
     // import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
 
-    // ✅ Updated Firebase Config
     const firebaseConfig = {
       apiKey: "AIzaSyDFrctk2MZajP7OmECXe5npHAV0dODH9jk",
       authDomain: "matrixmarketplace-1bd71.firebaseapp.com",
       databaseURL: "https://matrixmarketplace-1bd71-default-rtdb.firebaseio.com",
       projectId: "matrixmarketplace-1bd71",
-      storageBucket: "matrixmarketplace-1bd71.firebasestorage.app", // Corrected storageBucket if needed
+      // Removed: storageBucket as proof of payment is no longer used
+      // storageBucket: "matrixmarketplace-1bd71.firebasestorage.app",
       messagingSenderId: "10374416997",
       appId: "1:10374416997:web:9626c569e845c14a87548c",
       measurementId: "G-DTC2GM9L92"
@@ -216,12 +219,11 @@
           <th>User Email</th>
           <th>Method</th>
           <th>Amount</th>
-          <th>Proof</th>
           <th>Status</th>
           <th>Date</th>
           <th>Action</th>
         </tr>
-      `;
+      `; // Removed 'Proof' column
 
       const filtered = requests.filter(([id, request]) =>
         request.email?.toLowerCase().includes(search) ||
@@ -230,7 +232,7 @@
       );
 
       if (!filtered.length) {
-        table.innerHTML += `<tr><td colspan="7">No payment requests found matching your search.</td></tr>`;
+        table.innerHTML += `<tr><td colspan="6">No payment requests found matching your search.</td></tr>`; // Updated colspan
         return;
       }
 
@@ -241,16 +243,16 @@
           ? "declined"
           : "pending";
 
-        const proofHTML = req.proofURL
-          ? `<img src="${req.proofURL}" class="proof" onclick="viewProof('${req.proofURL}')">`
-          : "No proof";
+        // Removed: Proof HTML generation as there is no proofURL
+        // const proofHTML = req.proofURL
+        //   ? `<img src="${req.proofURL}" class="proof" onclick="viewProof('${req.proofURL}')">`
+        //   : "No proof";
 
         table.innerHTML += `
           <tr>
             <td>${req.email || "N/A"}</td>
             <td>${req.method}</td>
             <td>${req.amount} GMD</td>
-            <td>${proofHTML}</td>
             <td><span class="status ${statusClass}">${req.status}</span></td>
             <td>${req.date || "N/A"}</td>
             <td>
@@ -262,12 +264,12 @@
       });
     }
 
-    // Function to view the proof image in a modal
-    function viewProof(src) {
-      const modal = document.getElementById("imageModal");
-      document.getElementById("modalImg").src = src;
-      modal.style.display = "flex";
-    }
+    // Removed: Function to view the proof image in a modal
+    // function viewProof(src) {
+    //   const modal = document.getElementById("imageModal");
+    //   document.getElementById("modalImg").src = src;
+    //   modal.style.display = "flex";
+    // }
 
     // Function to update a payment request status and potentially user balance
     async function updatePaymentRequest(requestId, action, userId, amount) {
@@ -313,7 +315,8 @@
 
     // Assign global functions
     window.renderPaymentRequests = renderPaymentRequests;
-    window.viewProof = viewProof;
+    // Removed: window.viewProof as it's no longer needed
+    // window.viewProof = viewProof;
     window.updatePaymentRequest = updatePaymentRequest;
 
     // Initial render when the page loads
@@ -340,4 +343,3 @@
   </script>
 </body>
 </html>
-
