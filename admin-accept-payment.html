@@ -54,6 +54,7 @@
       padding: 30px;
       border-radius: 20px;
       box-shadow: 0 0 20px rgba(6, 182, 212, 0.5);
+      overflow-x: auto; /* Added for responsiveness */
     }
 
     h1 {
@@ -75,6 +76,7 @@
       width: 100%;
       border-collapse: collapse;
       margin-top: 10px;
+      min-width: 800px; /* Ensure table doesn't get too small */
     }
 
     th, td {
@@ -82,6 +84,7 @@
       padding: 10px;
       text-align: center;
       vertical-align: middle;
+      font-size: 0.9rem; /* Smaller font for more content */
     }
 
     th { background: rgba(6, 182, 212, 0.3); }
@@ -103,15 +106,19 @@
     .decline { background: #ef4444; }
     .decline:hover { background: #b91c1c; transform: translateY(-1px); }
 
-    .status {
+    .status-badge { /* Renamed for clarity */
       padding: 5px 10px;
       border-radius: 8px;
       font-weight: bold;
+      white-space: nowrap; /* Prevent status text from wrapping */
     }
 
-    .pending { background: rgba(245, 158, 11, 0.2); color: #f59e0b; }
-    .approved { background: rgba(34, 197, 94, 0.2); color: #22c55e; }
-    .declined { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+    .status-pending { background: rgba(245, 158, 11, 0.2); color: #f59e0b; }
+    .status-approved { background: rgba(34, 197, 94, 0.2); color: #22c55e; }
+    .status-declined { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+    .status-proof-submitted { background: rgba(59, 130, 246, 0.2); color: #3b82f6; } /* For seller payments */
+    .status-confirmed-by-seller { background: rgba(139, 92, 246, 0.2); color: #8b5cf6; } /* For seller payments */
+
 
     footer {
       text-align: center;
@@ -119,6 +126,12 @@
       background: rgba(255, 255, 255, 0.08);
       border-top: 1px solid rgba(255, 255, 255, 0.1);
       margin-top: 40px;
+    }
+
+    .proof-link {
+        color: #06b6d4;
+        text-decoration: underline;
+        cursor: pointer;
     }
   </style>
 </head>
@@ -136,7 +149,7 @@
 
   <div class="container">
     <h1>💸 Manage Payment Requests</h1>
-    <input type="text" id="searchBox" placeholder="Search by user email or payment method..." onkeyup="renderPaymentRequests()">
+    <input type="text" id="searchBox" placeholder="Search by user/seller email, method, or type..." onkeyup="window.handleSearch()">
     <table id="paymentRequestTable"></table>
   </div>
 
@@ -145,8 +158,8 @@
   <!-- Firebase Modular SDK -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
-    import { getDatabase, ref, get, update, onValue } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js"; // Added onValue
-    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
+    import { getDatabase, ref, get, update, onValue } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js"; 
 
     const firebaseConfig = {
       apiKey: "AIzaSyDFrctk2MZajP7OmECXe5npHAV0dODH9jk",
@@ -160,166 +173,194 @@
 
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
-    const auth = getAuth(app);
+    const auth = getAuth(app); 
 
-    // Global variable to store all requests for filtering
-    let allRequests = [];
-    let requestsUnsubscribe = null; // To manage the onValue listener
+    let allPaymentRequests = {}; // Local cache for all requests
 
-    async function fetchAndRenderPaymentRequests() {
-      if (requestsUnsubscribe) {
-          requestsUnsubscribe(); // Detach previous listener if exists
-      }
-
-      const requestsRef = ref(db, 'requests'); // CORRECT PATH: /requests
-
-      // Use onValue for real-time updates in the admin panel as well
-      requestsUnsubscribe = onValue(requestsRef, (snapshot) => {
-        const requestsObj = snapshot.val() || {};
-        allRequests = Object.entries(requestsObj).map(([id, request]) => ({ id, ...request })); // Store with ID
-        renderPaymentRequests(); // Render whenever data changes
-      }, (error) => {
-        console.error("Error fetching payment requests:", error);
-        alert("⚠️ Error fetching payment requests for admin panel.");
-      });
-    }
-
-
-    function renderPaymentRequests() {
+    /**
+     * Renders all payment requests (user top-ups and seller subscriptions) in the table.
+     */
+    async function renderPaymentRequests() {
       const search = document.getElementById("searchBox").value.toLowerCase();
       const table = document.getElementById("paymentRequestTable");
 
       table.innerHTML = `
         <tr>
           <th>Type</th>
-          <th>User Email</th>
-          <th>Method</th>
+          <th>Email</th>
+          <th>Store/Method</th>
+          <th>Plan</th>
           <th>Amount</th>
           <th>Status</th>
           <th>Date</th>
+          <th>Proof</th>
           <th>Action</th>
         </tr>
       `;
 
-      const filtered = allRequests.filter(request =>
-        request.email?.toLowerCase().includes(search) ||
-        request.method?.toLowerCase().includes(search) ||
-        request.status?.toLowerCase().includes(search) ||
-        request.type?.toLowerCase().includes(search) // Also search by type
-      );
+      // Convert combined requests to an array and filter
+      const filtered = Object.values(allPaymentRequests).filter(request => {
+        const type = request.type || "User Top-up"; // Default for old requests
+        return (request.email?.toLowerCase().includes(search) ||
+                request.storeName?.toLowerCase().includes(search) || // For sellers
+                request.method?.toLowerCase().includes(search) ||   // For user top-ups
+                request.plan?.toLowerCase().includes(search) ||     // For sellers
+                type.toLowerCase().includes(search) ||
+                request.status?.toLowerCase().includes(search));
+      });
 
       if (!filtered.length) {
-        table.innerHTML += `<tr><td colspan="7">No payment requests found matching your search.</td></tr>`; // Updated colspan
+        table.innerHTML += `<tr><td colspan="9">No payment requests found matching your search.</td></tr>`;
         return;
       }
 
-      // Sort by timestamp, newest first
-      filtered.sort((a, b) => b.timestamp - a.timestamp);
+      // Sort requests to show pending ones first
+      filtered.sort((a, b) => {
+          const statusA = a.status || "Pending";
+          const statusB = b.status || "Pending";
+          if (statusA === "Pending" || statusA === "Payment Confirmed by Seller" || statusA === "Payment Proof Submitted") return -1;
+          if (statusB === "Pending" || statusB === "Payment Confirmed by Seller" || statusB === "Payment Proof Submitted") return 1;
+          return 0;
+      });
 
 
       filtered.forEach(req => {
-        const statusClass = req.status === "Approved"
-          ? "approved"
-          : req.status === "Declined"
-          ? "declined"
-          : "pending";
+        const type = req.type || "User Top-up"; // Distinguish request type
+        let statusClass = "status-pending"; // Default
+        switch (req.status) {
+            case "Approved": statusClass = "status-approved"; break;
+            case "Declined": statusClass = "status-declined"; break;
+            case "Proof Submitted": statusClass = "status-proof-submitted"; break; // If proof upload is re-enabled for sellers
+            case "Payment Confirmed by Seller": statusClass = "status-confirmed-by-seller"; break;
+            default: statusClass = "status-pending"; break;
+        }
 
-        const actionButtons = `
-            <button class="btn approve" onclick="updatePaymentRequest('${req.id}', 'Approved', '${req.userId}', ${req.amount})">Approve</button>
-            <button class="btn decline" onclick="updatePaymentRequest('${req.id}', 'Declined', '${req.userId}', ${req.amount})">Decline</button>
-        `;
-        const noActionButtons = `<span style="color: #ccc;">No Action Needed</span>`;
+        const proofContent = req.receiptURL 
+                             ? `<a href="${req.receiptURL}" target="_blank" class="proof-link">View Proof</a>`
+                             : "N/A";
+
+        const storeOrMethod = req.storeName || req.method || "N/A";
+        const plan = req.plan || "N/A"; // Seller plan
+        const amount = parseFloat(req.amount).toFixed(2);
 
         table.innerHTML += `
           <tr>
-            <td>${req.type || "N/A"}</td>
+            <td>${type}</td>
             <td>${req.email || "N/A"}</td>
-            <td>${req.method}</td>
-            <td>${req.amount.toFixed(2)} GMD</td>
-            <td><span class="status ${statusClass}">${req.status}</span></td>
-            <td>${req.date || (new Date(req.timestamp).toLocaleString())}</td>
+            <td>${storeOrMethod}</td>
+            <td>${plan}</td>
+            <td>${amount} GMD</td>
+            <td><span class="status-badge ${statusClass}">${req.status}</span></td>
+            <td>${req.requestDate || req.submittedAt || "N/A"}</td>
+            <td>${proofContent}</td>
             <td>
-              ${req.status === "Pending" ? actionButtons : noActionButtons}
+              <button class="btn approve" onclick="window.updatePaymentRequest('${req.id}', 'Approved', '${req.userId || req.uid}', '${req.type || "User Top-up"}', ${amount})">Approve</button>
+              <button class="btn decline" onclick="window.updatePaymentRequest('${req.id}', 'Declined', '${req.userId || req.uid}', '${req.type || "User Top-up"}', ${amount})">Decline</button>
             </td>
           </tr>
         `;
       });
     }
 
-    async function updatePaymentRequest(requestId, action, userId, amount) {
+    /**
+     * Updates a payment request's status and performs associated actions (e.g., update balance/seller status).
+     * @param {string} requestId The ID of the payment request.
+     * @param {string} action 'Approved' or 'Declined'.
+     * @param {string} entityUid The Firebase UID of the user or seller.
+     * @param {string} requestType 'User Top-up' or 'Seller Subscription'.
+     * @param {number} amount The amount of the payment.
+     */
+    async function updatePaymentRequest(requestId, action, entityUid, requestType, amount) {
+      if (!confirm(`Are you sure you want to ${action} this payment request?`)) {
+        return;
+      }
+
       try {
-        await update(ref(db, 'requests/' + requestId), { // CORRECT PATH: /requests
+        let paymentPath;
+        let entityPath;
+        let updates = {
           status: action,
           adminActionDate: new Date().toLocaleString()
-        });
+        };
 
-        if (action === 'Approved') {
-          // Fetch current user balance
-          const userBalanceRef = ref(db, `users/${userId}/balance`);
-          const userSnapshot = await get(userBalanceRef);
-          
-          let currentBalance = 0;
-          if (userSnapshot.exists()) {
-              currentBalance = userSnapshot.val() || 0;
-          } else {
-              // If user balance node doesn't exist, create it (e.g., first deposit)
-              console.warn(`User balance node for ${userId} does not exist, initializing to 0.`);
+        if (requestType === "User Top-up") {
+          paymentPath = `pendingRequests/${requestId}`;
+          entityPath = `users/${entityUid}/balance`;
+
+          if (action === 'Approved') {
+            // Transactionally update user balance
+            await update(ref(db, paymentPath), updates); // Update payment request status first
+            const userBalanceRef = ref(db, entityPath);
+            await runTransaction(userBalanceRef, (currentBalance) => {
+              return (parseFloat(currentBalance || 0) + amount);
+            });
+            alert(`✅ User top-up request ${action.toLowerCase()} and user balance updated!`);
+          } else { // Declined
+            await update(ref(db, paymentPath), updates);
+            alert(`❌ User top-up request ${action.toLowerCase()}!`);
           }
 
-          let newBalance = currentBalance;
-          // Apply amount based on request type
-          const requestDetails = allRequests.find(r => r.id === requestId);
-          if (requestDetails && requestDetails.type === "Top-Up") {
-              newBalance = currentBalance + amount;
-          } else if (requestDetails && requestDetails.type === "Withdrawal") {
-              // Ensure withdrawal doesn't go negative, though client-side check is done too
-              if (currentBalance >= amount) {
-                  newBalance = currentBalance - amount;
-              } else {
-                  alert(`⚠️ Admin Override: User ${userId} requested withdrawal of ${amount} but only has ${currentBalance}. Declining request to prevent negative balance.`);
-                  // Optionally, set status back to pending or declined explicitly here
-                  await update(ref(db, 'requests/' + requestId), { status: 'Declined' });
-                  renderPaymentRequests();
-                  return; // Stop further processing for this approval
-              }
-          }
+        } else if (requestType === "Seller Subscription") {
+          paymentPath = `pendingSellerPayments/${requestId}`;
+          entityPath = `sellers/${entityUid}`;
 
-          await update(ref(db, `users/${userId}`), { // Update user's balance
-            balance: newBalance,
-            lastTransactionAmount: amount, // Generic name for last transaction
-            lastTransactionType: requestDetails?.type,
-            lastTransactionDate: new Date().toLocaleString()
-          });
-          alert(`✅ Request ${requestId} ${action.toLowerCase()} and user balance updated to ${newBalance.toFixed(2)} GMD!`);
-        } else {
-          alert(`❌ Request ${requestId} ${action.toLowerCase()}!`);
+          if (action === 'Approved') {
+            // Update seller's main record and payment request status
+            await update(ref(db, entityPath), {
+                status: "Approved",
+                subscription: "Active"
+            });
+            await update(ref(db, paymentPath), updates);
+            alert(`✅ Seller subscription request ${action.toLowerCase()} and seller status updated!`);
+          } else { // Declined
+            await update(ref(db, entityPath), {
+                status: "Declined",
+                subscription: "Inactive"
+            });
+            await update(ref(db, paymentPath), updates);
+            alert(`❌ Seller subscription request ${action.toLowerCase()}!`);
+          }
         }
-
-        // The onValue listener will automatically call renderPaymentRequests()
-        // so no need to call it explicitly here.
+        
+        // Re-render table to reflect changes (onValue listener will usually do this, but force it)
+        renderPaymentRequests(); 
 
       } catch (error) {
-        console.error("Error updating payment request or user balance:", error);
+        console.error("Error updating payment request or entity balance/status:", error);
         alert("⚠️ An error occurred while processing the request. Check console for details.");
       }
     }
 
-    // Assign global functions
-    window.renderPaymentRequests = renderPaymentRequests;
-    window.updatePaymentRequest = updatePaymentRequest;
-
-    // IMPORTANT: Admin Authentication Implementation
+    // --- Admin Authentication Check ---
     onAuthStateChanged(auth, async (user) => {
         if (user) {
-            // For a real app, implement a secure server-side check (e.g., Firebase Cloud Function)
-            // to verify if the user has admin privileges.
-            // For now, we'll use a client-side placeholder check:
-            const adminUID = "your-admin-user-uid-here"; // <--- REPLACE THIS with your actual admin user's UID
-            const isAdmin = (user.uid === adminUID); // Check if the logged-in user's UID matches the admin UID
+            // IMPORTANT: Placeholder for real admin role check.
+            // In a real app, you would check if this user's UID corresponds to an admin role
+            // e.g., by fetching data from a '/admins' node or checking custom claims.
+            const isAdmin = true; // For now, we assume any logged-in user is an admin for testing
 
             if (isAdmin) {
                 console.log("Admin user logged in:", user.email, "UID:", user.uid);
-                fetchAndRenderPaymentRequests(); // Fetch and render if user is identified as admin
+                // Set up real-time listeners for both types of payment requests
+                const userPaymentsRef = ref(db, 'pendingRequests');
+                const sellerPaymentsRef = ref(db, 'pendingSellerPayments');
+
+                onValue(userPaymentsRef, (snapshot) => {
+                    const payments = snapshot.val() || {};
+                    Object.keys(payments).forEach(key => {
+                        allPaymentRequests[key] = { id: key, type: "User Top-up", ...payments[key] };
+                    });
+                    renderPaymentRequests();
+                }, (error) => console.error("Error fetching user payments:", error));
+
+                onValue(sellerPaymentsRef, (snapshot) => {
+                    const payments = snapshot.val() || {};
+                    Object.keys(payments).forEach(key => {
+                        allPaymentRequests[key] = { id: key, type: "Seller Subscription", ...payments[key] };
+                    });
+                    renderPaymentRequests();
+                }, (error) => console.error("Error fetching seller payments:", error));
+
             } else {
                 console.warn("Unauthorized access attempt by:", user.email);
                 alert("You are not authorized to view this page. Redirecting to home.");
@@ -328,9 +369,20 @@
         } else {
             // No user logged in, redirect to login page
             alert("You must be logged in to access the admin panel.");
-            window.location.href = "login.html"; // Ensure you have a login.html for admins
+            window.location.href = "admin-login.html"; // Ensure you have an admin-login.html
         }
     });
+
+    // --- Expose functions to the global window object for HTML onclick attributes ---
+    window.updatePaymentRequest = updatePaymentRequest;
+    // Debounced search handler for better performance on keyup
+    let searchTimeout;
+    window.handleSearch = () => {
+      clearTimeout(searchTimeout);
+      searchTimeout = setTimeout(() => {
+        renderPaymentRequests();
+      }, 300); // Wait 300ms after the last keypress before searching
+    };
   </script>
 </body>
 </html>
