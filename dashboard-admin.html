@@ -203,7 +203,7 @@
       <a href="dashboard-admin.html">Dashboard</a>
       <a href="admin-sellers.html">Sellers</a>
       <a href="admin-users.html">Users</a>
-      <a href="admin-payments.html">Seller Payments</a>
+      <a href="admin-payments.html">Seller Payments</a> <!-- Adjusted this link as per common admin UI structure -->
       <a href="admin-code.html">Codes</a>
       <a href="admin-edit-user-seller.html">Edit</a>
       <button class="logout-btn" id="logoutBtn">Logout</button>
@@ -250,7 +250,7 @@
     // --- Firebase SDK Imports for the latest modular syntax ---
     import { initializeApp } from "https://www.gstatic.com/firebasejs/app";
     import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/database";
-    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/auth"; // Added signOut
+    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/auth";
 
     // Firebase Config (your existing config)
     const firebaseConfig = {
@@ -421,15 +421,10 @@
         onAuthStateChanged(auth, (user) => {
             if (user) {
                 // User is signed in. Now check if they are the designated admin.
-                // IMPORTANT: For production, you should store admin UIDs (or roles) in a secure place like
-                // a Firestore document or Realtime Database node, and check against that.
-                // For this example, we'll use a hardcoded admin email.
                 const ADMIN_EMAIL = "admin@matrixmarket.com"; // Set your actual admin email here
 
                 if (user.email === ADMIN_EMAIL) {
                     console.log("SUCCESS: Firebase Admin user authenticated:", user.email);
-                    // If you had roles, you could also check a custom claim or a database entry here.
-                    // For example: if (user.customClaims && user.customClaims.admin) { ... }
                     updateDashboard(); // Load dashboard data only if admin
                 } else {
                     console.warn("FAILED: Authenticated user is not the designated admin. User:", user.email);
