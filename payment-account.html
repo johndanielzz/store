@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MatrixMarket - Checkout</title>
+    <title>MatrixMarket - Payment Confirmation</title> <!-- Changed title for clarity -->
     <link rel="stylesheet" href="style.css">
     <style>
         body {
@@ -227,7 +227,8 @@
 
     <div class="account-container">
         <div class="account-card">
-            <h1>💳 Checkout</h1>
+            <h1>💳 Payment Confirmation</h1> <!-- Changed title for clarity -->
+            <p>Please transfer the amount to one of the accounts below and upload the proof of payment.</p>
             <div class="bank-box">
                 <strong>Wave</strong><br>
                 Account Number: <code>6785316</code>
@@ -239,19 +240,19 @@
 
             <div class="info-box">
                 <p><strong>Plan:</strong> <span id="plan"></span></p>
-                <p><strong>Amount:</strong> $<span id="amount"></span></p>
+                <p><strong>Amount:</strong> <span id="amount"></span> GMD</p> <!-- Added GMD -->
                 <p><strong>Name:</strong> <span id="name"></span></p>
                 <p><strong>Email:</strong> <span id="email"></span></p>
                 <p><strong>Store:</strong> <span id="store"></span></p>
             </div>
 
             <div class="upload">
-                <input type="file" id="receipt" accept="image/*,.pdf" onchange="previewFile(event)">
+                <input type="file" id="receipt" accept="image/*,.pdf" onchange="window.previewFile(event)">
                 <label for="receipt">📤 Upload Proof of Payment (JPG, PNG, PDF)</label>
                 <div id="preview" class="preview"></div>
             </div>
 
-            <button class="btn" onclick="confirmPayment()">Confirm Payment</button>
+            <button class="btn" onclick="window.confirmPayment()">Confirm Payment</button>
             <div class="msg success" id="successMsg">✅ Payment submitted. Redirecting...</div>
             <div class="msg error" id="errorMsg"></div>
         </div>
@@ -259,70 +260,100 @@
 
     <footer
         style="text-align:center; padding:20px; background:rgba(255,255,255,0.08); border-top:1px solid rgba(255,255,255,0.1);">
-        <p>© 2025 MatrixMarket | Checkout</p>
+        <p>© 2025 MatrixMarket | Payment Confirmation</p>
     </footer>
 
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js"></script>
+    <!-- Firebase Modular SDK -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
+        import { getDatabase, ref, update, get, child } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
+        import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-storage.js";
 
-    <script>
         // ====== Firebase Config ======
         const firebaseConfig = {
-           apiKey: "AIzaSyDFrctk2MZajP7OmECXe5npHAV0dODH9jk",
-  authDomain: "matrixmarketplace-1bd71.firebaseapp.com",
-  databaseURL: "https://matrixmarketplace-1bd71-default-rtdb.firebaseio.com",
-  projectId: "matrixmarketplace-1bd71",
-  storageBucket: "matrixmarketplace-1bd71.firebasestorage.app",
-  messagingSenderId: "10374416997",
-  appId: "1:10374416997:web:9626c569e845c14a87548c",
-  measurementId: "G-DTC2GM9L92"
+            apiKey: "AIzaSyDFrctk2MZajP7OmECXe5npHAV0dODH9jk",
+            authDomain: "matrixmarketplace-1bd71.firebaseapp.com",
+            databaseURL: "https://matrixmarketplace-1bd71-default-rtdb.firebaseio.com",
+            projectId: "matrixmarketplace-1bd71",
+            storageBucket: "matrixmarketplace-1bd71.firebasestorage.app",
+            messagingSenderId: "10374416997",
+            appId: "1:10374416997:web:9626c569e845c14a87548c",
+            measurementId: "G-DTC2GM9L92"
         };
 
         // Initialize Firebase
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.database();
-        const storage = firebase.storage();
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        const storage = getStorage(app);
 
+        /**
+         * Retrieves a specific query parameter from the URL.
+         * @param {string} param The name of the query parameter.
+         * @returns {string|null} The value of the parameter or null if not found.
+         */
         function getQueryParam(param) {
             const urlParams = new URLSearchParams(window.location.search);
             return urlParams.get(param);
         }
 
-        function loadPaymentDetails() {
-            let user = JSON.parse(localStorage.getItem("currentUser"));
-            document.getElementById("plan").innerText = getQueryParam("plan") || "Not selected";
-            document.getElementById("amount").innerText = getQueryParam("amount") || "0";
-            document.getElementById("name").innerText = getQueryParam("name") || (user ? user.fullName : "N/A");
-            document.getElementById("email").innerText = getQueryParam("email") || (user ? user.email : "N/A");
-            document.getElementById("store").innerText = getQueryParam("store") || "N/A";
+        let sellerId = null;
+        let paymentRequestKey = null;
+
+        /**
+         * Loads and displays payment details from URL parameters.
+         */
+        async function loadPaymentDetails() {
+            const plan = getQueryParam("plan");
+            const amount = getQueryParam("amount");
+            const name = getQueryParam("name");
+            const email = getQueryParam("email");
+            const store = getQueryParam("store");
+            sellerId = getQueryParam("userId"); // This is the seller's UID
+            paymentRequestKey = getQueryParam("paymentRequestId"); // This is the unique key of the payment request
+
+            // Display details
+            document.getElementById("plan").innerText = plan || "N/A";
+            document.getElementById("amount").innerText = amount || "0.00";
+            document.getElementById("name").innerText = name || "N/A";
+            document.getElementById("email").innerText = email || "N/A";
+            document.getElementById("store").innerText = store || "N/A";
+
+            // Basic validation for critical IDs
+            if (!sellerId || !paymentRequestKey) {
+                document.getElementById("errorMsg").innerText = "⚠️ Missing seller or payment request ID. Please try registering again.";
+                document.getElementById("errorMsg").style.display = "block";
+                return;
+            }
+            console.log("Loaded for Seller UID:", sellerId, "Payment Request ID:", paymentRequestKey);
         }
 
+        /**
+         * Displays a preview of the selected file.
+         * @param {Event} event The file input change event.
+         */
         function previewFile(event) {
             const file = event.target.files[0];
-            const preview = document.getElementById("preview");
-            preview.innerHTML = "";
+            const previewDiv = document.getElementById("preview");
+            previewDiv.innerHTML = ""; // Clear previous preview
 
             if (file) {
                 if (file.type.startsWith("image/")) {
                     const reader = new FileReader();
                     reader.onload = function (e) {
-                        preview.innerHTML = `<p>📂 ${file.name}</p><img src="${e.target.result}" alt="Preview">`;
+                        previewDiv.innerHTML = `<p>📂 ${file.name}</p><img src="${e.target.result}" alt="Payment proof preview">`;
                     };
                     reader.readAsDataURL(file);
                 } else {
-                    preview.innerHTML = `📂 File selected: ${file.name}`;
+                    // For non-image files like PDF, just show file name
+                    previewDiv.innerHTML = `📂 File selected: ${file.name}`;
                 }
             }
         }
 
+        /**
+         * Handles the payment confirmation process, uploads proof, and updates Firebase.
+         */
         async function confirmPayment() {
-            const plan = document.getElementById("plan").innerText;
-            const amount = document.getElementById("amount").innerText;
-            const name = document.getElementById("name").innerText;
-            const email = document.getElementById("email").innerText;
-            const store = document.getElementById("store").innerText;
             const fileInput = document.getElementById("receipt");
             const file = fileInput.files[0];
 
@@ -331,8 +362,8 @@
             errorMsg.style.display = "none";
             successMsg.style.display = "none";
 
-            if (!plan || plan === "Not selected") {
-                errorMsg.innerText = "⚠️ No plan selected!";
+            if (!sellerId || !paymentRequestKey) {
+                errorMsg.innerText = "⚠️ Critical IDs missing. Cannot submit payment.";
                 errorMsg.style.display = "block";
                 return;
             }
@@ -343,40 +374,54 @@
             }
 
             try {
-                const storageRef = storage.ref(`receipts/${Date.now()}_${file.name}`);
-                const snapshot = await storageRef.put(file);
-                const downloadURL = await snapshot.ref.getDownloadURL();
+                // 1. Upload payment proof to Firebase Storage
+                const proofPath = `seller_payment_proofs/${sellerId}/${paymentRequestKey}_${file.name}`;
+                const fileRef = storageRef(storage, proofPath);
+                const snapshot = await uploadBytes(fileRef, file);
+                const downloadURL = await getDownloadURL(snapshot.ref);
 
-                const paymentData = {
-                    plan,
-                    amount,
-                    name,
-                    email,
-                    store,
+                console.log("Proof uploaded:", downloadURL);
+
+                // 2. Update the existing payment request in Realtime Database
+                const paymentRef = ref(db, `pendingSellerPayments/${paymentRequestKey}`);
+                await update(paymentRef, {
                     receiptURL: downloadURL,
-                    status: "pending",
+                    status: "Proof Submitted", // Update status to reflect proof is uploaded
                     submittedAt: new Date().toISOString()
-                };
+                });
+                console.log("Payment request updated in RTDB.");
 
-                const newPaymentRef = db.ref("payments").push();
-                await newPaymentRef.set(paymentData);
+                // 3. Update the seller's main record to reflect payment processing status
+                const sellerRef = ref(db, `sellers/${sellerId}`);
+                await update(sellerRef, {
+                    status: "Payment Proof Submitted", // E.g., "Pending Approval" -> "Payment Proof Submitted"
+                    lastPaymentSubmission: new Date().toISOString()
+                });
+                console.log("Seller status updated in RTDB.");
 
                 successMsg.style.display = "block";
 
+                // Redirect to a status page or seller dashboard after a short delay
                 setTimeout(() => {
-                    window.location.href = "payment-status.html";
-                }, 2000);
+                    // You might want a dedicated status page, or redirect to seller dashboard
+                    window.location.href = "seller-login.html"; // Or a 'payment-status.html' for sellers
+                }, 3000);
 
             } catch (error) {
-                console.error(error);
-                errorMsg.innerText = "❌ Failed to submit payment. Try again.";
+                console.error("Error during payment confirmation:", error);
+                errorMsg.innerText = `❌ Failed to submit payment. Please try again. Error: ${error.message}`;
                 errorMsg.style.display = "block";
             }
         }
 
-        window.onload = loadPaymentDetails;
+        // Expose functions to the global window object for HTML onclick attributes
+        window.previewFile = previewFile;
+        window.confirmPayment = confirmPayment;
+
+        // Load payment details when the page loads
+        window.addEventListener('load', loadPaymentDetails);
     </script>
 </body>
 
-
 </html>
+
