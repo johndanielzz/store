@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin - Manage Seller Subscriptions | MatrixMarket</title> <!-- Title updated -->
+    <title>Admin - Manage Seller Subscriptions | MatrixMarket</title>
     <style>
         body {
             font-family: "Poppins", sans-serif;
@@ -41,7 +41,7 @@
             justify-content: space-between;
             align-items: center;
             backdrop-filter: blur(10px);
-            margin-bottom: 20px; /* Added spacing */
+            margin-bottom: 20px;
         }
 
         .logo {
@@ -51,13 +51,14 @@
             text-shadow: 0 0 8px #4f46e5;
         }
 
-        nav a { /* Added style for nav links */
+        nav a {
             color: #fff;
             text-decoration: none;
             margin-left: 15px;
             font-weight: 500;
             transition: 0.3s;
         }
+
         nav a:hover {
             color: #06b6d4;
         }
@@ -68,10 +69,55 @@
             text-shadow: 0 0 10px #06b6d4;
         }
 
+        .controls-container {
+            width: 90%;
+            max-width: 1200px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: flex-end; /* Align search to the right */
+            gap: 10px;
+            align-items: center;
+        }
+
+        .search-input {
+            padding: 10px 15px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            background-color: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            font-size: 1rem;
+            width: 300px;
+            transition: border-color 0.3s, background-color 0.3s;
+        }
+        .search-input::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+        .search-input:focus {
+            outline: none;
+            border-color: #06b6d4;
+            background-color: rgba(255, 255, 255, 0.15);
+        }
+
+        .clear-search-btn {
+            background: #ef4444; /* Red */
+            color: white;
+            padding: 10px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: 0.3s;
+            font-weight: bold;
+            display: none; /* Hide by default */
+        }
+        .clear-search-btn:hover {
+            background: #dc2626;
+            transform: scale(1.05);
+            box-shadow: 0 0 8px rgba(255, 255, 255, 0.4);
+        }
+
         table {
             width: 90%;
-            max-width: 1200px; /* Added max-width */
-            margin-top: 30px;
+            max-width: 1200px;
+            margin-top: 0; /* Adjusted margin as controls container is above */
             border-collapse: collapse;
             background: rgba(255, 255, 255, 0.08);
             border-radius: 15px;
@@ -84,8 +130,11 @@
             padding: 14px;
             text-align: center;
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-            font-size: 0.95rem; /* Slightly smaller font */
-            white-space: nowrap; /* Prevent wrapping in cells */
+            font-size: 0.95rem;
+            white-space: nowrap;
+            overflow: hidden; /* Prevent content from breaking table layout */
+            text-overflow: ellipsis; /* Add ellipsis for overflowed text */
+            max-width: 150px; /* Limit width to ensure no wrapping issues */
         }
 
         th {
@@ -106,21 +155,21 @@
             font-weight: bold;
             cursor: pointer;
             transition: 0.3s;
-            font-size: 0.85rem; /* Smaller button font */
+            font-size: 0.85rem;
         }
 
-        .activate-btn { /* Renamed from approve for clarity */
-            background: #22c55e; /* Green */
+        .activate-btn {
+            background: #22c55e;
             color: white;
         }
 
-        .deactivate-btn { /* Renamed from deactivate for clarity */
-            background: #ef4444; /* Red */
+        .deactivate-btn {
+            background: #ef4444;
             color: white;
         }
 
-        .renew-btn { /* Renamed from renew for clarity */
-            background: #fbbf24; /* Yellow */
+        .renew-btn {
+            background: #fbbf24;
             color: #222;
         }
 
@@ -129,10 +178,25 @@
             box-shadow: 0 0 8px rgba(255, 255, 255, 0.4);
         }
 
-        .status-active { color: #22c55e; font-weight: bold; }
-        .status-expired { color: #ef4444; font-weight: bold; }
-        .status-inactive { color: #888; font-weight: bold; }
-        .status-pending { color: #facc15; font-weight: bold; }
+        .status-active {
+            color: #22c55e;
+            font-weight: bold;
+        }
+
+        .status-expired {
+            color: #ef4444;
+            font-weight: bold;
+        }
+
+        .status-inactive {
+            color: #888;
+            font-weight: bold;
+        }
+
+        .status-pending {
+            color: #facc15;
+            font-weight: bold;
+        }
 
         .copy-btn {
             background: none;
@@ -144,13 +208,21 @@
             margin: 0;
             font-weight: normal;
         }
+
         .copy-btn:hover {
-            transform: none; /* Override general button hover */
+            transform: none;
             text-decoration: none;
         }
 
+        .loading-row {
+            text-align: center;
+            padding: 20px;
+            font-style: italic;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
         footer {
-            margin-top: auto; /* Pushes footer to bottom */
+            margin-top: auto;
             width: 100%;
             text-align: center;
             padding: 20px;
@@ -172,6 +244,12 @@
     </header>
 
     <h2>📋 Manage Seller Subscriptions</h2>
+
+    <div class="controls-container">
+        <input type="text" id="searchInput" class="search-input" placeholder="Search by name, email, or code...">
+        <button id="clearSearchBtn" class="clear-search-btn">Clear Search</button>
+    </div>
+
     <table id="codesTable">
         <thead>
             <tr>
@@ -186,6 +264,7 @@
         </thead>
         <tbody>
             <!-- Seller data will be injected here -->
+            <tr><td colspan="7" class="loading-row">Loading seller data...</td></tr>
         </tbody>
     </table>
 
@@ -200,14 +279,14 @@
         import { getDatabase, ref, onValue, update } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
 
         const firebaseConfig = {
-           apiKey: "AIzaSyDFrctk2MZajP7OmECXe5npHAV0dODH9jk",
-           authDomain: "matrixmarketplace-1bd71.firebaseapp.com",
-           databaseURL: "https://matrixmarketplace-1bd71-default-rtdb.firebaseio.com",
-           projectId: "matrixmarketplace-1bd71",
-           storageBucket: "matrixmarketplace-1bd71.firebasestorage.app",
-           messagingSenderId: "10374416997",
-           appId: "1:10374416997:web:9626c569e845c14a87548c",
-           measurementId: "G-DTC2GM9L92"
+            apiKey: "AIzaSyDFrctk2MZajP7OmECXe5npHAV0dODH9jk",
+            authDomain: "matrixmarketplace-1bd71.firebaseapp.com",
+            databaseURL: "https://matrixmarketplace-1bd71-default-rtdb.firebaseio.com",
+            projectId: "matrixmarketplace-1bd71",
+            storageBucket: "matrixmarketplace-1bd71.firebasestorage.app",
+            messagingSenderId: "10374416997",
+            appId: "1:10374416997:web:9626c569e845c14a87548c",
+            measurementId: "G-DTC2GM9L92"
         };
 
         // Initialize Firebase
@@ -215,29 +294,39 @@
         const auth = getAuth(app);
         const db = getDatabase(app);
         const codesTableBody = document.querySelector("#codesTable tbody");
+        const searchInput = document.getElementById("searchInput");
+        const clearSearchBtn = document.getElementById("clearSearchBtn");
+
+        let allSellersData = {}; // Store all fetched seller data
+        let currentSearchTerm = ""; // Store the current search term
 
         /**
          * Renders the table with seller subscription data.
-         * @param {object} sellers A map of seller UID to seller data.
+         * @param {object} sellersToRender A map of seller UID to seller data to display.
          */
-        function renderSellersSubscriptions(sellers) {
+        function renderSellersSubscriptions(sellersToRender) {
             codesTableBody.innerHTML = ""; // Clear existing rows
-            if (!sellers) {
-                codesTableBody.innerHTML = `<tr><td colspan="7">No seller subscriptions found.</td></tr>`;
+            if (!sellersToRender || Object.keys(sellersToRender).length === 0) {
+                codesTableBody.innerHTML = `<tr><td colspan="7" class="loading-row">No seller subscriptions found.</td></tr>`;
                 return;
             }
 
-            Object.values(sellers).forEach(seller => {
+            const sortedSellers = Object.values(sellersToRender).sort((a, b) => {
+                const nameA = a.name || "";
+                const nameB = b.name || "";
+                return nameA.localeCompare(nameB);
+            });
+
+            sortedSellers.forEach(seller => {
                 const code = seller.subscriptionCode || "N/A";
                 const expiryIso = seller.subscriptionExpiry;
                 const expiryDate = expiryIso ? new Date(expiryIso) : null;
                 const now = new Date();
 
                 let codeStatus = "N/A";
-                let statusClass = "status-inactive"; // Default to inactive
-                let subscriptionStatus = seller.subscription || "Inactive"; // Main subscription status from seller object
+                let statusClass = "status-inactive";
+                let subscriptionStatus = seller.subscription || "Inactive";
 
-                // Determine subscription code status and class
                 if (seller.status === "Approved" && subscriptionStatus === "Active" && code !== "N/A" && expiryDate && expiryDate > now) {
                     codeStatus = "Active";
                     statusClass = "status-active";
@@ -254,7 +343,7 @@
                     <td>${seller.name || "N/A"}</td>
                     <td>${seller.email || "N/A"}</td>
                     <td>${seller.plan || "N/A"}</td>
-                    <td>${code} <button class="copy-btn" onclick="window.copyToClipboard('${code}')">📋</button></td>
+                    <td>${code} ${code !== "N/A" ? `<button class="copy-btn" title="Copy code" onclick="window.copyToClipboard('${code}')">📋</button>` : ''}</td>
                     <td>${expiryDate ? expiryDate.toDateString() : "N/A"}</td>
                     <td class="${statusClass}">${codeStatus}</td>
                     <td>
@@ -266,6 +355,41 @@
                 codesTableBody.appendChild(row);
             });
         }
+
+        /**
+         * Filters the allSellersData based on the search term and renders the table.
+         * @param {string} searchTerm The term to search for.
+         */
+        function filterAndRenderSellers(searchTerm) {
+            currentSearchTerm = searchTerm.toLowerCase().trim();
+            clearSearchBtn.style.display = currentSearchTerm ? 'inline-block' : 'none'; // Show/hide clear button
+
+            if (!currentSearchTerm) {
+                renderSellersSubscriptions(allSellersData); // If no search term, render all
+                return;
+            }
+
+            const filteredSellers = {};
+            for (const uid in allSellersData) {
+                const seller = allSellersData[uid];
+                const searchText = `${seller.name || ''} ${seller.email || ''} ${seller.subscriptionCode || ''} ${seller.plan || ''}`.toLowerCase();
+                if (searchText.includes(currentSearchTerm)) {
+                    filteredSellers[uid] = seller;
+                }
+            }
+            renderSellersSubscriptions(filteredSellers);
+        }
+
+        // Event Listeners for Search
+        searchInput.addEventListener("input", (event) => {
+            filterAndRenderSellers(event.target.value);
+        });
+
+        clearSearchBtn.addEventListener("click", () => {
+            searchInput.value = "";
+            filterAndRenderSellers("");
+        });
+
 
         /**
          * Updates a seller's subscription status in Firebase.
@@ -294,12 +418,12 @@
         async function renewSubscription(sellerUid, plan) {
             if (!confirm(`Are you sure you want to renew subscription for seller ${sellerUid}?`)) return;
 
-            const newExpiry = calculateExpiry(plan); // Use the same logic as seller's page
+            const newExpiry = calculateExpiry(plan);
             try {
                 await update(ref(db, `sellers/${sellerUid}`), {
                     subscriptionExpiry: newExpiry,
-                    subscription: "Active", // Ensure it's active upon renewal
-                    status: "Approved" // Ensure overall status is Approved
+                    subscription: "Active",
+                    status: "Approved"
                 });
                 alert(`🔄 Seller ${sellerUid} renewed until ${new Date(newExpiry).toDateString()}`);
             } catch (error) {
@@ -316,16 +440,16 @@
          */
         function calculateExpiry(plan) {
             const expiry = new Date();
-            // Start renewal from today or from current expiry if it's in the future
-            // For simplicity, always renew from today's date for admin action
-            if (plan.includes("Weekly")) {
+            // For admin renewals, always renew from today's date for simplicity and predictability.
+            // If you wanted to extend from the *existing* expiry, you'd need to fetch that first.
+            if (plan && plan.includes("Weekly")) {
                 expiry.setDate(expiry.getDate() + 7);
-            } else if (plan.includes("Monthly")) {
+            } else if (plan && plan.includes("Monthly")) {
                 expiry.setMonth(expiry.getMonth() + 1);
-            } else if (plan.includes("Yearly")) {
+            } else if (plan && plan.includes("Yearly")) {
                 expiry.setFullYear(expiry.getFullYear() + 1);
             } else {
-                expiry.setDate(expiry.getDate() + 30); // Default to 30 days
+                expiry.setDate(expiry.getDate() + 30); // Default to 30 days if plan is unknown
             }
             return expiry.toISOString();
         }
@@ -348,19 +472,23 @@
         // --- Admin Authentication Check ---
         onAuthStateChanged(auth, async (user) => {
             if (user) {
-                // IMPORTANT: Replace this with your actual admin verification logic.
-                // e.g., check if user.uid exists in a '/admins' node in RTDB or use custom claims.
-                const isAdmin = true; // For testing, assume any logged-in user is admin
+                // IMPORTANT: For a production application, you MUST implement server-side
+                // verification of admin roles using Firebase Admin SDK (e.g., Cloud Functions)
+                // and custom claims. Client-side checks are easily bypassed.
+                //
+                // For this example, we'll use a client-side check against a hardcoded admin UID.
+                // Replace 'YOUR_ADMIN_UID_HERE' with the actual UID of an administrator.
+                const ADMIN_Uids = ["YOUR_ADMIN_UID_HERE", "ANOTHER_ADMIN_UID"]; // Add your admin UIDs here!
 
-                if (isAdmin) {
+                if (ADMIN_Uids.includes(user.uid)) {
                     console.log("Admin user logged in:", user.email, "UID:", user.uid);
                     // Set up real-time listener for sellers data
                     onValue(ref(db, 'sellers'), (snapshot) => {
-                        const sellersData = snapshot.val();
-                        renderSellersSubscriptions(sellersData);
+                        allSellersData = snapshot.val() || {}; // Update the global allSellersData
+                        filterAndRenderSellers(currentSearchTerm); // Re-render with current filter
                     }, (error) => {
                         console.error("Error fetching sellers data:", error);
-                        codesTableBody.innerHTML = `<tr><td colspan="7">Error loading seller subscriptions.</td></tr>`;
+                        codesTableBody.innerHTML = `<tr><td colspan="7" class="loading-row">Error loading seller subscriptions.</td></tr>`;
                     });
 
                 } else {
@@ -369,7 +497,7 @@
                     window.location.href = "index.html"; // Redirect unauthorized users
                 }
             } else {
-                // No user logged in, redirect to admin login page (you'll need to create one)
+                // No user logged in, redirect to admin login page
                 alert("You must be logged in as an admin to access this panel.");
                 window.location.href = "admin-login.html"; // Assuming an admin-login.html
             }
