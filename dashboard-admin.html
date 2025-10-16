@@ -227,11 +227,12 @@
 
   <!-- Firebase Modular SDK -->
   <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
-    import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
-    // Removed getAuth and onAuthStateChanged since authentication is via sessionStorage now
+    // --- Updated Firebase SDK Imports for latest modular syntax ---
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/app";
+    import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/database";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/auth"; // Import getAuth and onAuthStateChanged
 
-    // Firebase Config
+    // Firebase Config (your existing config)
     const firebaseConfig = {
       apiKey: "AIzaSyDFrctk2MZajP7OmECXe5npHAV0dODH9jk",
       authDomain: "matrixmarketplace-1bd71.firebaseapp.com",
@@ -246,6 +247,7 @@
     // Initialize Firebase (Modular SDK)
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
+    const auth = getAuth(app); // Initialize Firebase Authentication
 
     const usersRef = ref(db, "users");
     const sellersRef = ref(db, "sellers");
@@ -283,8 +285,9 @@
         if (type === "User" && a.createdAt && b.createdAt) { timeA = new Date(a.createdAt).getTime(); timeB = new Date(b.createdAt).getTime(); }
         else if (type === "Seller" && a.registrationDate && b.registrationDate) { timeA = new Date(a.registrationDate).getTime(); timeB = new Date(b.registrationDate).getTime(); }
         else if (type === "Payment") {
-            timeA = new Date(a.requestDate || a.submittedAt || 0).getTime();
-            timeB = new Date(b.requestDate || b.submittedAt || 0).getTime();
+            // Prioritize submittedAt for seller payments, then requestDate for user payments
+            timeA = new Date(a.submittedAt || a.requestDate || 0).getTime();
+            timeB = new Date(b.submittedAt || b.requestDate || 0).getTime();
         }
         return timeB - timeA;
       });
@@ -392,41 +395,39 @@
       }
     }
 
-    // --- Admin Authentication Check: Using sessionStorage for the hardcoded admin-login.html ---
-    function checkAdminSession() {
-        const adminSession = sessionStorage.getItem("currentUser");
-        console.log("DEBUG: Raw 'currentUser' from sessionStorage:", adminSession); // Log raw value
+    // --- SECURE Admin Authentication Check: Using Firebase Authentication ---
+    function checkAdminAuth() {
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                // User is signed in. Now check if they are the designated admin.
+                // IMPORTANT: For production, you should store admin UIDs (or roles) in a secure place like
+                // a Firestore document or Realtime Database node, and check against that.
+                // For this example, we'll use a hardcoded admin email.
+                const ADMIN_EMAIL = "admin@matrixmarket.com"; // Set your actual admin email here
 
-        if (adminSession) {
-            try {
-                const user = JSON.parse(adminSession);
-                console.log("DEBUG: Parsed user object from sessionStorage:", user); // Log parsed object
-
-                // Assuming the admin email from admin-login.html is "admin@matrixmarket.com"
-                // And the role is set to "admin"
-                if (user && user.email === "admin@matrixmarket.com" && user.role === "admin") {
-                    console.log("SUCCESS: Admin session found and valid. Loading dashboard.");
-                    updateDashboard(); // Load dashboard data if admin session exists
-                    return; // Stop further execution
+                if (user.email === ADMIN_EMAIL) {
+                    console.log("SUCCESS: Firebase Admin user authenticated:", user.email);
+                    // If you had roles, you could also check a custom claim or a database entry here.
+                    // For example: if (user.customClaims && user.customClaims.admin) { ... }
+                    updateDashboard(); // Load dashboard data only if admin
                 } else {
-                    console.warn("FAILED: User object or role is not 'admin' OR email does not match. User:", user);
+                    console.warn("FAILED: Authenticated user is not the designated admin. User:", user.email);
+                    alert("You do not have administrative privileges to access this panel.");
+                    window.location.href = "admin-login.html"; // Redirect unauthorized authenticated users
                 }
-            } catch (e) {
-                console.error("ERROR: Error parsing admin session from sessionStorage:", e);
-                // Fall through to redirect
+            } else {
+                // No user is signed in.
+                console.warn("FAILED: No user signed in to Firebase Authentication.");
+                alert("You must be logged in as an admin to access this panel.");
+                window.location.href = "admin-login.html"; // Redirect to admin login page
             }
-        } else {
-            console.warn("FAILED: 'currentUser' not found in sessionStorage.");
-        }
-        // If no valid admin session, redirect
-        console.warn("Final decision: Redirecting to admin login.");
-        alert("You must be logged in as an admin to access this panel.");
-        window.location.href = "admin-login.html"; // Redirect to admin login page
+        });
     }
 
-    // Call the session check on page load
-    window.addEventListener('load', checkAdminSession);
+    // Call the authentication check on page load
+    window.addEventListener('load', checkAdminAuth);
   </script>
 </body>
 
 </html>
+
