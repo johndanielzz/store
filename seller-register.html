@@ -6,11 +6,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MatrixMarket - Seller Registration</title>
     <link rel="stylesheet" href="style.css">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
 
-    <!-- Firebase -->
-    <script src="https://www.gstatic.com/firebasejs/9.24.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.24.0/firebase-database-compat.js"></script>
+    <!-- Font Awesome for icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
 
     <style>
         body {
@@ -95,6 +93,7 @@
 
         .register-card p {
             margin-bottom: 20px;
+            font-size: 1rem;
             color: #cbd5e1;
         }
 
@@ -144,10 +143,9 @@
             text-align: center;
         }
 
-        .plan.selected {
-            border: 2px solid #06b6d4;
-            box-shadow: 0 0 25px #06b6d4;
+        .plan:hover {
             transform: scale(1.07);
+            box-shadow: 0 0 25px #06b6d4;
         }
 
         .plan strong {
@@ -188,104 +186,10 @@
             }
         }
     </style>
-
-    <script>
-        // Firebase config
-        const firebaseConfig = {
-        const firebaseConfig = {
-  apiKey: "AIzaSyDFrctk2MZajP7OmECXe5npHAV0dODH9jk",
-  authDomain: "matrixmarketplace-1bd71.firebaseapp.com",
-  databaseURL: "https://matrixmarketplace-1bd71-default-rtdb.firebaseio.com",
-  projectId: "matrixmarketplace-1bd71",
-  storageBucket: "matrixmarketplace-1bd71.firebasestorage.app",
-  messagingSenderId: "10374416997",
-  appId: "1:10374416997:web:9626c569e845c14a87548c",
-  measurementId: "G-DTC2GM9L92"
-};
-        };
-
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.database();
-
-        const plans = [
-            { name: "Weekly", amount: 1000, period: "week" },
-            { name: "Monthly", amount: 3000, period: "month" },
-            { name: "Yearly", amount: 20500, period: "year" }
-        ];
-
-        let selectedPlan = null;
-
-        function renderPlans() {
-            const container = document.querySelector(".plans");
-            container.innerHTML = "";
-            plans.forEach((plan, index) => {
-                const div = document.createElement("div");
-                div.className = "plan";
-                div.onclick = () => selectPlan(index);
-                div.innerHTML = `
-        <i class="fas fa-calendar-${plan.period === 'week' ? 'week' : plan.period === 'month' ? 'alt' : ''}"></i>
-        <strong>${plan.name}</strong>
-        <span>GMD ${plan.amount} / ${plan.period}</span>
-      `;
-                container.appendChild(div);
-            });
-        }
-
-        function selectPlan(index) {
-            selectedPlan = plans[index];
-            document.querySelectorAll(".plan").forEach((p, i) => p.classList.toggle("selected", i === index));
-        }
-
-        function goToPayment() {
-            const name = document.getElementById("name").value.trim();
-            const email = document.getElementById("email").value.trim();
-            const store = document.getElementById("store").value.trim();
-            const phone = document.getElementById("phone").value.trim();
-            const password = document.getElementById("password").value.trim();
-            const errorBox = document.getElementById("errorBox");
-            errorBox.style.display = "none";
-
-            if (!name || !email || !store || !phone || !password) {
-                errorBox.innerText = "⚠️ Please fill in all fields!";
-                errorBox.style.display = "block";
-                return;
-            }
-            if (!selectedPlan) {
-                errorBox.innerText = "⚠️ Please select a subscription plan!";
-                errorBox.style.display = "block";
-                return;
-            }
-            if (!/^\+?\d{8,15}$/.test(phone)) {
-                errorBox.innerText = "⚠️ Invalid phone number!";
-                errorBox.style.display = "block";
-                return;
-            }
-            if (password.length < 6) {
-                errorBox.innerText = "⚠️ Password must be at least 6 characters!";
-                errorBox.style.display = "block";
-                return;
-            }
-
-            const newSeller = { name, email, store, phone, password, plan: selectedPlan.name, amount: selectedPlan.amount, status: "Pending", date: new Date().toLocaleString() };
-
-            // Save to Firebase
-            db.ref('sellers/' + email.replace('.', ',')).set(newSeller)
-                .then(() => {
-                    localStorage.setItem("currentSeller", JSON.stringify(newSeller));
-                    window.location.href = "payment-status-sellers.html";
-                })
-                .catch(err => {
-                    errorBox.innerText = "⚠️ Failed to register seller!";
-                    errorBox.style.display = "block";
-                    console.error(err);
-                });
-        }
-
-        window.onload = () => renderPlans();
-    </script>
 </head>
 
 <body>
+
     <header>
         <div class="logo">MatrixMarket</div>
         <nav>
@@ -300,29 +204,158 @@
             <h1>📝 Become a Seller</h1>
             <p>Register your store and choose a subscription plan to start selling on MatrixMarket.</p>
 
-            <form onsubmit="return false;">
-                <input type="text" id="name" placeholder="Full Name" required />
-                <input type="email" id="email" placeholder="Business Email" required />
-                <input type="text" id="store" placeholder="Store Name" required />
-                <input type="text" id="phone" placeholder="Phone Number" required />
-                <input type="password" id="password" placeholder="Create Password" required />
+            <form onsubmit="return false">
+                <input type="text" id="name" placeholder="Full Name" required>
+                <input type="email" id="email" placeholder="Business Email" required>
+                <input type="text" id="store" placeholder="Store Name" required>
+                <input type="text" id="phone" placeholder="Phone Number" required>
+                <input type="password" id="password" placeholder="Create Password" required>
                 <div id="errorBox" class="error-msg"></div>
             </form>
 
             <h2>Select Your Plan</h2>
-            <div class="plans"></div>
-
-            <button class="btn" onclick="goToPayment()"
-                style="margin-top:15px;padding:12px 20px;background:#06b6d4;border:none;border-radius:10px;font-size:1rem;font-weight:600;cursor:pointer;">
-                ✅ Proceed to Payment
-            </button>
+            <div class="plans">
+                <div class="plan" onclick="window.goToPayment('Weekly - GMD1000/week')">
+                    <i class="fas fa-calendar-week"></i>
+                    <strong>Weekly</strong>
+                    <span>GMD 1000 / week</span>
+                </div>
+                <div class="plan" onclick="window.goToPayment('Monthly - GMD3000/month')">
+                    <i class="fas fa-calendar-alt"></i>
+                    <strong>Monthly</strong>
+                    <span>GMD 3000 / month</span>
+                </div>
+                <div class="plan" onclick="window.goToPayment('Yearly - GMD20500/year')">
+                    <i class="fas fa-calendar"></i>
+                    <strong>Yearly</strong>
+                    <span>GMD 20500 / year</span>
+                </div>
+            </div>
         </div>
     </div>
 
     <footer>
         <p>© 2025 MatrixMarket | Seller Registration</p>
     </footer>
-</body>
 
+    <!-- Firebase Modular SDK -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
+        import { getAuth, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
+        import { getDatabase, ref, set, push, get } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
+
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyDFrctk2MZajP7OmECXe5npHAV0dODH9jk",
+            authDomain: "matrixmarketplace-1bd71.firebaseapp.com",
+            databaseURL: "https://matrixmarketplace-1bd71-default-rtdb.firebaseio.com",
+            projectId: "matrixmarketplace-1bd71",
+            storageBucket: "matrixmarketplace-1bd71.firebasestorage.app",
+            messagingSenderId: "10374416997",
+            appId: "1:10374416997:web:9626c569e845c14a87548c",
+            measurementId: "G-DTC2GM9L92"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getDatabase(app);
+
+        /**
+         * Handles the seller registration process and redirects to payment.
+         * Saves seller info and payment requests to Firebase Realtime Database.
+         * @param {string} plan The chosen subscription plan string.
+         */
+        async function goToPayment(plan) {
+            const name = document.getElementById("name").value.trim();
+            const email = document.getElementById("email").value.trim();
+            const store = document.getElementById("store").value.trim();
+            const phone = document.getElementById("phone").value.trim();
+            const password = document.getElementById("password").value.trim();
+            const errorBox = document.getElementById("errorBox");
+
+            errorBox.style.display = "none"; // Clear previous errors
+
+            // 1. Client-side validation
+            if (!name || !email || !store || !phone || !password) {
+                errorBox.innerText = "⚠️ Please fill in all your details!";
+                errorBox.style.display = "block";
+                return;
+            }
+            if (password.length < 6) {
+                errorBox.innerText = "⚠️ Password should be at least 6 characters.";
+                errorBox.style.display = "block";
+                return;
+            }
+
+            let amount;
+            if (plan.includes("Weekly")) {
+                amount = 1000;
+            } else if (plan.includes("Monthly")) {
+                amount = 3000;
+            } else { // Yearly
+                amount = 20500;
+            }
+
+            try {
+                // 2. Register seller with Firebase Authentication
+                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                const user = userCredential.user;
+                const sellerUid = user.uid; // Use Firebase UID as seller ID
+
+                // 3. Save seller details to Realtime Database
+                const sellerData = {
+                    name: name,
+                    email: email,
+                    storeName: store,
+                    phoneNumber: phone,
+                    plan: plan,
+                    status: "Pending Approval", // Initial status
+                    registrationDate: new Date().toLocaleString(),
+                    uid: sellerUid // Store UID for easy reference
+                };
+                await set(ref(db, `sellers/${sellerUid}`), sellerData);
+                console.log(`Seller ${name} registered successfully with UID: ${sellerUid}`);
+
+                // 4. Save payment request to Realtime Database
+                // Use push() to generate a unique ID for each payment request
+                const newPaymentRequestRef = push(ref(db, 'pendingSellerPayments'));
+                const paymentRequestId = newPaymentRequestRef.key;
+
+                const paymentData = {
+                    requestId: paymentRequestId,
+                    userId: sellerUid, // Link to the seller's UID
+                    email: email,
+                    storeName: store,
+                    plan: plan,
+                    amount: amount,
+                    status: "Pending", // Initial status
+                    requestDate: new Date().toLocaleString()
+                };
+                await set(newPaymentRequestRef, paymentData);
+                console.log(`Payment request ${paymentRequestId} created for seller ${sellerUid}`);
+
+                // 5. Redirect to payment-account.html with relevant data
+                window.location.href = `payment-account.html?plan=${encodeURIComponent(plan)}&name=${encodeURIComponent(name)}&store=${encodeURIComponent(store)}&userId=${encodeURIComponent(sellerUid)}&paymentRequestId=${encodeURIComponent(paymentRequestId)}`;
+
+            } catch (error) {
+                console.error("Error during seller registration or payment request submission:", error);
+                if (error.code === 'auth/email-already-in-use') {
+                    errorBox.innerText = "⚠️ This email is already registered. Please login or use a different email.";
+                } else if (error.code === 'auth/invalid-email') {
+                    errorBox.innerText = "⚠️ The email address is not valid.";
+                } else if (error.code === 'auth/weak-password') {
+                    errorBox.innerText = "⚠️ The password is too weak. Please choose a stronger password.";
+                } else {
+                    errorBox.innerText = `❌ An error occurred: ${error.message}`;
+                }
+                errorBox.style.display = "block";
+            }
+        }
+
+        // Expose goToPayment to the global scope for onclick attributes
+        window.goToPayment = goToPayment;
+    </script>
+</body>
 
 </html>
