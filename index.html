@@ -300,10 +300,6 @@
                 font-size: 1.25rem;
             }
 
-            .hero {
-                padding: 36px 12px;
-            }
-
             .hero h1 {
                 font-size: 1.6rem;
             }
@@ -344,7 +340,7 @@
                 </div>
 
                 <span class="welcome-user" id="welcomeUser"></span>
-                <span class="balance-box" id="userBalance">Balance: 0 GMD</span>
+                <span class="balance-box" id="userBalance">Balance: 0.00 GMD</span>
                 <a href="confirm-payment.html" class="topup-btn">💰 Top Up</a>
             </nav>
         </header>
@@ -383,48 +379,108 @@
         </footer>
     </div>
 
-    <script>
-        // === REFRESH USER INFO ===
-        function refreshUserInfo() {
-            let user = JSON.parse(localStorage.getItem("currentUser") || "null");
-            let requests = JSON.parse(localStorage.getItem("pendingRequests") || "[]");
-            let balance = 0;
+    <script type="module">
+        // Import the functions you need from the SDKs you need
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
+        import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
+        // getAnalytics is not used in this script, can be removed if not needed
+        // import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-analytics.js"; 
 
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyDFrctk2MZajP7OmECXe5npHAV0dODH9jk",
+            authDomain: "matrixmarketplace-1bd71.firebaseapp.com",
+            databaseURL: "https://matrixmarketplace-1bd71-default-rtdb.firebaseio.com",
+            projectId: "matrixmarketplace-1bd71",
+            storageBucket: "matrixmarketplace-1bd71.firebasestorage.app",
+            messagingSenderId: "10374416997",
+            appId: "1:10374416997:web:9626c569e845c14a87548c",
+            measurementId: "G-DTC2GM9L92"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getDatabase(app);
+        // const analytics = getAnalytics(app); // Only initialize if you plan to use it here
+
+
+        // === UPDATE USER INFO DISPLAY ===
+        // This function updates the UI based on the current user and their balance
+        function updateUserInfoDisplay(user, balanceValue = 0) {
             if (user) {
-                balance = parseFloat(user.balance || 0);
-                requests.forEach(req => {
-                    if (req.email === user.email && (req.status === "Approved" || req.status === "success") && !req.addedToBalance && req.type !== "subscription") {
-                        balance += parseFloat(req.amount || 0);
-                        req.addedToBalance = true;
-                    }
-                });
+                // Ensure balanceValue is a number and formatted
+                const formattedBalance = parseFloat(balanceValue).toFixed(2);
 
-                user.balance = balance;
-                localStorage.setItem("pendingRequests", JSON.stringify(requests));
-                localStorage.setItem("currentUser", JSON.stringify(user));
-                localStorage.setItem("balance", balance);
-
-                document.getElementById("welcomeUser").innerText = "👋 " + (user.fullName ? user.fullName : user.email);
-                document.getElementById("userBalance").innerText = "Balance: " + balance.toFixed(2) + " GMD";
+                document.getElementById("welcomeUser").innerText = "👋 " + (user.displayName ? user.displayName : user.email);
+                document.getElementById("userBalance").innerText = "Balance: " + formattedBalance + " GMD";
                 document.getElementById("accountLinks").innerHTML = `
-          <a href="buyers-orders.html">📦 My Orders</a>
-          <a href="settings.html">⚙ Settings</a>
-          <a href="#" onclick="logoutUser()">🚪 Logout</a>`;
+                <a href="buyers-orders.html">📦 My Orders</a>
+                <a href="settings.html">⚙ Settings</a>
+                <a href="#" onclick="logoutUser()">🚪 Logout</a>`;
+
+                // Update local storage currentUser balance for other parts of the app if they need a current value
+                let localUser = JSON.parse(localStorage.getItem("currentUser") || "{}");
+                if (localUser.uid === user.uid) { // Only update if it's the same user
+                    localUser.balance = parseFloat(balanceValue); // Store as number
+                    localStorage.setItem("currentUser", JSON.stringify(localUser));
+                } else {
+                    // If localUser.uid doesn't match, or it's new user, save a new one
+                    localUser = {
+                        uid: user.uid,
+                        email: user.email,
+                        displayName: user.displayName,
+                        balance: parseFloat(balanceValue)
+                    };
+                    localStorage.setItem("currentUser", JSON.stringify(localUser));
+                }
+
             } else {
                 document.getElementById("welcomeUser").innerText = "";
-                document.getElementById("userBalance").innerText = "Balance: 0 GMD";
+                document.getElementById("userBalance").innerText = "Balance: 0.00 GMD";
                 document.getElementById("accountLinks").innerHTML = `
-          <a href="login.html">🔑 Login</a>
-          <a href="register.html">📝 Sign Up</a>`;
+                <a href="login.html">🔑 Login</a>
+                <a href="register.html">📝 Sign Up</a>`;
+                localStorage.removeItem("currentUser"); // Ensure local storage is clean when logged out
             }
         }
 
+        // === LISTEN FOR AUTH STATE CHANGES ===
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                // User is signed in
+                // Set up a Realtime Database listener for their balance
+                const userBalanceRef = ref(db, `users/${user.uid}/balance`);
+                onValue(userBalanceRef, (snapshot) => {
+                    const currentBalance = snapshot.val() || 0; // Default to 0 if no balance exists
+                    updateUserInfoDisplay(user, parseFloat(currentBalance));
+                }, (error) => {
+                    console.error("Error fetching user balance from Realtime Database:", error);
+                    // Even if there's an error, try to display user info with default balance
+                    updateUserInfoDisplay(user, 0);
+                });
+
+            } else {
+                // User is signed out
+                updateUserInfoDisplay(null);
+            }
+        });
+
         // === LOGOUT ===
         function logoutUser() {
-            localStorage.removeItem("currentUser");
-            refreshUserInfo();
-            alert("✅ Logged out successfully!");
+            auth.signOut().then(() => {
+                console.log("User signed out from Firebase.");
+                // onAuthStateChanged listener will automatically update the UI
+                alert("✅ Logged out successfully!");
+            }).catch((error) => {
+                console.error("Error signing out:", error);
+                alert("❌ Error logging out. Please try again.");
+            });
         }
+
+        // Expose logoutUser to the global scope so it can be called from onclick
+        window.logoutUser = logoutUser;
 
         // === ADD TO CART ===
         function addToCart(product) {
@@ -433,6 +489,7 @@
             localStorage.setItem("cart", JSON.stringify(cart));
             alert("🛒 " + product.name + " added to cart!");
         }
+        window.addToCart = addToCart; // Expose to global scope
 
         // === FILTER function (simple client-side) ===
         function filterProducts() {
@@ -440,6 +497,8 @@
             const cat = document.getElementById('categoryFilter').value;
             renderProducts(q, cat);
         }
+        window.filterProducts = filterProducts; // Expose to global scope
+
 
         // === RENDER PRODUCTS ===
         function renderProducts(filterText = '', filterCategory = '') {
@@ -460,55 +519,34 @@
             productList.innerHTML = filtered.map(p => {
                 const safe = (v) => (v === undefined || v === null) ? '' : String(v).replace(/"/g, '&quot;');
                 return `
-          <div class="product-card" role="article">
-            <img class="product-thumb" src="${safe(p.image) || 'https://via.placeholder.com/400x300?text=No+Image'}" alt="${safe(p.name)}" />
-            <h3>${safe(p.name)}</h3>
-            <p>${safe(p.category)}</p>
-            <div class="product-price">
-              <div class="price">${safe(p.price)} GMD</div>
-              <button class="small-btn" onclick='addToCart(${JSON.stringify(p)})'>Add</button>
-            </div>
-          </div>`;
+                <div class="product-card" role="article">
+                    <img class="product-thumb" src="${safe(p.image) || 'https://via.placeholder.com/400x300?text=No+Image'}" alt="${safe(p.name)}" />
+                    <h3>${safe(p.name)}</h3>
+                    <p>${safe(p.category)}</p>
+                    <div class="product-price">
+                    <div class="price">${safe(p.price)} GMD</div>
+                    <button class="small-btn" onclick='addToCart(${JSON.stringify(p)})'>Add</button>
+                    </div>
+                </div>`;
             }).join('');
         }
+        window.renderProducts = renderProducts; // Expose to global scope
 
         // === PAGE LOAD ===
         window.addEventListener('load', function () {
-            refreshUserInfo();
-            renderProducts();
+            // onAuthStateChanged will handle the initial user info display and balance listener setup
+            renderProducts(); // Initial product render
         });
 
-        // update on storage events
-        window.addEventListener("storage", function () {
-            refreshUserInfo();
-            renderProducts();
-        });
+        // The storage listener for balance is no longer needed as Firebase RTDB handles it
+        // and the local currentUser is kept in sync by the RTDB listener.
+        // If other parts of local storage (e.g., 'products', 'cart') are updated elsewhere
+        // and need to trigger a re-render here, you might keep a modified storage listener.
+        // For now, removing the one that touched balance logic.
+        // window.addEventListener("storage", function () {
+        //     renderProducts();
+        // });
     </script>
 </body>
-<script type="module">
-  // Import the functions you need from the SDKs you need
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
-  import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-analytics.js";
-  // TODO: Add SDKs for Firebase products that you want to use
-  // https://firebase.google.com/docs/web/setup#available-libraries
-
-  // Your web app's Firebase configuration
-  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
-  const firebaseConfig = {
-    apiKey: "AIzaSyDFrctk2MZajP7OmECXe5npHAV0dODH9jk",
-  authDomain: "matrixmarketplace-1bd71.firebaseapp.com",
-  databaseURL: "https://matrixmarketplace-1bd71-default-rtdb.firebaseio.com",
-  projectId: "matrixmarketplace-1bd71",
-  storageBucket: "matrixmarketplace-1bd71.firebasestorage.app",
-  messagingSenderId: "10374416997",
-  appId: "1:10374416997:web:9626c569e845c14a87548c",
-  measurementId: "G-DTC2GM9L92"
-  };
-
-  // Initialize Firebase
-  const app = initializeApp(firebaseConfig);
-  const analytics = getAnalytics(app);
-</script>
 
 </html>
-
