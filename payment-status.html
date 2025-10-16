@@ -1,103 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>MatrixMarket - Payment Status</title>
-
-  <!-- Firebase v12 Modular SDK -->
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
-    import { getDatabase, ref, query, orderByChild, equalTo, get } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
-
-    const firebaseConfig = {
-       apiKey: "AIzaSyDFrctk2MZajP7OmECXe5npHAV0dODH9jk",
-  authDomain: "matrixmarketplace-1bd71.firebaseapp.com",
-  databaseURL: "https://matrixmarketplace-1bd71-default-rtdb.firebaseio.com",
-  projectId: "matrixmarketplace-1bd71",
-  storageBucket: "matrixmarketplace-1bd71.firebasestorage.app",
-  messagingSenderId: "10374416997",
-  appId: "1:10374416997:web:9626c569e845c14a87548c",
-  measurementId: "G-DTC2GM9L92"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const db = getDatabase(app);
-
-    function getCurrentUser() {
-      return JSON.parse(localStorage.getItem("currentUser")) || null;
-    }
-
-    async function updatePaymentStatus() {
-      const user = getCurrentUser();
-      const title = document.getElementById("statusTitle");
-      const msg = document.getElementById("statusMessage");
-      const detailsBox = document.querySelector(".details-box");
-      const btn = document.getElementById("continueBtn");
-
-      if (!user) {
-        title.innerText = "⚠️ No User Found";
-        msg.innerText = "Please log in to check your payment status.";
-        msg.className = "status-message declined";
-        detailsBox.style.display = "none";
-        btn.style.display = "none";
-        return;
-      }
-
-      // Fetch user's latest payment
-      const q = query(ref(db, "payments"), orderByChild("email"), equalTo(user.email));
-      const snapshot = await get(q);
-
-      if (!snapshot.exists()) {
-        title.innerText = "⌛ No Payment Found";
-        msg.innerText = "No recent payment requests found.";
-        msg.className = "status-message pending";
-        detailsBox.style.display = "none";
-        btn.style.display = "none";
-        return;
-      }
-
-      const payments = Object.values(snapshot.val());
-      const lastPayment = payments[payments.length - 1]; // Most recent payment
-
-      // Fill in payment details
-      detailsBox.style.display = "block";
-      document.getElementById("detailsName").innerText = user.fullName || user.name || user.email;
-      document.getElementById("detailsPlan").innerText = lastPayment.method || "N/A";
-      document.getElementById("detailsAmount").innerText = lastPayment.amount + " GMD";
-      document.getElementById("detailsDate").innerText = new Date(lastPayment.date).toLocaleString();
-
-      switch (lastPayment.status) {
-        case "Approved":
-          title.innerText = "✅ Payment Approved";
-          msg.innerText = "Your payment has been verified and approved!";
-          msg.className = "status-message success";
-          btn.style.display = "inline-block";
-          btn.onclick = () => {
-            window.location.href = "subscription-code.html";
-          };
-          break;
-
-        case "Declined":
-          title.innerText = "❌ Payment Declined";
-          msg.innerText = "Your payment was rejected by admin.";
-          msg.className = "status-message declined";
-          btn.style.display = "none";
-          break;
-
-        default:
-          title.innerText = "⌛ Payment Pending";
-          msg.innerText = "Waiting for admin approval...";
-          msg.className = "status-message pending";
-          btn.style.display = "none";
-      }
-    }
-
-    window.onload = () => {
-      updatePaymentStatus();
-      setInterval(updatePaymentStatus, 5000); // Refresh every 5s
-    };
-  </script>
 
   <style>
     body {
@@ -113,8 +20,12 @@
     }
 
     @keyframes gradientBG {
-      0%, 100% { background-position: 0% 50%; }
-      50% { background-position: 100% 50%; }
+      0%, 100% {
+        background-position: 0% 50%;
+      }
+      50% {
+        background-position: 100% 50%;
+      }
     }
 
     header {
@@ -172,9 +83,18 @@
       margin: 15px 0 25px;
     }
 
-    .success { color: #22c55e; text-shadow: 0 0 8px #22c55e; }
-    .declined { color: #ef4444; text-shadow: 0 0 8px #ef4444; }
-    .pending { color: #facc15; text-shadow: 0 0 8px #facc15; }
+    .success {
+      color: #22c55e;
+      text-shadow: 0 0 8px #22c55e;
+    }
+    .declined {
+      color: #ef4444;
+      text-shadow: 0 0 8px #ef4444;
+    }
+    .pending {
+      color: #facc15;
+      text-shadow: 0 0 8px #facc15;
+    }
 
     .details-box {
       background: rgba(255, 255, 255, 0.1);
@@ -212,8 +132,14 @@
     }
 
     @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(-20px); }
-      to { opacity: 1; transform: translateY(0); }
+      from {
+        opacity: 0;
+        transform: translateY(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
   </style>
 </head>
@@ -235,7 +161,7 @@
 
       <div class="details-box">
         <p><strong>Name:</strong> <span id="detailsName"></span></p>
-        <p><strong>Plan:</strong> <span id="detailsPlan"></span></p>
+        <p><strong>Method:</strong> <span id="detailsMethod"></span></p>
         <p><strong>Amount:</strong> <span id="detailsAmount"></span></p>
         <p><strong>Payment Date:</strong> <span id="detailsDate"></span></p>
       </div>
@@ -247,6 +173,124 @@
   <footer>
     <p>© 2025 MatrixMarket | Payment Status</p>
   </footer>
-</body>
-</html>
 
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
+    import { getDatabase, ref, query, orderByChild, equalTo, limitToLast, onValue } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDFrctk2MZajP7OmECXe5npHAV0dODH9jk",
+      authDomain: "matrixmarketplace-1bd71.firebaseapp.com",
+      databaseURL: "https://matrixmarketplace-1bd71-default-rtdb.firebaseio.com",
+      projectId: "matrixmarketplace-1bd71",
+      storageBucket: "matrixmarketplace-1bd71.appspot.com", // Keeping for consistency, though not used here
+      messagingSenderId: "10374416997",
+      appId: "1:10374416997:web:9626c569e845c14a87548c",
+      measurementId: "G-DTC2GM9L92"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    const auth = getAuth(app);
+
+    const title = document.getElementById("statusTitle");
+    const msg = document.getElementById("statusMessage");
+    const detailsBox = document.querySelector(".details-box");
+    const detailsName = document.getElementById("detailsName");
+    const detailsMethod = document.getElementById("detailsMethod");
+    const detailsAmount = document.getElementById("detailsAmount");
+    const detailsDate = document.getElementById("detailsDate");
+    const continueBtn = document.getElementById("continueBtn");
+
+    function displayPaymentStatus(latestPayment) {
+      if (!latestPayment) {
+        title.innerText = "⌛ No Payment Found";
+        msg.innerText = "No recent payment requests found.";
+        msg.className = "status-message pending";
+        detailsBox.style.display = "none";
+        continueBtn.style.display = "none";
+        return;
+      }
+
+      detailsBox.style.display = "block";
+      detailsName.innerText = latestPayment.name || latestPayment.email || "N/A";
+      detailsMethod.innerText = latestPayment.method || "N/A";
+      detailsAmount.innerText = latestPayment.amount + " GMD";
+      detailsDate.innerText = latestPayment.date || "N/A";
+
+      switch (latestPayment.status) {
+        case "Approved":
+          title.innerText = "✅ Payment Approved";
+          msg.innerText = "Your payment has been verified and approved!";
+          msg.className = "status-message success";
+          continueBtn.style.display = "inline-block";
+          continueBtn.onclick = () => {
+            window.location.href = "subscription-code.html"; // Or wherever they go next
+          };
+          break;
+
+        case "Declined":
+          title.innerText = "❌ Payment Declined";
+          msg.innerText = "Your payment was rejected by the admin. Please contact support.";
+          msg.className = "status-message declined";
+          continueBtn.style.display = "none";
+          break;
+
+        default: // "Pending" or any other status
+          title.innerText = "⌛ Payment Pending";
+          msg.innerText = "Waiting for admin approval. We will notify you once reviewed.";
+          msg.className = "status-message pending";
+          continueBtn.style.display = "none";
+          break;
+      }
+    }
+
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        // User is logged in
+        // Query the 'pendingRequests' node for this user's payments
+        // We order by timestamp and take the last one to get the most recent submission
+        const userPaymentsQuery = query(
+          ref(db, "pendingRequests"),
+          orderByChild("userId"),
+          equalTo(user.uid),
+          limitToLast(1) // Get only the most recent one
+        );
+
+        // Listen for real-time changes to this user's latest payment request
+        onValue(userPaymentsQuery, (snapshot) => {
+          if (snapshot.exists()) {
+            const payments = snapshot.val();
+            const latestPaymentKey = Object.keys(payments)[0]; // Get the key of the single latest payment
+            const latestPayment = payments[latestPaymentKey];
+            displayPaymentStatus(latestPayment);
+          } else {
+            displayPaymentStatus(null); // No payments found for this user
+          }
+        }, (error) => {
+          console.error("Error fetching payment status:", error);
+          title.innerText = "⚠️ Error";
+          msg.innerText = "Could not fetch payment status. Please try again later.";
+          msg.className = "status-message declined";
+          detailsBox.style.display = "none";
+          continueBtn.style.display = "none";
+        });
+
+      } else {
+        // User is logged out
+        title.innerText = "⚠️ Not Logged In";
+        msg.innerText = "You must be logged in to check your payment status.";
+        msg.className = "status-message declined";
+        detailsBox.style.display = "none";
+        continueBtn.style.display = "none";
+        // Optionally, redirect to login page
+        // window.location.href = "login.html";
+      }
+    });
+
+    // No need for window.onload or setInterval with onValue listener
+  </script>
+</body>
+
+</html>
