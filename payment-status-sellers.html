@@ -2,21 +2,23 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>MatrixMarket - Seller Payment Status</title>
-
+    <meta charset="UTF-8">
+    <title>MatrixMarket - Subscription Code</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
         body {
-            margin: 0;
-            font-family: "Poppins", sans-serif;
-            background: linear-gradient(-45deg, #1e293b, #0f172a, #4f46e5, #06b6d4);
+            background: linear-gradient(135deg, #0f172a, #1e293b, #4f46e5, #06b6d4);
             background-size: 400% 400%;
             animation: gradientBG 15s ease infinite;
+            font-family: "Poppins", sans-serif;
+            margin: 0;
             color: #fff;
-            display: flex;
-            flex-direction: column;
             min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         @keyframes gradientBG {
@@ -33,171 +35,98 @@
             }
         }
 
-        header {
-            padding: 15px;
-            background: rgba(0, 0, 0, 0.4);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        header .logo {
-            font-size: 1.3rem;
-            font-weight: bold;
-            color: #06b6d4;
-        }
-
-        header nav a {
-            margin: 0 10px;
-            color: #fff;
-            text-decoration: none;
-            font-weight: 500;
-            transition: 0.3s;
-        }
-
-        header nav a:hover {
-            color: #06b6d4;
-        }
-
-        .container {
-            flex: 1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-        }
-
-        .card {
-            background: rgba(255, 255, 255, 0.08);
-            backdrop-filter: blur(15px);
-            border-radius: 20px;
-            padding: 40px;
-            width: 100%;
+        .code-box {
+            width: 90%;
             max-width: 600px;
+            padding: 30px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 15px;
             text-align: center;
-            box-shadow: 0 0 25px rgba(6, 182, 212, 0.6);
-            animation: fadeIn 1s ease-in-out;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+            backdrop-filter: blur(12px);
         }
 
-        .card h1 {
-            font-size: 2.2rem;
-            margin-bottom: 10px;
+        h2 {
             color: #06b6d4;
+            margin-bottom: 10px;
+            font-size: 1.8rem;
         }
 
-        .status {
-            font-size: 1.2rem;
-            margin: 15px 0 25px;
-            font-weight: 500;
-        }
-
-        .success {
-            color: #22c55e;
-            text-shadow: 0 0 8px #22c55e;
-        }
-
-        .declined {
-            color: #ef4444;
-            text-shadow: 0 0 8px #ef4444;
-        }
-
-        .pending {
-            color: #facc15;
-            text-shadow: 0 0 8px #facc15;
-        }
-
-        .details {
-            background: rgba(255, 255, 255, 0.1);
-            padding: 18px;
-            border-radius: 12px;
-            margin-top: 20px;
-            text-align: left;
-            /* display: none; */ /* Will be set dynamically by JS */
-        }
-
-        .details p {
-            margin: 6px 0;
-            font-size: 1rem;
+        .code-display {
+            font-size: 1.6rem;
+            font-weight: bold;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 10px;
+            background: #fff;
+            color: #222;
+            word-break: break-all;
         }
 
         .btn {
-            margin-top: 25px;
-            padding: 14px 24px;
+            margin: 10px;
+            padding: 12px 20px;
             border: none;
-            border-radius: 12px;
-            background: linear-gradient(45deg, #06b6d4, #4f46e5);
+            border-radius: 8px;
+            background: #06b6d4;
             color: white;
-            font-size: 1rem;
             cursor: pointer;
-            box-shadow: 0 0 12px rgba(6, 182, 212, 0.5);
-            transition: all 0.3s ease-in-out;
-            display: none;
+            font-size: 16px;
+            transition: 0.3s;
         }
 
         .btn:hover {
+            background: #4f46e5;
             transform: scale(1.05);
-            box-shadow: 0 0 25px #06b6d4;
         }
 
-        footer {
-            text-align: center;
-            padding: 20px;
-            background: rgba(255, 255, 255, 0.08);
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        .copied {
+            color: #22c55e;
             font-size: 0.9rem;
+            display: none;
+            margin-top: 5px;
         }
 
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(-20px);
-            }
+        #expiry {
+            margin-top: 10px;
+            font-size: 0.9rem;
+            color: #fbbf24;
+        }
 
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+        #qrCanvas {
+            margin: 15px auto;
+            display: block;
+        }
+        .error-message {
+            color: #ef4444;
+            font-size: 1rem;
+            margin-top: 15px;
         }
     </style>
 </head>
 
 <body>
-    <header>
-        <div class="logo">MatrixMarket</div>
-        <nav>
-            <a href="seller-dashboard.html">Dashboard</a>
-            <a href="index.html">Home</a>
-        </nav>
-    </header>
+    <div class="code-box">
+        <h2>🔑 Your Subscription Code</h2>
+        <p id="userName"></p>
+        <div id="codeDisplay" class="code-display">Loading...</div>
+        <canvas id="qrCanvas"></canvas>
+        <p id="expiry"></p>
 
-    <div class="container">
-        <div class="card">
-            <h1 id="title">Loading Payment Status...</h1>
-            <p id="statusMsg" class="status"></p>
-
-            <div class="details" id="detailsSection">
-                <p><strong>Plan:</strong> <span id="detailsPlan"></span></p>
-                <p><strong>Amount:</strong> <span id="detailsAmount"></span> GMD</p>
-                <p><strong>Submitted Date:</strong> <span id="detailsDate"></span></p>
-                <p><strong>Your Store:</strong> <span id="detailsStore"></span></p>
-            </div>
-
-            <button id="continueBtn" class="btn" style="display: none;">Go to Dashboard</button>
-            <button id="goToSubscriptionBtn" class="btn" style="display: none;">Go to Subscription</button>
-        </div>
+        <button class="btn" onclick="window.copyCode()">📋 Copy Code</button>
+        <button class="btn" onclick="window.downloadPDF()">⬇ Download PDF</button>
+        <p id="copyMsg" class="copied">✅ Code copied!</p>
+        <br>
+        <button class="btn" onclick="window.location.href='seller-dashboard.html'">⬅ Go to Dashboard</button>
     </div>
-
-    <footer>
-        <p>© 2025 MatrixMarket | Seller Payment Status</p>
-    </footer>
 
     <!-- Firebase Modular SDK -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
-        import { getDatabase, ref, onValue, off, update } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
+        import { getDatabase, ref, get, set } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
 
-        // ===== Firebase Config =====
+        // ====== Firebase Config ======
         const firebaseConfig = {
             apiKey: "AIzaSyDFrctk2MZajP7OmECXe5npHAV0dODH9jk",
             authDomain: "matrixmarketplace-1bd71.firebaseapp.com",
@@ -215,147 +144,193 @@
         const db = getDatabase(app);
 
         let currentSellerUid = null;
-        let currentPaymentRequestId = null;
-        let paymentStatusListener = null; // To store the listener function for cleanup
+        let sellerData = null; // To store fetched seller data
 
         /**
-         * Retrieves a specific query parameter from the URL.
-         * @param {string} param The name of the query parameter.
-         * @returns {string|null} The value of the parameter or null if not found.
+         * Generates a secure unique subscription code.
+         * @returns {string} The generated code.
          */
-        function getQueryParam(param) {
-            const urlParams = new URLSearchParams(window.location.search);
-            return urlParams.get(param);
+        function generateCode() {
+            const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+            let code = "";
+            for (let i = 0; i < 12; i++) {
+                code += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            // Add a simple checksum for more uniqueness (not for security)
+            const sum = [...code].reduce((acc, c) => acc + c.charCodeAt(0), 0);
+            code += "-" + (sum % 36).toString(36).toUpperCase().padStart(2, "0");
+            return code;
         }
 
         /**
-         * Renders the payment status and details on the page.
-         * @param {object} paymentRequest The payment request data from Firebase.
+         * Calculates the expiry date based on the plan.
+         * @param {string} plan The seller's subscription plan.
+         * @returns {string} ISO string of the expiry date.
          */
-        async function renderPaymentStatus(paymentRequest) {
-            const titleElement = document.getElementById("title");
-            const statusMsgElement = document.getElementById("statusMsg");
-            const detailsSection = document.getElementById("detailsSection");
-            const continueBtn = document.getElementById("continueBtn");
-            const goToSubscriptionBtn = document.getElementById("goToSubscriptionBtn");
+        function calculateExpiry(plan) {
+            const expiry = new Date();
+            if (plan.includes("Weekly")) {
+                expiry.setDate(expiry.getDate() + 7);
+            } else if (plan.includes("Monthly")) {
+                expiry.setMonth(expiry.getMonth() + 1);
+            } else if (plan.includes("Yearly")) { // Assuming yearly
+                expiry.setFullYear(expiry.getFullYear() + 1);
+            } else {
+                // Default to a short period if plan is unrecognized
+                expiry.setDate(expiry.getDate() + 1);
+            }
+            return expiry.toISOString();
+        }
 
-            // Clear previous states
-            statusMsgElement.className = "status";
-            continueBtn.style.display = "none";
-            goToSubscriptionBtn.style.display = "none";
+        /**
+         * Copies the displayed code to the clipboard.
+         */
+        function copyCode() {
+            const code = document.getElementById("codeDisplay").innerText;
+            if (code && !code.includes("Loading") && !code.includes("Error") && !code.includes("Expired")) {
+                navigator.clipboard.writeText(code).then(() => {
+                    const msg = document.getElementById("copyMsg");
+                    msg.style.display = "block";
+                    setTimeout(() => msg.style.display = "none", 2000);
+                }).catch(err => {
+                    console.error("Failed to copy code: ", err);
+                    alert("Failed to copy code. Please try manually.");
+                });
+            }
+        }
 
-            if (!paymentRequest) {
-                titleElement.innerText = "Payment Request Not Found";
-                statusMsgElement.innerText = "The payment request could not be found or has been removed.";
-                statusMsgElement.classList.add("declined");
-                detailsSection.style.display = "none";
+        /**
+         * Downloads the subscription code and expiry as a PDF.
+         */
+        async function downloadPDF() {
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF();
+            const code = document.getElementById("codeDisplay").innerText;
+            const expiry = document.getElementById("expiry").innerText;
+            const userName = document.getElementById("userName").innerText;
+
+            if (code.includes("Loading") || code.includes("Error") || code.includes("Expired")) {
+                alert("Cannot download PDF: No valid code to display.");
                 return;
             }
 
-            // Display details
-            document.getElementById("detailsPlan").innerText = paymentRequest.plan || "N/A";
-            document.getElementById("detailsAmount").innerText = parseFloat(paymentRequest.amount).toFixed(2);
-            document.getElementById("detailsDate").innerText = paymentRequest.submittedAt ? new Date(paymentRequest.submittedAt).toLocaleString() : "N/A";
-            document.getElementById("detailsStore").innerText = paymentRequest.storeName || "N/A";
-            detailsSection.style.display = "block"; // Show details section
+            pdf.setFontSize(22);
+            pdf.setTextColor(33, 150, 243); // A nice blue
+            pdf.text("MatrixMarket Subscription Code", 20, 20);
 
-            switch (paymentRequest.status) {
-                case "Approved":
-                    titleElement.innerText = "✅ Payment Approved!";
-                    statusMsgElement.innerText = "Your subscription payment has been approved by our team. Welcome to MatrixMarket!";
-                    statusMsgElement.classList.add("success");
-                    goToSubscriptionBtn.style.display = "inline-block";
-                    goToSubscriptionBtn.onclick = goToSubscription;
-                    // Update seller's main status and subscription status upon approval
-                    await update(ref(db, `sellers/${currentSellerUid}`), {
-                        status: "Approved",
-                        subscription: "Active"
-                    });
-                    break;
-                case "Declined":
-                    titleElement.innerText = "❌ Payment Declined";
-                    statusMsgElement.innerText = "Unfortunately, your payment could not be approved. Please contact support.";
-                    statusMsgElement.classList.add("declined");
-                    continueBtn.innerText = "Contact Support";
-                    continueBtn.style.display = "inline-block";
-                    // Update seller's main status upon decline
-                     await update(ref(db, `sellers/${currentSellerUid}`), {
-                        status: "Declined",
-                        subscription: "Inactive"
-                    });
-                    break;
-                case "Payment Confirmed by Seller": // This is the status after seller clicks "Confirm Payment Made"
-                default: // Fallback for any other pending or unknown status
-                    titleElement.innerText = "⌛ Payment Under Review";
-                    statusMsgElement.innerText = "Your payment confirmation is currently being reviewed by our team. Please check back later.";
-                    statusMsgElement.classList.add("pending");
-                    continueBtn.innerText = "Back to Seller Login";
-                    continueBtn.style.display = "inline-block";
-                    continueBtn.onclick = () => { window.location.href = "seller-login.html"; };
-                    break;
+            pdf.setFontSize(16);
+            pdf.setTextColor(0, 0, 0); // Black for text
+            pdf.text(userName, 20, 35);
+            pdf.text("Your Exclusive Code:", 20, 50);
+
+            pdf.setFontSize(24);
+            pdf.setTextColor(0, 182, 212); // Teal
+            pdf.text(code, 20, 65);
+
+            pdf.setFontSize(14);
+            pdf.setTextColor(70, 70, 70); // Dark grey
+            pdf.text(expiry, 20, 80);
+
+            // Add QR code to PDF
+            const canvas = document.getElementById('qrCanvas');
+            if (canvas) {
+                const imgData = canvas.toDataURL('image/png');
+                pdf.addImage(imgData, 'PNG', 75, 90, 60, 60); // Centered roughly
+            }
+
+            pdf.save(`MatrixMarket_Code_${code}.pdf`);
+        }
+
+
+        /**
+         * Initializes the page by fetching seller data and displaying the subscription code.
+         */
+        async function initPage() {
+            const codeDisplay = document.getElementById("codeDisplay");
+            const userNameElement = document.getElementById("userName");
+            const expiryElement = document.getElementById("expiry");
+            const qrCanvas = document.getElementById("qrCanvas");
+
+            codeDisplay.innerText = "Loading...";
+            qrCanvas.style.display = "none"; // Hide QR until loaded
+
+            if (!currentSellerUid) {
+                codeDisplay.innerText = "❌ Please log in as a seller first.";
+                codeDisplay.classList.add('error-message');
+                return;
+            }
+
+            try {
+                // Fetch seller data from Firebase
+                const sellerSnapshot = await get(ref(db, `sellers/${currentSellerUid}`));
+                sellerData = sellerSnapshot.val();
+
+                if (!sellerData) {
+                    codeDisplay.innerText = "⚠️ Seller data not found.";
+                    codeDisplay.classList.add('error-message');
+                    return;
+                }
+
+                userNameElement.innerText = "👋 Welcome, " + (sellerData.name || sellerData.email);
+
+                // Check subscription status
+                if (!sellerData.subscription || sellerData.subscription !== "Active") {
+                    codeDisplay.innerText = "⚠️ You need an active subscription to view your code.";
+                    codeDisplay.classList.add('error-message');
+                    expiryElement.innerText = "";
+                    return;
+                }
+
+                let currentCode = sellerData.subscriptionCode;
+                let currentExpiry = sellerData.subscriptionExpiry;
+                let expiryDateObj = currentExpiry ? new Date(currentExpiry) : null;
+                const now = new Date();
+
+                // Check if code exists and is not expired
+                if (currentCode && expiryDateObj && expiryDateObj > now) {
+                    codeDisplay.innerText = currentCode;
+                    expiryElement.innerText = "⏳ Expires on: " + expiryDateObj.toDateString();
+                    qrCanvas.style.display = "block"; // Show QR code
+                    QRCode.toCanvas(qrCanvas, currentCode, { width: 200, color: { dark: '#000000', light: '#ffffff' } });
+                } else {
+                    // Generate new code and expiry
+                    const newCodeValue = generateCode();
+                    const newExpiryIso = calculateExpiry(sellerData.plan);
+                    const newExpiryDateObj = new Date(newExpiryIso);
+
+                    // Update Firebase with new code and expiry
+                    await set(ref(db, `sellers/${currentSellerUid}/subscriptionCode`), newCodeValue);
+                    await set(ref(db, `sellers/${currentSellerUid}/subscriptionExpiry`), newExpiryIso);
+
+                    codeDisplay.innerText = newCodeValue;
+                    expiryElement.innerText = "⏳ Expires on: " + newExpiryDateObj.toDateString();
+                    qrCanvas.style.display = "block"; // Show QR code
+                    QRCode.toCanvas(qrCanvas, newCodeValue, { width: 200, color: { dark: '#000000', light: '#ffffff' } });
+                }
+
+            } catch (error) {
+                console.error("Error initializing subscription code page:", error);
+                codeDisplay.innerText = `❌ Error: ${error.message}`;
+                codeDisplay.classList.add('error-message');
+                expiryElement.innerText = "";
             }
         }
 
-        /**
-         * Redirects the seller to their subscription-code.html page.
-         */
-        function goToSubscription() {
-            // Once approved, redirect to the subscription page
-            window.location.href = "subscription-code.html";
-        }
-
-        // --- Main execution flow ---
+        // --- Main Execution Flow ---
         onAuthStateChanged(auth, (user) => {
             if (user) {
                 currentSellerUid = user.uid;
-                currentPaymentRequestId = getQueryParam("paymentRequestId");
-
-                if (!currentSellerUid || !currentPaymentRequestId) {
-                    document.getElementById("title").innerText = "Error: Missing Information";
-                    document.getElementById("statusMsg").innerText = "Could not retrieve payment status. Required IDs are missing.";
-                    document.getElementById("statusMsg").classList.add("declined");
-                    return;
-                }
-
-                // Verify that the authenticated user matches the sellerId from the URL
-                const userIdFromUrl = getQueryParam("userId");
-                if (currentSellerUid !== userIdFromUrl) {
-                     document.getElementById("title").innerText = "Access Denied";
-                    document.getElementById("statusMsg").innerText = "You are not authorized to view this payment status.";
-                    document.getElementById("statusMsg").classList.add("declined");
-                    console.error("Unauthorized access attempt: Authenticated user UID does not match userId from URL.");
-                    auth.signOut(); // Log out unauthorized user
-                    return;
-                }
-
-                // Set up real-time listener for the specific payment request
-                const paymentRef = ref(db, `pendingSellerPayments/${currentPaymentRequestId}`);
-                paymentStatusListener = onValue(paymentRef, (snapshot) => {
-                    const paymentRequest = snapshot.val();
-                    renderPaymentStatus(paymentRequest);
-                }, (error) => {
-                    console.error("Error fetching payment request:", error);
-                    document.getElementById("title").innerText = "Error Loading Status";
-                    document.getElementById("statusMsg").innerText = `Failed to load payment details: ${error.message}`;
-                    document.getElementById("statusMsg").classList.add("declined");
-                });
-
+                initPage();
             } else {
-                // Not authenticated, redirect to login
-                console.warn("No Firebase Auth user logged in. Redirecting to seller login.");
+                console.warn("No authenticated seller. Redirecting to login.");
+                // Redirect to login page if not authenticated
                 window.location.href = "seller-login.html";
             }
         });
 
-        // Clean up listener when the page is unloaded
-        window.addEventListener('beforeunload', () => {
-            if (paymentStatusListener) {
-                off(paymentStatusListener);
-            }
-        });
-
-        // Expose functions to global scope if needed for future button clicks (e.g., Contact Support)
-        window.goToSubscription = goToSubscription;
+        // Expose functions to global scope for HTML onclick attributes
+        window.copyCode = copyCode;
+        window.downloadPDF = downloadPDF;
     </script>
 </body>
 
