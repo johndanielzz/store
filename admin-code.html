@@ -4,9 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin - Manage Subscription Codes | MatrixMarket</title>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <title>Admin - Manage Seller Subscriptions | MatrixMarket</title> <!-- Title updated -->
     <style>
         body {
             font-family: "Poppins", sans-serif;
@@ -43,6 +41,7 @@
             justify-content: space-between;
             align-items: center;
             backdrop-filter: blur(10px);
+            margin-bottom: 20px; /* Added spacing */
         }
 
         .logo {
@@ -52,8 +51,26 @@
             text-shadow: 0 0 8px #4f46e5;
         }
 
+        nav a { /* Added style for nav links */
+            color: #fff;
+            text-decoration: none;
+            margin-left: 15px;
+            font-weight: 500;
+            transition: 0.3s;
+        }
+        nav a:hover {
+            color: #06b6d4;
+        }
+
+        h2 {
+            margin-top: 20px;
+            margin-bottom: 20px;
+            text-shadow: 0 0 10px #06b6d4;
+        }
+
         table {
             width: 90%;
+            max-width: 1200px; /* Added max-width */
             margin-top: 30px;
             border-collapse: collapse;
             background: rgba(255, 255, 255, 0.08);
@@ -67,6 +84,8 @@
             padding: 14px;
             text-align: center;
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 0.95rem; /* Slightly smaller font */
+            white-space: nowrap; /* Prevent wrapping in cells */
         }
 
         th {
@@ -87,20 +106,21 @@
             font-weight: bold;
             cursor: pointer;
             transition: 0.3s;
+            font-size: 0.85rem; /* Smaller button font */
         }
 
-        .approve {
-            background: #22c55e;
+        .activate-btn { /* Renamed from approve for clarity */
+            background: #22c55e; /* Green */
             color: white;
         }
 
-        .deactivate {
-            background: #ef4444;
+        .deactivate-btn { /* Renamed from deactivate for clarity */
+            background: #ef4444; /* Red */
             color: white;
         }
 
-        .renew {
-            background: #fbbf24;
+        .renew-btn { /* Renamed from renew for clarity */
+            background: #fbbf24; /* Yellow */
             color: #222;
         }
 
@@ -109,15 +129,34 @@
             box-shadow: 0 0 8px rgba(255, 255, 255, 0.4);
         }
 
-        .back-btn {
-            margin-top: 25px;
-            padding: 12px 20px;
-            background: linear-gradient(90deg, #06b6d4, #4f46e5);
-            color: white;
-            border-radius: 10px;
+        .status-active { color: #22c55e; font-weight: bold; }
+        .status-expired { color: #ef4444; font-weight: bold; }
+        .status-inactive { color: #888; font-weight: bold; }
+        .status-pending { color: #facc15; font-weight: bold; }
+
+        .copy-btn {
+            background: none;
             border: none;
+            color: #06b6d4;
             cursor: pointer;
-            font-size: 1rem;
+            text-decoration: underline;
+            padding: 0;
+            margin: 0;
+            font-weight: normal;
+        }
+        .copy-btn:hover {
+            transform: none; /* Override general button hover */
+            text-decoration: none;
+        }
+
+        footer {
+            margin-top: auto; /* Pushes footer to bottom */
+            width: 100%;
+            text-align: center;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.08);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 0.9rem;
         }
     </style>
 </head>
@@ -126,93 +165,221 @@
     <header>
         <div class="logo">MatrixMarket Admin</div>
         <nav>
-            <a href="dashboard-admin.html" style="color:#fff;text-decoration:none;">⬅ Back to Dashboard</a>
+            <a href="dashboard-admin.html">⬅ Back to Dashboard</a>
+            <a href="admin-sellers.html">Manage Sellers</a>
+            <a href="admin-payments.html">Manage Payments</a>
         </nav>
     </header>
 
-    <h2>📋 Manage Subscription Codes</h2>
+    <h2>📋 Manage Seller Subscriptions</h2>
     <table id="codesTable">
         <thead>
             <tr>
+                <th>Seller Name</th>
                 <th>Email</th>
-                <th>Code</th>
-                <th>Expiry</th>
-                <th>Status</th>
+                <th>Plan</th>
+                <th>Subscription Code</th>
+                <th>Code Expiry</th>
+                <th>Subscription Status</th>
                 <th>Actions</th>
             </tr>
         </thead>
-        <tbody></tbody>
+        <tbody>
+            <!-- Seller data will be injected here -->
+        </tbody>
     </table>
 
-    <script>
+    <footer>
+        <p>© 2025 MatrixMarket | Admin Subscription Management</p>
+    </footer>
+
+    <!-- Firebase Modular SDK -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
+        import { getDatabase, ref, onValue, update } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
+
         const firebaseConfig = {
            apiKey: "AIzaSyDFrctk2MZajP7OmECXe5npHAV0dODH9jk",
-  authDomain: "matrixmarketplace-1bd71.firebaseapp.com",
-  databaseURL: "https://matrixmarketplace-1bd71-default-rtdb.firebaseio.com",
-  projectId: "matrixmarketplace-1bd71",
-  storageBucket: "matrixmarketplace-1bd71.firebasestorage.app",
-  messagingSenderId: "10374416997",
-  appId: "1:10374416997:web:9626c569e845c14a87548c",
-  measurementId: "G-DTC2GM9L92"
+           authDomain: "matrixmarketplace-1bd71.firebaseapp.com",
+           databaseURL: "https://matrixmarketplace-1bd71-default-rtdb.firebaseio.com",
+           projectId: "matrixmarketplace-1bd71",
+           storageBucket: "matrixmarketplace-1bd71.firebasestorage.app",
+           messagingSenderId: "10374416997",
+           appId: "1:10374416997:web:9626c569e845c14a87548c",
+           measurementId: "G-DTC2GM9L92"
         };
 
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.database();
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getDatabase(app);
         const codesTableBody = document.querySelector("#codesTable tbody");
 
-        // Render table
-        function renderCodes(codes) {
-            codesTableBody.innerHTML = "";
-            if (!codes) return;
+        /**
+         * Renders the table with seller subscription data.
+         * @param {object} sellers A map of seller UID to seller data.
+         */
+        function renderSellersSubscriptions(sellers) {
+            codesTableBody.innerHTML = ""; // Clear existing rows
+            if (!sellers) {
+                codesTableBody.innerHTML = `<tr><td colspan="7">No seller subscriptions found.</td></tr>`;
+                return;
+            }
 
-            Object.keys(codes).forEach(email => {
-                const codeData = codes[email];
-                const expiry = new Date(codeData.expiry);
-                const expired = expiry < new Date();
+            Object.values(sellers).forEach(seller => {
+                const code = seller.subscriptionCode || "N/A";
+                const expiryIso = seller.subscriptionExpiry;
+                const expiryDate = expiryIso ? new Date(expiryIso) : null;
+                const now = new Date();
+
+                let codeStatus = "N/A";
+                let statusClass = "status-inactive"; // Default to inactive
+                let subscriptionStatus = seller.subscription || "Inactive"; // Main subscription status from seller object
+
+                // Determine subscription code status and class
+                if (seller.status === "Approved" && subscriptionStatus === "Active" && code !== "N/A" && expiryDate && expiryDate > now) {
+                    codeStatus = "Active";
+                    statusClass = "status-active";
+                } else if (seller.status === "Approved" && subscriptionStatus === "Active" && code !== "N/A" && expiryDate && expiryDate <= now) {
+                    codeStatus = "Expired";
+                    statusClass = "status-expired";
+                } else if (seller.status !== "Approved" || subscriptionStatus !== "Active") {
+                    codeStatus = subscriptionStatus === "Inactive" ? "Inactive" : "Pending Approval";
+                    statusClass = subscriptionStatus === "Inactive" ? "status-inactive" : "status-pending";
+                }
 
                 const row = document.createElement("tr");
                 row.innerHTML = `
-            <td>${email}</td>
-            <td>${codeData.value}</td>
-            <td>${expiry.toDateString()}</td>
-            <td style="color:${expired ? '#ef4444' : '#22c55e'}">${expired ? 'Expired' : 'Active'}</td>
-            <td>
-                <button class="approve" onclick="approve('${email}')">Approve</button>
-                <button class="deactivate" onclick="deactivate('${email}')">Deactivate</button>
-                <button class="renew" onclick="renew('${email}')">Renew</button>
-            </td>
-        `;
+                    <td>${seller.name || "N/A"}</td>
+                    <td>${seller.email || "N/A"}</td>
+                    <td>${seller.plan || "N/A"}</td>
+                    <td>${code} <button class="copy-btn" onclick="window.copyToClipboard('${code}')">📋</button></td>
+                    <td>${expiryDate ? expiryDate.toDateString() : "N/A"}</td>
+                    <td class="${statusClass}">${codeStatus}</td>
+                    <td>
+                        <button class="activate-btn" onclick="window.updateSubscriptionStatus('${seller.uid}', 'Active')">Activate</button>
+                        <button class="deactivate-btn" onclick="window.updateSubscriptionStatus('${seller.uid}', 'Inactive')">Deactivate</button>
+                        <button class="renew-btn" onclick="window.renewSubscription('${seller.uid}', '${seller.plan}')">Renew</button>
+                    </td>
+                `;
                 codesTableBody.appendChild(row);
             });
         }
 
-        // Approve
-        function approve(email) {
-            db.ref('subscriptionCodes/' + email).update({ status: 'active' });
-            alert(`✅ ${email} approved successfully.`);
+        /**
+         * Updates a seller's subscription status in Firebase.
+         * @param {string} sellerUid The UID of the seller.
+         * @param {string} status "Active" or "Inactive".
+         */
+        async function updateSubscriptionStatus(sellerUid, status) {
+            if (!confirm(`Are you sure you want to set subscription to '${status}' for seller ${sellerUid}?`)) return;
+            try {
+                await update(ref(db, `sellers/${sellerUid}`), {
+                    subscription: status,
+                    status: status === 'Active' ? 'Approved' : 'Declined' // Also update overall status
+                });
+                alert(`✅ Seller ${sellerUid} subscription status updated to ${status}.`);
+            } catch (error) {
+                console.error("Error updating subscription status:", error);
+                alert(`❌ Failed to update subscription status: ${error.message}`);
+            }
         }
 
-        // Deactivate
-        function deactivate(email) {
-            db.ref('subscriptionCodes/' + email).update({ status: 'inactive' });
-            alert(`🚫 ${email} deactivated.`);
+        /**
+         * Renews a seller's subscription by setting a new expiry date.
+         * @param {string} sellerUid The UID of the seller.
+         * @param {string} plan The seller's subscription plan.
+         */
+        async function renewSubscription(sellerUid, plan) {
+            if (!confirm(`Are you sure you want to renew subscription for seller ${sellerUid}?`)) return;
+
+            const newExpiry = calculateExpiry(plan); // Use the same logic as seller's page
+            try {
+                await update(ref(db, `sellers/${sellerUid}`), {
+                    subscriptionExpiry: newExpiry,
+                    subscription: "Active", // Ensure it's active upon renewal
+                    status: "Approved" // Ensure overall status is Approved
+                });
+                alert(`🔄 Seller ${sellerUid} renewed until ${new Date(newExpiry).toDateString()}`);
+            } catch (error) {
+                console.error("Error renewing subscription:", error);
+                alert(`❌ Failed to renew subscription: ${error.message}`);
+            }
         }
 
-        // Renew (30 days)
-        function renew(email) {
-            const newExpiry = new Date();
-            newExpiry.setDate(newExpiry.getDate() + 30);
-            db.ref('subscriptionCodes/' + email).update({ expiry: newExpiry.toISOString(), status: 'active' });
-            alert(`🔄 ${email} renewed until ${newExpiry.toDateString()}`);
+        /**
+         * Calculates the expiry date based on the plan. This is duplicated from subscription-code.html
+         * to ensure consistent logic for renewal.
+         * @param {string} plan The seller's subscription plan string.
+         * @returns {string} ISO string of the expiry date.
+         */
+        function calculateExpiry(plan) {
+            const expiry = new Date();
+            // Start renewal from today or from current expiry if it's in the future
+            // For simplicity, always renew from today's date for admin action
+            if (plan.includes("Weekly")) {
+                expiry.setDate(expiry.getDate() + 7);
+            } else if (plan.includes("Monthly")) {
+                expiry.setMonth(expiry.getMonth() + 1);
+            } else if (plan.includes("Yearly")) {
+                expiry.setFullYear(expiry.getFullYear() + 1);
+            } else {
+                expiry.setDate(expiry.getDate() + 30); // Default to 30 days
+            }
+            return expiry.toISOString();
         }
 
-        // Realtime listener
-        db.ref('subscriptionCodes').on('value', snapshot => {
-            const data = snapshot.val();
-            renderCodes(data);
+        /**
+         * Copies text to the clipboard.
+         * @param {string} text The text to copy.
+         */
+        function copyToClipboard(text) {
+            if (text && text !== "N/A") {
+                navigator.clipboard.writeText(text).then(() => {
+                    alert("Copied: " + text);
+                }).catch(err => {
+                    console.error("Failed to copy text: ", err);
+                    alert("Failed to copy. Please try manually.");
+                });
+            }
+        }
+
+        // --- Admin Authentication Check ---
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                // IMPORTANT: Replace this with your actual admin verification logic.
+                // e.g., check if user.uid exists in a '/admins' node in RTDB or use custom claims.
+                const isAdmin = true; // For testing, assume any logged-in user is admin
+
+                if (isAdmin) {
+                    console.log("Admin user logged in:", user.email, "UID:", user.uid);
+                    // Set up real-time listener for sellers data
+                    onValue(ref(db, 'sellers'), (snapshot) => {
+                        const sellersData = snapshot.val();
+                        renderSellersSubscriptions(sellersData);
+                    }, (error) => {
+                        console.error("Error fetching sellers data:", error);
+                        codesTableBody.innerHTML = `<tr><td colspan="7">Error loading seller subscriptions.</td></tr>`;
+                    });
+
+                } else {
+                    console.warn("Unauthorized access attempt by:", user.email);
+                    alert("You are not authorized to view this page. Redirecting to home.");
+                    window.location.href = "index.html"; // Redirect unauthorized users
+                }
+            } else {
+                // No user logged in, redirect to admin login page (you'll need to create one)
+                alert("You must be logged in as an admin to access this panel.");
+                window.location.href = "admin-login.html"; // Assuming an admin-login.html
+            }
         });
+
+        // Expose functions to the global window object for HTML onclick attributes
+        window.updateSubscriptionStatus = updateSubscriptionStatus;
+        window.renewSubscription = renewSubscription;
+        window.copyToClipboard = copyToClipboard;
     </script>
 </body>
-
 
 </html>
