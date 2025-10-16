@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF="8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MatrixMarket - Admin Payment Control</title>
+  <title>MatrixMarket - Admin Seller Payment Control</title> <!-- Title updated -->
   <style>
     body {
       font-family: "Poppins", sans-serif;
@@ -143,22 +143,22 @@
       <a href="dashboard-admin.html">Dashboard</a>
       <a href="admin-sellers.html">Sellers</a>
       <a href="admin-users.html">Users</a>
-      <a href="admin-payments.html">Payments</a>
+      <a href="admin-payments.html">Seller Payments</a> <!-- Nav link updated -->
     </nav>
   </header>
 
   <div class="container">
-    <h1>💸 Manage Payment Requests</h1>
-    <input type="text" id="searchBox" placeholder="Search by user/seller email, method, or type..." onkeyup="window.handleSearch()">
+    <h1>💸 Manage Seller Subscription Requests</h1> <!-- H1 updated -->
+    <input type="text" id="searchBox" placeholder="Search by seller email, store, or plan..." onkeyup="window.handleSearch()">
     <table id="paymentRequestTable"></table>
   </div>
 
-  <footer>© 2025 MatrixMarket | Admin Payment Control</footer>
+  <footer>© 2025 MatrixMarket | Admin Seller Payment Control</footer> <!-- Footer updated -->
 
   <!-- Firebase Modular SDK -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
-    import { getDatabase, ref, get, update, onValue } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
+    import { getDatabase, ref, get, update, onValue, runTransaction } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js"; 
 
     const firebaseConfig = {
@@ -175,10 +175,10 @@
     const db = getDatabase(app);
     const auth = getAuth(app); 
 
-    let allPaymentRequests = {}; // Local cache for all requests
+    let sellerPaymentRequests = {}; // Local cache for only seller requests
 
     /**
-     * Renders all payment requests (user top-ups and seller subscriptions) in the table.
+     * Renders all seller payment requests in the table.
      */
     async function renderPaymentRequests() {
       const search = document.getElementById("searchBox").value.toLowerCase();
@@ -186,31 +186,26 @@
 
       table.innerHTML = `
         <tr>
-          <th>Type</th>
           <th>Email</th>
-          <th>Store/Method</th>
+          <th>Store</th>
           <th>Plan</th>
           <th>Amount</th>
           <th>Status</th>
-          <th>Date</th>
+          <th>Submitted On</th>
           <th>Proof</th>
           <th>Action</th>
         </tr>
       `;
 
-      // Convert combined requests to an array and filter
-      const filtered = Object.values(allPaymentRequests).filter(request => {
-        const type = request.type || "User Top-up"; // Default for old requests
+      const filtered = Object.values(sellerPaymentRequests).filter(request => {
         return (request.email?.toLowerCase().includes(search) ||
-                request.storeName?.toLowerCase().includes(search) || // For sellers
-                request.method?.toLowerCase().includes(search) ||   // For user top-ups
-                request.plan?.toLowerCase().includes(search) ||     // For sellers
-                type.toLowerCase().includes(search) ||
+                request.storeName?.toLowerCase().includes(search) ||
+                request.plan?.toLowerCase().includes(search) ||
                 request.status?.toLowerCase().includes(search));
       });
 
       if (!filtered.length) {
-        table.innerHTML += `<tr><td colspan="9">No payment requests found matching your search.</td></tr>`;
+        table.innerHTML += `<tr><td colspan="8">No seller payment requests found matching your search.</td></tr>`;
         return;
       }
 
@@ -225,12 +220,11 @@
 
 
       filtered.forEach(req => {
-        const type = req.type || "User Top-up"; // Distinguish request type
         let statusClass = "status-pending"; // Default
         switch (req.status) {
             case "Approved": statusClass = "status-approved"; break;
             case "Declined": statusClass = "status-declined"; break;
-            case "Proof Submitted": statusClass = "status-proof-submitted"; break; // If proof upload is re-enabled for sellers
+            case "Proof Submitted": statusClass = "status-proof-submitted"; break;
             case "Payment Confirmed by Seller": statusClass = "status-confirmed-by-seller"; break;
             default: statusClass = "status-pending"; break;
         }
@@ -239,23 +233,22 @@
                              ? `<a href="${req.receiptURL}" target="_blank" class="proof-link">View Proof</a>`
                              : "N/A";
 
-        const storeOrMethod = req.storeName || req.method || "N/A";
-        const plan = req.plan || "N/A"; // Seller plan
         const amount = parseFloat(req.amount).toFixed(2);
+        const submittedDate = req.submittedAt ? new Date(req.submittedAt).toLocaleString() : (req.requestDate || "N/A");
+
 
         table.innerHTML += `
           <tr>
-            <td>${type}</td>
             <td>${req.email || "N/A"}</td>
-            <td>${storeOrMethod}</td>
-            <td>${plan}</td>
+            <td>${req.storeName || "N/A"}</td>
+            <td>${req.plan || "N/A"}</td>
             <td>${amount} GMD</td>
             <td><span class="status-badge ${statusClass}">${req.status}</span></td>
-            <td>${req.requestDate || req.submittedAt || "N/A"}</td>
+            <td>${submittedDate}</td>
             <td>${proofContent}</td>
             <td>
-              <button class="btn approve" onclick="window.updatePaymentRequest('${req.id}', 'Approved', '${req.userId || req.uid}', '${req.type || "User Top-up"}', ${amount})">Approve</button>
-              <button class="btn decline" onclick="window.updatePaymentRequest('${req.id}', 'Declined', '${req.userId || req.uid}', '${req.type || "User Top-up"}', ${amount})">Decline</button>
+              <button class="btn approve" onclick="window.updateSellerPayment('${req.id}', 'Approved', '${req.userId}', ${amount})">Approve</button>
+              <button class="btn decline" onclick="window.updateSellerPayment('${req.id}', 'Declined', '${req.userId}', ${amount})">Decline</button>
             </td>
           </tr>
         `;
@@ -263,70 +256,47 @@
     }
 
     /**
-     * Updates a payment request's status and performs associated actions (e.g., update balance/seller status).
+     * Updates a seller payment request's status and the associated seller's status.
      * @param {string} requestId The ID of the payment request.
      * @param {string} action 'Approved' or 'Declined'.
-     * @param {string} entityUid The Firebase UID of the user or seller.
-     * @param {string} requestType 'User Top-up' or 'Seller Subscription'.
-     * @param {number} amount The amount of the payment.
+     * @param {string} sellerUid The Firebase UID of the seller.
      */
-    async function updatePaymentRequest(requestId, action, entityUid, requestType, amount) {
-      if (!confirm(`Are you sure you want to ${action} this payment request?`)) {
+    async function updateSellerPayment(requestId, action, sellerUid) {
+      if (!confirm(`Are you sure you want to ${action} this seller's subscription payment?`)) {
         return;
       }
 
       try {
-        let paymentPath;
-        let entityPath;
+        const paymentPath = `pendingSellerPayments/${requestId}`;
+        const sellerPath = `sellers/${sellerUid}`;
+
         let updates = {
           status: action,
           adminActionDate: new Date().toLocaleString()
         };
 
-        if (requestType === "User Top-up") {
-          paymentPath = `pendingRequests/${requestId}`;
-          entityPath = `users/${entityUid}/balance`;
-
-          if (action === 'Approved') {
-            // Transactionally update user balance
-            await update(ref(db, paymentPath), updates); // Update payment request status first
-            const userBalanceRef = ref(db, entityPath);
-            await runTransaction(userBalanceRef, (currentBalance) => {
-              return (parseFloat(currentBalance || 0) + amount);
-            });
-            alert(`✅ User top-up request ${action.toLowerCase()} and user balance updated!`);
-          } else { // Declined
-            await update(ref(db, paymentPath), updates);
-            alert(`❌ User top-up request ${action.toLowerCase()}!`);
-          }
-
-        } else if (requestType === "Seller Subscription") {
-          paymentPath = `pendingSellerPayments/${requestId}`;
-          entityPath = `sellers/${entityUid}`;
-
-          if (action === 'Approved') {
+        if (action === 'Approved') {
             // Update seller's main record and payment request status
-            await update(ref(db, entityPath), {
+            await update(ref(db, sellerPath), {
                 status: "Approved",
                 subscription: "Active"
             });
             await update(ref(db, paymentPath), updates);
             alert(`✅ Seller subscription request ${action.toLowerCase()} and seller status updated!`);
-          } else { // Declined
-            await update(ref(db, entityPath), {
+        } else { // Declined
+            await update(ref(db, sellerPath), {
                 status: "Declined",
                 subscription: "Inactive"
             });
             await update(ref(db, paymentPath), updates);
             alert(`❌ Seller subscription request ${action.toLowerCase()}!`);
-          }
         }
         
         // Re-render table to reflect changes (onValue listener will usually do this, but force it)
-        renderPaymentRequests(); 
-
+        // renderPaymentRequests(); // This line is technically redundant due to onValue, but ensures immediate UI update
+                               // Keeping it commented for now as onValue is more efficient
       } catch (error) {
-        console.error("Error updating payment request or entity balance/status:", error);
+        console.error("Error updating seller payment or status:", error);
         alert("⚠️ An error occurred while processing the request. Check console for details.");
       }
     }
@@ -341,22 +311,14 @@
 
             if (isAdmin) {
                 console.log("Admin user logged in:", user.email, "UID:", user.uid);
-                // Set up real-time listeners for both types of payment requests
-                const userPaymentsRef = ref(db, 'pendingRequests');
+                // Set up real-time listener ONLY for seller payment requests
                 const sellerPaymentsRef = ref(db, 'pendingSellerPayments');
 
-                onValue(userPaymentsRef, (snapshot) => {
-                    const payments = snapshot.val() || {};
-                    Object.keys(payments).forEach(key => {
-                        allPaymentRequests[key] = { id: key, type: "User Top-up", ...payments[key] };
-                    });
-                    renderPaymentRequests();
-                }, (error) => console.error("Error fetching user payments:", error));
-
                 onValue(sellerPaymentsRef, (snapshot) => {
+                    sellerPaymentRequests = {}; // Clear previous data
                     const payments = snapshot.val() || {};
                     Object.keys(payments).forEach(key => {
-                        allPaymentRequests[key] = { id: key, type: "Seller Subscription", ...payments[key] };
+                        sellerPaymentRequests[key] = { id: key, type: "Seller Subscription", ...payments[key] };
                     });
                     renderPaymentRequests();
                 }, (error) => console.error("Error fetching seller payments:", error));
@@ -374,7 +336,7 @@
     });
 
     // --- Expose functions to the global window object for HTML onclick attributes ---
-    window.updatePaymentRequest = updatePaymentRequest;
+    window.updateSellerPayment = updateSellerPayment; // Renamed for clarity
     // Debounced search handler for better performance on keyup
     let searchTimeout;
     window.handleSearch = () => {
