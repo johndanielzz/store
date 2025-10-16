@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MatrixMarket - Payment Confirmation</title> <!-- Changed title for clarity -->
+    <title>MatrixMarket - Payment Confirmation</title>
     <link rel="stylesheet" href="style.css">
     <style>
         body {
@@ -116,45 +116,6 @@
             color: #e2e8f0;
         }
 
-        .upload {
-            margin: 25px 0;
-            padding: 25px;
-            border: 2px dashed #06b6d4;
-            border-radius: 16px;
-            background: rgba(255, 255, 255, 0.07);
-            cursor: pointer;
-            transition: 0.3s;
-        }
-
-        .upload:hover {
-            background: rgba(6, 182, 212, 0.15);
-            box-shadow: 0 0 25px #06b6d4;
-        }
-
-        .upload input {
-            display: none;
-        }
-
-        .upload label {
-            font-size: 1rem;
-            cursor: pointer;
-            color: #06b6d4;
-            text-shadow: 0 0 6px #4f46e5;
-        }
-
-        .preview {
-            margin-top: 15px;
-            font-size: 0.9rem;
-            color: #cbd5e1;
-        }
-
-        .preview img {
-            margin-top: 10px;
-            max-width: 180px;
-            border-radius: 10px;
-            border: 2px solid #06b6d4;
-        }
-
         .btn {
             margin-top: 25px;
             padding: 14px 22px;
@@ -227,8 +188,8 @@
 
     <div class="account-container">
         <div class="account-card">
-            <h1>💳 Payment Confirmation</h1> <!-- Changed title for clarity -->
-            <p>Please transfer the amount to one of the accounts below and upload the proof of payment.</p>
+            <h1>💳 Confirm Payment</h1>
+            <p>Please transfer the amount to one of the accounts below.</p>
             <div class="bank-box">
                 <strong>Wave</strong><br>
                 Account Number: <code>6785316</code>
@@ -240,20 +201,14 @@
 
             <div class="info-box">
                 <p><strong>Plan:</strong> <span id="plan"></span></p>
-                <p><strong>Amount:</strong> <span id="amount"></span> GMD</p> <!-- Added GMD -->
+                <p><strong>Amount:</strong> <span id="amount"></span> GMD</p>
                 <p><strong>Name:</strong> <span id="name"></span></p>
                 <p><strong>Email:</strong> <span id="email"></span></p>
                 <p><strong>Store:</strong> <span id="store"></span></p>
             </div>
 
-            <div class="upload">
-                <input type="file" id="receipt" accept="image/*,.pdf" onchange="window.previewFile(event)">
-                <label for="receipt">📤 Upload Proof of Payment (JPG, PNG, PDF)</label>
-                <div id="preview" class="preview"></div>
-            </div>
-
-            <button class="btn" onclick="window.confirmPayment()">Confirm Payment</button>
-            <div class="msg success" id="successMsg">✅ Payment submitted. Redirecting...</div>
+            <button class="btn" onclick="window.confirmPayment()">Confirm Payment Made</button>
+            <div class="msg success" id="successMsg">✅ Payment confirmed. Redirecting...</div>
             <div class="msg error" id="errorMsg"></div>
         </div>
     </div>
@@ -267,8 +222,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
         import { getDatabase, ref, update } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
-        import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-storage.js";
-        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js"; // Import getAuth and onAuthStateChanged
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
 
         // ====== Firebase Config ======
         const firebaseConfig = {
@@ -285,8 +239,7 @@
         // Initialize Firebase
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
-        const storage = getStorage(app);
-        const auth = getAuth(app); // Initialize Auth service
+        const auth = getAuth(app);
 
         /**
          * Retrieves a specific query parameter from the URL.
@@ -311,11 +264,10 @@
             } else {
                 authenticatedUser = null;
                 console.warn("No Firebase Auth user logged in. Seller must be logged in to confirm payment.");
-                // Optionally redirect to login or show a message
                 document.getElementById("errorMsg").innerText = "⚠️ You must be logged in as a seller to confirm payment.";
                 document.getElementById("errorMsg").style.display = "block";
-                // Consider redirecting to seller-login.html if not logged in:
-                // setTimeout(() => { window.location.href = "seller-login.html"; }, 3000);
+                // Redirect to login after a short delay for better UX
+                setTimeout(() => { window.location.href = "seller-login.html"; }, 3000);
             }
         });
 
@@ -353,43 +305,18 @@
 
             // Important: Check if the authenticated user matches the sellerId from the URL
             if (authenticatedUser && authenticatedUser.uid !== sellerId) {
-                document.getElementById("errorMsg").innerText = "⚠️ You are not authorized to confirm payment for this seller account.";
+                document.getElementById("errorMsg").innerText = "⚠️ You are not authorized to confirm payment for this seller account. Logging out...";
                 document.getElementById("errorMsg").style.display = "block";
-                console.error("Authenticated user UID does not match sellerId from URL.");
+                console.error("Authenticated user UID does not match sellerId from URL. Logging out.");
+                await auth.signOut(); // Force sign out if unauthorized
                 return;
             }
         }
 
         /**
-         * Displays a preview of the selected file.
-         * @param {Event} event The file input change event.
-         */
-        function previewFile(event) {
-            const file = event.target.files[0];
-            const previewDiv = document.getElementById("preview");
-            previewDiv.innerHTML = ""; // Clear previous preview
-
-            if (file) {
-                if (file.type.startsWith("image/")) {
-                    const reader = new FileReader();
-                    reader.onload = function (e) {
-                        previewDiv.innerHTML = `<p>📂 ${file.name}</p><img src="${e.target.result}" alt="Payment proof preview">`;
-                    };
-                    reader.readAsDataURL(file);
-                } else {
-                    // For non-image files like PDF, just show file name
-                    previewDiv.innerHTML = `📂 File selected: ${file.name}`;
-                }
-            }
-        }
-
-        /**
-         * Handles the payment confirmation process, uploads proof, and updates Firebase.
+         * Handles the payment confirmation process, updating Firebase.
          */
         async function confirmPayment() {
-            const fileInput = document.getElementById("receipt");
-            const file = fileInput.files[0];
-
             const successMsg = document.getElementById("successMsg");
             const errorMsg = document.getElementById("errorMsg");
             errorMsg.style.display = "none";
@@ -397,7 +324,7 @@
 
             // Re-validate critical IDs and user authentication
             if (!sellerId || !paymentRequestKey) {
-                errorMsg.innerText = "⚠️ Critical IDs missing. Cannot submit payment. Please refresh the page or try registering again.";
+                errorMsg.innerText = "⚠️ Critical IDs missing. Cannot confirm payment. Please refresh the page or try registering again.";
                 errorMsg.style.display = "block";
                 console.error("confirmPayment called without valid sellerId or paymentRequestKey.");
                 return;
@@ -408,67 +335,49 @@
                 console.error("confirmPayment called without matching authenticated user.");
                 return;
             }
-            if (!file) {
-                errorMsg.innerText = "⚠️ Please upload your payment proof.";
-                errorMsg.style.display = "block";
-                return;
-            }
 
             // Disable button to prevent double-submission
             const confirmButton = document.querySelector(".btn");
             confirmButton.disabled = true;
-            confirmButton.innerText = "Submitting...";
+            confirmButton.innerText = "Confirming...";
 
             try {
-                // 1. Upload payment proof to Firebase Storage
-                const proofPath = `seller_payment_proofs/${sellerId}/${paymentRequestKey}_${file.name}`;
-                const fileRef = storageRef(storage, proofPath);
-                const snapshot = await uploadBytes(fileRef, file);
-                const downloadURL = await getDownloadURL(snapshot.ref);
-
-                console.log("Proof uploaded successfully. URL:", downloadURL);
-
-                // 2. Update the existing payment request in Realtime Database
+                // 1. Update the existing payment request in Realtime Database
                 const paymentRef = ref(db, `pendingSellerPayments/${paymentRequestKey}`);
                 await update(paymentRef, {
-                    receiptURL: downloadURL,
-                    status: "Proof Submitted", // Update status to reflect proof is uploaded
+                    status: "Payment Confirmed by Seller",
                     submittedAt: new Date().toISOString()
                 });
                 console.log("Payment request updated in RTDB.");
 
-                // 3. Update the seller's main record to reflect payment processing status
+                // 2. Update the seller's main record to reflect payment processing status
                 const sellerRef = ref(db, `sellers/${sellerId}`);
                 await update(sellerRef, {
-                    status: "Payment Proof Submitted", // E.g., "Pending Approval" -> "Payment Proof Submitted"
+                    status: "Payment Confirmed by Seller",
                     lastPaymentSubmission: new Date().toISOString()
                 });
                 console.log("Seller status updated in RTDB.");
 
                 successMsg.style.display = "block";
 
-                // Redirect to a status page or seller dashboard after a short delay
+                // Redirect to the new payment status page for sellers
                 setTimeout(() => {
-                    window.location.href = "seller-login.html"; // Redirect to seller login or dashboard
+                    window.location.href = `payment-status-sellers.html?userId=${encodeURIComponent(sellerId)}&paymentRequestId=${encodeURIComponent(paymentRequestKey)}`;
                 }, 3000);
 
             } catch (error) {
                 console.error("Error during payment confirmation:", error);
-                errorMsg.innerText = `❌ Failed to submit payment. Error: ${error.message}`;
+                errorMsg.innerText = `❌ Failed to confirm payment. Please try again. Error: ${error.message}`;
                 errorMsg.style.display = "block";
             } finally {
                 // Re-enable button regardless of success or failure
                 confirmButton.disabled = false;
-                confirmButton.innerText = "Confirm Payment";
+                confirmButton.innerText = "Confirm Payment Made";
             }
         }
 
         // Expose functions to the global window object for HTML onclick attributes
-        window.previewFile = previewFile;
         window.confirmPayment = confirmPayment;
-
-        // The onAuthStateChanged listener now calls loadPaymentDetails
-        // No need for window.onload = loadPaymentDetails; anymore.
     </script>
 </body>
 
