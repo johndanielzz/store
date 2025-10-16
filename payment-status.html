@@ -166,7 +166,7 @@
         <p><strong>Payment Date:</strong> <span id="detailsDate"></span></p>
       </div>
 
-      <button id="continueBtn" class="btn">Go to Subscription</button>
+      <button id="continueBtn" class="btn">Go to Home</button>
     </div>
   </div>
 
@@ -225,8 +225,9 @@
           msg.innerText = "Your payment has been verified and approved!";
           msg.className = "status-message success";
           continueBtn.style.display = "inline-block";
+          continueBtn.innerText = "Go to Home"; // Updated button text
           continueBtn.onclick = () => {
-            window.location.href = "subscription-code.html"; // Or wherever they go next
+            window.location.href = "index.html"; // Redirects to index.html
           };
           break;
 
