@@ -235,7 +235,7 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
     import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
-    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
+    // Removed getAuth and onAuthStateChanged since authentication is via sessionStorage now
 
     // Firebase Config
     const firebaseConfig = {
@@ -252,25 +252,11 @@
     // Initialize Firebase (Modular SDK)
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
-    const auth = getAuth(app); // Get the Auth service
 
     const usersRef = ref(db, "users");
     const sellersRef = ref(db, "sellers");
     const userPaymentsRef = ref(db, "pendingRequests"); // User top-up requests
     const sellerPaymentsRef = ref(db, "pendingSellerPayments"); // Seller subscription requests
-
-    // --- CRITICAL ADMIN UID CONFIGURATION ---
-    // STEP 1: Log in to your Firebase project in a browser.
-    // STEP 2: Go to the "Authentication" section in the Firebase Console.
-    // STEP 3: Find the admin user(s) you want to grant access to.
-    // STEP 4: Copy their "User UID" (it's a long string of letters and numbers).
-    // STEP 5: Paste that UID into the array below, replacing 'YOUR_ADMIN_UID_HERE'.
-    // You can add multiple UIDs if you have more than one admin.
-    const ADMIN_Uids = ["YOUR_ADMIN_UID_HERE_1", "YOUR_ADMIN_UID_HERE_2"]; // <<== !! YOU MUST UPDATE THESE UIDs !! ==>>
-    // For local testing, you can temporarily get your UID from the console log
-    // immediately after logging in. For production, hardcode the actual UIDs here.
-    // --- END CRITICAL CONFIGURATION ---
-
 
     /**
      * Renders a list of recent items in a given table.
@@ -413,28 +399,30 @@
       }
     }
 
-    // Admin Authentication Check: Ensures dashboard loads only for authorized admins
-    onAuthStateChanged(auth, (user) => {
-      if (user) {
-        // --- DEBUGGING STEP: LOG THE UID ---
-        console.log("Logged-in user UID:", user.uid);
-        console.log("Logged-in user email:", user.email);
-        // --- END DEBUGGING STEP ---
-
-        if (ADMIN_Uids.includes(user.uid)) {
-          console.log("Admin user authorized. Loading dashboard.");
-          updateDashboard(); // Load dashboard data if the user is an admin
-        } else {
-          console.warn("Unauthorized access attempt by:", user.email, "UID:", user.uid);
-          alert("You are not authorized to view this page. Redirecting to home.");
-          window.location.href = "index.html"; // Redirect unauthorized users
+    // --- Admin Authentication Check: Using sessionStorage for the hardcoded admin-login.html ---
+    function checkAdminSession() {
+        const adminSession = sessionStorage.getItem("currentUser");
+        if (adminSession) {
+            try {
+                const user = JSON.parse(adminSession);
+                if (user && user.role === "admin") {
+                    console.log("Admin session found. Loading dashboard.");
+                    updateDashboard(); // Load dashboard data if admin session exists
+                    return; // Stop further execution
+                }
+            } catch (e) {
+                console.error("Error parsing admin session from sessionStorage:", e);
+                // Fall through to redirect
+            }
         }
-      } else {
-        // No user logged in, redirect to an admin login page
+        // If no valid admin session, redirect
+        console.warn("No valid admin session found in sessionStorage. Redirecting to admin login.");
         alert("You must be logged in as an admin to access this panel.");
-        window.location.href = "admin-login.html"; // Make sure you have an 'admin-login.html'
-      }
-    });
+        window.location.href = "admin-login.html"; // Redirect to admin login page
+    }
+
+    // Call the session check on page load
+    window.addEventListener('load', checkAdminSession);
   </script>
 </body>
 
