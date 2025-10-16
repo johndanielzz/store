@@ -6,11 +6,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MatrixMarket - Settings</title>
 
-    <!-- Firebase SDKs -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
-
     <link rel="stylesheet" href="style.css">
     <style>
         body {
@@ -145,7 +140,7 @@
             <a href="index.html">Home</a>
             <a href="shop.html">Shop</a>
             <a href="settings.html">⚙ Settings</a>
-            <a href="admin.html">Admin Panel</a>
+            
         </nav>
     </header>
 
@@ -159,14 +154,14 @@
         <input type="email" id="email" placeholder="Enter your email" disabled>
 
         <label>Password</label>
-        <input type="password" id="password" placeholder="Enter new password">
+        <input type="password" id="password" placeholder="Leave blank to keep current">
 
         <button onclick="saveAccount()">💾 Save Changes</button>
         <button class="danger" onclick="deleteAccount()">🗑 Delete Account</button>
 
         <h2>💳 Payment Settings</h2>
         <div class="balance">
-            Balance: <span id="balance">0</span> GMD
+            Balance: <span id="balance">0.00</span> GMD
         </div>
 
         <label>Payment Method</label>
@@ -187,122 +182,245 @@
         </div>
     </div>
 
-    <script>
-        // Firebase configuration
+    <script type="module">
+        // Modular Firebase SDK imports
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged, updatePassword, deleteUser, EmailAuthProvider, reauthenticateWithCredential } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
+        import { getDatabase, ref, get, update, remove, push, set, query, orderByChild, equalTo, onValue } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
+
+        // Firebase configuration (fixed)
         const firebaseConfig = {
-           const firebaseConfig = {
-  apiKey: "AIzaSyDFrctk2MZajP7OmECXe5npHAV0dODH9jk",
-  authDomain: "matrixmarketplace-1bd71.firebaseapp.com",
-  databaseURL: "https://matrixmarketplace-1bd71-default-rtdb.firebaseio.com",
-  projectId: "matrixmarketplace-1bd71",
-  storageBucket: "matrixmarketplace-1bd71.firebasestorage.app",
-  messagingSenderId: "10374416997",
-  appId: "1:10374416997:web:9626c569e845c14a87548c",
-  measurementId: "G-DTC2GM9L92"
-};"
+            apiKey: "AIzaSyDFrctk2MZajP7OmECXe5npHAV0dODH9jk",
+            authDomain: "matrixmarketplace-1bd71.firebaseapp.com",
+            databaseURL: "https://matrixmarketplace-1bd71-default-rtdb.firebaseio.com",
+            projectId: "matrixmarketplace-1bd71",
+            storageBucket: "matrixmarketplace-1bd71.firebasestorage.app",
+            messagingSenderId: "10374416997",
+            appId: "1:10374416997:web:9626c569e845c14a87548c",
+            measurementId: "G-DTC2GM9L92"
         };
-        firebase.initializeApp(firebaseConfig);
-        const auth = firebase.auth();
-        const db = firebase.database();
 
-        // Load user data
-        auth.onAuthStateChanged(user => {
-            if (!user) return window.location.href = "login.html";
-            loadSettingsFirebase(user.uid);
-        });
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getDatabase(app);
 
+        // --- Functions ---
+
+        // Load user data from Realtime Database and set up balance listener
         async function loadSettingsFirebase(uid) {
-            const snapshot = await db.ref('users/' + uid).once('value');
-            const user = snapshot.val();
-            if (!user) return alert("⚠️ User not found");
-            document.getElementById("fullName").value = user.fullName || "";
-            document.getElementById("email").value = user.email || "";
-            document.getElementById("balance").innerText = user.balance || 0;
+            const userRef = ref(db, 'users/' + uid);
+            // Listen for changes to the user object (for full name, etc.)
+            onValue(userRef, (snapshot) => {
+                const user = snapshot.val();
+                if (user) {
+                    document.getElementById("fullName").value = user.fullName || "";
+                    document.getElementById("email").value = user.email || auth.currentUser.email || ""; // Fallback to auth email
+                    document.getElementById("balance").innerText = (user.balance || 0).toFixed(2);
+                } else {
+                    console.warn("User data not found in Realtime Database for UID:", uid);
+                    // Handle case where user might be authenticated but no profile in DB
+                    document.getElementById("email").value = auth.currentUser.email || "";
+                    document.getElementById("balance").innerText = "0.00";
+                }
+            }, (error) => {
+                console.error("Error loading user settings:", error);
+                alert("⚠️ Error loading settings.");
+            });
             loadPendingFirebase(uid);
         }
 
-        function saveAccount() {
+        async function saveAccount() {
             const user = auth.currentUser;
-            if (!user) return;
+            if (!user) {
+                alert("You must be logged in to save changes.");
+                return;
+            }
+
             const fullName = document.getElementById("fullName").value.trim();
             const password = document.getElementById("password").value.trim();
 
-            // Update Firebase Database
-            db.ref('users/' + user.uid).update({ fullName });
+            const updates = {};
+            if (fullName) {
+                updates.fullName = fullName;
+            }
 
-            // Update Firebase Auth password if entered
+            if (Object.keys(updates).length > 0) {
+                try {
+                    await update(ref(db, 'users/' + user.uid), updates);
+                } catch (error) {
+                    console.error("Error updating user data in Realtime Database:", error);
+                    alert("Error updating profile: " + error.message);
+                }
+            }
+
             if (password) {
-                user.updatePassword(password).catch(err => alert(err.message));
+                try {
+                    // Re-authenticate user if needed, especially if it's been a while
+                    // For this example, we'll assume the token is fresh enough.
+                    await updatePassword(user, password);
+                } catch (error) {
+                    console.error("Error updating password:", error);
+                    alert("Error updating password. Please try logging in again if this continues: " + error.message);
+                }
             }
             alert("✅ Account updated successfully!");
+            document.getElementById("password").value = ""; // Clear password field
         }
+        window.saveAccount = saveAccount; // Expose to global scope
 
-        function deleteAccount() {
-            if (!confirm("⚠️ Delete account?")) return;
+        async function deleteAccount() {
             const user = auth.currentUser;
-            if (!user) return;
+            if (!user) {
+                alert("You must be logged in to delete your account.");
+                return;
+            }
 
-            // Remove from database
-            db.ref('users/' + user.uid).remove().then(() => {
-                user.delete().then(() => {
-                    alert("🗑 Account deleted.");
-                    window.location.href = "register.html";
-                }).catch(err => alert(err.message));
-            });
+            if (!confirm("⚠️ Are you sure you want to delete your account? This action cannot be undone.")) {
+                return;
+            }
+
+            // Prompt for re-authentication for sensitive operations
+            const currentPassword = prompt("For security, please enter your current password to confirm account deletion:");
+            if (!currentPassword) {
+                alert("Password is required to delete the account.");
+                return;
+            }
+
+            try {
+                const credential = EmailAuthProvider.credential(user.email, currentPassword);
+                await reauthenticateWithCredential(user, credential);
+
+                // Remove user data from Realtime Database
+                await remove(ref(db, 'users/' + user.uid));
+                await remove(ref(db, 'requests/' + user.uid)); // Remove pending requests if any
+
+                // Delete Firebase Auth user
+                await deleteUser(user);
+
+                alert("🗑️ Account and all associated data deleted successfully. Redirecting to registration page.");
+                window.location.href = "register.html";
+            } catch (error) {
+                console.error("Error deleting account:", error);
+                alert("Error deleting account. Please check your password or try again later. Error: " + error.message);
+            }
         }
+        window.deleteAccount = deleteAccount; // Expose to global scope
 
-        function requestTopUp() {
+
+        async function requestTopUp() {
             const user = auth.currentUser;
-            if (!user) return;
-            const amount = parseFloat(document.getElementById("amount").value);
+            if (!user) {
+                alert("You must be logged in to request a top-up.");
+                return;
+            }
+
+            const amountInput = document.getElementById("amount").value;
+            const amount = parseFloat(amountInput);
             const method = document.getElementById("method").value;
-            if (!amount || amount <= 0) return alert("⚠️ Enter valid amount");
 
-            const newReq = db.ref('requests').push();
-            newReq.set({
-                uid: user.uid,
-                type: "Top-Up",
-                amount,
-                method,
-                status: "Pending",
-                timestamp: Date.now()
-            }).then(() => {
-                alert("📩 Top-Up requested! Awaiting approval.");
+            if (isNaN(amount) || amount <= 0) {
+                alert("⚠️ Please enter a valid positive amount.");
+                return;
+            }
+
+            try {
+                const newReqRef = push(ref(db, 'requests')); // Generate a unique key
+                await set(newReqRef, {
+                    userId: user.uid, // Use userId to match with your payment-status.html
+                    email: user.email,
+                    type: "Top-Up",
+                    amount: amount,
+                    method: method,
+                    status: "Pending",
+                    timestamp: Date.now(),
+                    date: new Date().toLocaleString() // Add a readable date
+                });
+                alert("📩 Top-Up requested successfully! Awaiting admin approval.");
+                document.getElementById("amount").value = ""; // Clear amount field
                 loadPendingFirebase(user.uid);
-            });
+            } catch (error) {
+                console.error("Error requesting top-up:", error);
+                alert("Error submitting top-up request: " + error.message);
+            }
         }
+        window.requestTopUp = requestTopUp; // Expose to global scope
 
-        function requestWithdraw() {
+        async function requestWithdraw() {
             const user = auth.currentUser;
-            if (!user) return;
-            const amount = parseFloat(document.getElementById("amount").value);
-            if (!amount || amount <= 0) return alert("⚠️ Enter valid amount");
+            if (!user) {
+                alert("You must be logged in to request a withdrawal.");
+                return;
+            }
 
-            const newReq = db.ref('requests').push();
-            newReq.set({
-                uid: user.uid,
-                type: "Withdrawal",
-                amount,
-                method: "Balance",
-                status: "Pending",
-                timestamp: Date.now()
-            }).then(() => {
-                alert("📩 Withdrawal requested! Awaiting approval.");
+            const amountInput = document.getElementById("amount").value;
+            const amount = parseFloat(amountInput);
+            const currentBalance = parseFloat(document.getElementById("balance").innerText);
+
+            if (isNaN(amount) || amount <= 0) {
+                alert("⚠️ Please enter a valid positive amount.");
+                return;
+            }
+            if (amount > currentBalance) {
+                alert("⚠️ Insufficient balance for withdrawal.");
+                return;
+            }
+
+            try {
+                const newReqRef = push(ref(db, 'requests')); // Generate a unique key
+                await set(newReqRef, {
+                    userId: user.uid, // Use userId
+                    email: user.email,
+                    type: "Withdrawal",
+                    amount: amount,
+                    method: "Account Balance", // Withdrawal comes from balance
+                    status: "Pending",
+                    timestamp: Date.now(),
+                    date: new Date().toLocaleString() // Add a readable date
+                });
+                alert("📩 Withdrawal requested successfully! Awaiting admin approval.");
+                document.getElementById("amount").value = ""; // Clear amount field
                 loadPendingFirebase(user.uid);
+            } catch (error) {
+                console.error("Error requesting withdrawal:", error);
+                alert("Error submitting withdrawal request: " + error.message);
+            }
+        }
+        window.requestWithdraw = requestWithdraw; // Expose to global scope
+
+
+        // Listen for pending requests in real-time
+        function loadPendingFirebase(uid) {
+            const requestsRef = query(ref(db, 'requests'), orderByChild('userId'), equalTo(uid));
+            onValue(requestsRef, (snapshot) => {
+                const data = snapshot.val() || {};
+                const list = document.getElementById("pendingList");
+                list.innerHTML = "";
+                if (Object.keys(data).length === 0) {
+                    list.innerHTML = "<div>No pending requests found.</div>";
+                } else {
+                    Object.values(data).sort((a, b) => b.timestamp - a.timestamp).forEach(r => { // Sort by newest first
+                        list.innerHTML += `<div>📌 ${r.type} - ${r.amount.toFixed(2)} GMD via ${r.method} (${r.status}) - ${new Date(r.timestamp).toLocaleString()}</div>`;
+                    });
+                }
+            }, (error) => {
+                console.error("Error loading pending requests:", error);
+                list.innerHTML = "<div>Error loading requests.</div>";
             });
         }
 
-        async function loadPendingFirebase(uid) {
-            const snapshot = await db.ref('requests').orderByChild('uid').equalTo(uid).once('value');
-            const data = snapshot.val() || {};
-            const list = document.getElementById("pendingList");
-            list.innerHTML = "";
-            Object.values(data).forEach(r => {
-                list.innerHTML += `<div>📌 ${r.type} - ${r.amount} GMD via ${r.method} (${r.status})</div>`;
-            });
-        }
+        // --- Event Listener for Auth State ---
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                // User is logged in, load their settings and requests
+                loadSettingsFirebase(user.uid);
+            } else {
+                // User is not logged in, redirect to login page
+                window.location.href = "login.html";
+            }
+        });
+
     </script>
 </body>
-
 
 </html>
