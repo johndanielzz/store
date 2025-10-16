@@ -47,6 +47,11 @@
       text-shadow: 0 0 10px #06b6d4;
     }
 
+    nav {
+        display: flex;
+        align-items: center;
+    }
+
     nav a {
       color: white;
       text-decoration: none;
@@ -57,6 +62,21 @@
 
     nav a:hover {
       color: #06b6d4;
+    }
+
+    .logout-btn {
+        background-color: #ef4444; /* Red for logout */
+        color: white;
+        padding: 8px 15px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        margin-left: 20px; /* Space from other nav items */
+        transition: background-color 0.3s ease;
+    }
+
+    .logout-btn:hover {
+        background-color: #dc2626;
     }
 
     .container {
@@ -169,7 +189,6 @@
         font-weight: bold;
     }
 
-
     .loading-text {
       font-style: italic;
       color: rgba(255, 255, 255, 0.7);
@@ -187,6 +206,7 @@
       <a href="admin-payments.html">Seller Payments</a>
       <a href="admin-code.html">Codes</a>
       <a href="admin-edit-user-seller.html">Edit</a>
+      <button class="logout-btn" id="logoutBtn">Logout</button>
     </nav>
   </header>
 
@@ -227,10 +247,10 @@
 
   <!-- Firebase Modular SDK -->
   <script type="module">
-    // --- Updated Firebase SDK Imports for latest modular syntax ---
+    // --- Firebase SDK Imports for the latest modular syntax ---
     import { initializeApp } from "https://www.gstatic.com/firebasejs/app";
     import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/database";
-    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/auth"; // Import getAuth and onAuthStateChanged
+    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/auth"; // Added signOut
 
     // Firebase Config (your existing config)
     const firebaseConfig = {
@@ -258,7 +278,7 @@
      * Renders a list of recent items in a given table.
      * @param {string} tableId The ID of the HTML table.
      * @param {Array} list The array of items to display.
-     * @param {string} type "User" or "Seller" or "Payment".
+     * @param {string} type "User", "Seller", or "Payment".
      */
     function renderRecent(tableId, list, type) {
       const table = document.getElementById(tableId);
@@ -281,14 +301,15 @@
 
       // Sort by creation/request time (most recent first)
       list.sort((a, b) => {
-        let timeA = 0, timeB = 0; // Default values
-        if (type === "User" && a.createdAt && b.createdAt) { timeA = new Date(a.createdAt).getTime(); timeB = new Date(b.createdAt).getTime(); }
-        else if (type === "Seller" && a.registrationDate && b.registrationDate) { timeA = new Date(a.registrationDate).getTime(); timeB = new Date(b.registrationDate).getTime(); }
-        else if (type === "Payment") {
-            // Prioritize submittedAt for seller payments, then requestDate for user payments
-            timeA = new Date(a.submittedAt || a.requestDate || 0).getTime();
-            timeB = new Date(b.submittedAt || b.requestDate || 0).getTime();
-        }
+        let timeA = 0, timeB = 0; // Default values for items without valid dates
+        if (type === "User" && a.createdAt) { timeA = new Date(a.createdAt).getTime(); }
+        else if (type === "Seller" && a.registrationDate) { timeA = new Date(a.registrationDate).getTime(); }
+        else if (type === "Payment") { timeA = new Date(a.submittedAt || a.requestDate || 0).getTime(); }
+
+        if (type === "User" && b.createdAt) { timeB = new Date(b.createdAt).getTime(); }
+        else if (type === "Seller" && b.registrationDate) { timeB = new Date(b.registrationDate).getTime(); }
+        else if (type === "Payment") { timeB = new Date(b.submittedAt || b.requestDate || 0).getTime(); }
+
         return timeB - timeA;
       });
 
@@ -307,7 +328,7 @@
             <td>${item.createdAt ? new Date(item.createdAt).toLocaleDateString() : "N/A"}</td>
           `;
         } else if (type === "Seller") {
-          displayStatus = item.status || "Pending Approval";
+          displayStatus = item.status || "Pending Approval"; // Assumed status field for sellers
           statusClass = `status-${displayStatus.toLowerCase().replace(/\s/g, '-')}`;
           row.innerHTML = `
             <td>${item.name || item.storeName || "N/A"}</td>
@@ -319,10 +340,10 @@
             displayStatus = item.status || "Pending";
             statusClass = `status-${displayStatus.toLowerCase().replace(/\s/g, '-')}`;
             const amount = parseFloat(item.amount || 0).toFixed(2);
-            const date = item.requestDate || item.submittedAt;
+            const date = item.requestDate || item.submittedAt; // Prefer submittedAt for more specific payments
 
             row.innerHTML = `
-                <td>${item.type}</td>
+                <td>${item.type || "N/A"}</td>
                 <td>${item.email || "N/A"}</td>
                 <td>${amount} GMD</td>
                 <td class="${statusClass}">${displayStatus}</td>
@@ -424,10 +445,29 @@
         });
     }
 
+    // Firebase Logout Function
+    async function firebaseLogout() {
+      try {
+        await signOut(auth);
+        console.log("User signed out successfully.");
+        window.location.href = "admin-login.html"; // Redirect to login page after logout
+      } catch (error) {
+        console.error("Error signing out:", error);
+        alert("Failed to log out. Please try again.");
+      }
+    }
+
     // Call the authentication check on page load
     window.addEventListener('load', checkAdminAuth);
+
+    // Attach event listener for logout button
+    document.addEventListener('DOMContentLoaded', () => {
+        const logoutButton = document.getElementById('logoutBtn');
+        if (logoutButton) {
+            logoutButton.addEventListener('click', firebaseLogout);
+        }
+    });
   </script>
 </body>
 
 </html>
-
