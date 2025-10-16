@@ -2,9 +2,9 @@
 <html lang="en">
 
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF="8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MatrixMarket - Admin User Control</title>
+  <title>MatrixMarket - Admin Payment Control</title>
   <style>
     body {
       font-family: "Poppins", sans-serif;
@@ -81,21 +81,10 @@
       border: 1px solid rgba(255, 255, 255, 0.2);
       padding: 10px;
       text-align: center;
+      vertical-align: middle;
     }
 
     th { background: rgba(6, 182, 212, 0.3); }
-
-    img.proof {
-      width: 80px;
-      height: 80px;
-      border-radius: 10px;
-      border: 2px solid rgba(6, 182, 212, 0.4);
-      object-fit: cover;
-      cursor: pointer;
-      transition: 0.3s;
-    }
-
-    img.proof:hover { transform: scale(1.2); }
 
     .btn {
       padding: 6px 12px;
@@ -105,13 +94,14 @@
       color: white;
       margin: 2px;
       font-weight: 500;
+      transition: 0.2s ease-in-out;
     }
 
     .approve { background: #06b6d4; }
-    .approve:hover { background: #0891b2; }
+    .approve:hover { background: #0891b2; transform: translateY(-1px); }
 
     .decline { background: #ef4444; }
-    .decline:hover { background: #b91c1c; }
+    .decline:hover { background: #b91c1c; transform: translateY(-1px); }
 
     .status {
       padding: 5px 10px;
@@ -130,26 +120,6 @@
       border-top: 1px solid rgba(255, 255, 255, 0.1);
       margin-top: 40px;
     }
-
-    .modal {
-      display: none;
-      position: fixed;
-      z-index: 999;
-      left: 0;
-      top: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.7);
-      justify-content: center;
-      align-items: center;
-    }
-
-    .modal img {
-      max-width: 90%;
-      max-height: 80%;
-      border-radius: 15px;
-      border: 3px solid #06b6d4;
-    }
   </style>
 </head>
 
@@ -160,33 +130,29 @@
       <a href="dashboard-admin.html">Dashboard</a>
       <a href="admin-sellers.html">Sellers</a>
       <a href="admin-users.html">Users</a>
+      <a href="admin-payments.html">Payments</a>
     </nav>
   </header>
 
   <div class="container">
-    <h1>👥 Manage Buyers & Payments</h1>
-    <input type="text" id="searchBox" placeholder="Search user by name or email..." onkeyup="renderUsers()">
-    <table id="userTable"></table>
+    <h1>💸 Manage Payment Requests</h1>
+    <input type="text" id="searchBox" placeholder="Search by user email or payment method..." onkeyup="renderPaymentRequests()">
+    <table id="paymentRequestTable"></table>
   </div>
 
-  <div class="modal" id="imageModal" onclick="this.style.display='none'">
-    <img id="modalImg" src="">
-  </div>
-
-  <footer>© 2025 MatrixMarket | Admin User Control</footer>
+  <footer>© 2025 MatrixMarket | Admin Payment Control</footer>
 
   <!-- Firebase Modular SDK -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
     import { getDatabase, ref, get, update } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js"; // Added for admin auth
 
-    // ✅ Updated Firebase Config
     const firebaseConfig = {
       apiKey: "AIzaSyDFrctk2MZajP7OmECXe5npHAV0dODH9jk",
       authDomain: "matrixmarketplace-1bd71.firebaseapp.com",
       databaseURL: "https://matrixmarketplace-1bd71-default-rtdb.firebaseio.com",
       projectId: "matrixmarketplace-1bd71",
-      storageBucket: "matrixmarketplace-1bd71.firebasestorage.app",
       messagingSenderId: "10374416997",
       appId: "1:10374416997:web:9626c569e845c14a87548c",
       measurementId: "G-DTC2GM9L92"
@@ -194,76 +160,124 @@
 
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
+    const auth = getAuth(app); // Initialized for admin auth
 
-    async function renderUsers() {
+    async function renderPaymentRequests() {
       const search = document.getElementById("searchBox").value.toLowerCase();
-      const snapshot = await get(ref(db, 'users'));
-      const usersObj = snapshot.val() || {};
-      const users = Object.entries(usersObj);
-      const table = document.getElementById("userTable");
+      const table = document.getElementById("paymentRequestTable");
+
+      const snapshot = await get(ref(db, 'pendingRequests'));
+      const requestsObj = snapshot.val() || {};
+      const requests = Object.entries(requestsObj);
 
       table.innerHTML = `
         <tr>
-          <th>Name</th><th>Email</th><th>Country</th><th>Balance</th><th>Status</th><th>Proof</th><th>Action</th>
+          <th>User Email</th>
+          <th>Method</th>
+          <th>Amount</th>
+          <th>Status</th>
+          <th>Date</th>
+          <th>Action</th>
         </tr>
       `;
 
-      const filtered = users.filter(([id, u]) =>
-        u.email?.toLowerCase().includes(search) || u.name?.toLowerCase().includes(search)
+      const filtered = requests.filter(([id, request]) =>
+        request.email?.toLowerCase().includes(search) ||
+        request.method?.toLowerCase().includes(search) ||
+        request.status?.toLowerCase().includes(search)
       );
 
       if (!filtered.length) {
-        table.innerHTML += `<tr><td colspan="7">No users found.</td></tr>`;
+        table.innerHTML += `<tr><td colspan="6">No payment requests found matching your search.</td></tr>`;
         return;
       }
 
-      filtered.forEach(([id, u]) => {
-        const statusClass = u.paymentStatus === "Paid" || u.status === "Approved"
+      filtered.forEach(([requestId, req]) => {
+        const statusClass = req.status === "Approved"
           ? "approved"
-          : u.paymentStatus === "Declined" || u.status === "Declined"
+          : req.status === "Declined"
           ? "declined"
           : "pending";
 
-        const proofHTML = u.proof
-          ? `<img src="${u.proof}" class="proof" onclick="viewProof('${u.proof}')">`
-          : "No proof";
-
         table.innerHTML += `
           <tr>
-            <td>${u.name || "-"}</td>
-            <td>${u.email}</td>
-            <td>${u.country || "Unknown"}</td>
-            <td>${u.balance || 0} GMD</td>
-            <td><span class="status ${statusClass}">${u.paymentStatus || u.status || "Pending"}</span></td>
-            <td>${proofHTML}</td>
+            <td>${req.email || "N/A"}</td>
+            <td>${req.method}</td>
+            <td>${req.amount} GMD</td>
+            <td><span class="status ${statusClass}">${req.status}</span></td>
+            <td>${req.date || "N/A"}</td>
             <td>
-              <button class="btn approve" onclick="updateUser('${id}','Approved')">Approve</button>
-              <button class="btn decline" onclick="updateUser('${id}','Declined')">Decline</button>
+              <button class="btn approve" onclick="updatePaymentRequest('${requestId}', 'Approved', '${req.userId}', ${req.amount})">Approve</button>
+              <button class="btn decline" onclick="updatePaymentRequest('${requestId}', 'Declined', '${req.userId}', ${req.amount})">Decline</button>
             </td>
           </tr>
         `;
       });
     }
 
-    function viewProof(src) {
-      const modal = document.getElementById("imageModal");
-      document.getElementById("modalImg").src = src;
-      modal.style.display = "flex";
+    async function updatePaymentRequest(requestId, action, userId, amount) {
+      try {
+        await update(ref(db, 'pendingRequests/' + requestId), {
+          status: action,
+          adminActionDate: new Date().toLocaleString()
+        });
+
+        if (action === 'Approved') {
+          const userSnapshot = await get(ref(db, `users/${userId}`));
+          if (userSnapshot.exists()) {
+            const userData = userSnapshot.val();
+            const currentBalance = userData.balance || 0;
+            const newBalance = currentBalance + amount;
+
+            await update(ref(db, `users/${userId}`), {
+              balance: newBalance,
+              lastDepositAmount: amount,
+              lastDepositDate: new Date().toLocaleString()
+            });
+            alert(`✅ Payment request ${action.toLowerCase()} and user balance updated!`);
+          } else {
+            console.warn(`User with ID ${userId} not found, could not update balance.`);
+            alert(`✅ Payment request ${action.toLowerCase()}, but user balance could not be updated (user not found).`);
+          }
+        } else {
+          alert(`❌ Payment request ${action.toLowerCase()}!`);
+        }
+
+        renderPaymentRequests();
+
+      } catch (error) {
+        console.error("Error updating payment request or user balance:", error);
+        alert("⚠️ An error occurred while processing the request. Check console for details.");
+      }
     }
 
-    async function updateUser(id, action) {
-      const updates = {
-        status: action,
-        paymentStatus: action === "Approved" ? "Paid" : "Unpaid",
-        subscription: action === "Approved" ? "Active" : "Inactive"
-      };
+    // Assign global functions
+    window.renderPaymentRequests = renderPaymentRequests;
+    window.updatePaymentRequest = updatePaymentRequest;
 
-      await update(ref(db, 'users/' + id), updates);
-      alert(`${action === 'Approved' ? '✅ User approved' : '❌ User declined'} successfully!`);
-      renderUsers();
-    }
+    // IMPORTANT: Admin Authentication Implementation
+    onAuthStateChanged(auth, async (user) => {
+        if (user) {
+            // Placeholder for real admin role check:
+            // In a real app, you would check if this user's UID corresponds to an admin role
+            // e.g., by fetching data from a '/admins' node or checking custom claims.
+            const isAdmin = true; // For now, we assume any logged-in user is an admin for testing
 
-    window.onload = renderUsers;
+            if (isAdmin) {
+                console.log("Admin user logged in:", user.email, "UID:", user.uid);
+                renderPaymentRequests(); // Only render if user is identified as admin
+            } else {
+                console.warn("Unauthorized access attempt by:", user.email);
+                alert("You are not authorized to view this page. Redirecting to home.");
+                window.location.href = "index.html"; // Redirect unauthorized users
+            }
+        } else {
+            // No user logged in, redirect to login page
+            alert("You must be logged in to access the admin panel.");
+            window.location.href = "login.html"; // Ensure you have a login.html for admins
+        }
+    });
   </script>
 </body>
 </html>
+
