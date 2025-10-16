@@ -252,17 +252,25 @@
     // Initialize Firebase (Modular SDK)
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
-    const auth = getAuth(app);
+    const auth = getAuth(app); // Get the Auth service
 
     const usersRef = ref(db, "users");
     const sellersRef = ref(db, "sellers");
     const userPaymentsRef = ref(db, "pendingRequests"); // User top-up requests
     const sellerPaymentsRef = ref(db, "pendingSellerPayments"); // Seller subscription requests
 
-    // Admin UIDs for client-side check.
-    // IMPORTANT: For production applications, replace these with the actual UIDs of your administrators.
-    // For robust security, use Firebase Custom Claims and server-side verification (e.g., Cloud Functions).
-    const ADMIN_Uids = ["YOUR_ADMIN_UID_HERE", "ANOTHER_ADMIN_UID"]; // <<== !! IMPORTANT: Update these UIDs !! ==>>
+    // --- CRITICAL ADMIN UID CONFIGURATION ---
+    // STEP 1: Log in to your Firebase project in a browser.
+    // STEP 2: Go to the "Authentication" section in the Firebase Console.
+    // STEP 3: Find the admin user(s) you want to grant access to.
+    // STEP 4: Copy their "User UID" (it's a long string of letters and numbers).
+    // STEP 5: Paste that UID into the array below, replacing 'YOUR_ADMIN_UID_HERE'.
+    // You can add multiple UIDs if you have more than one admin.
+    const ADMIN_Uids = ["YOUR_ADMIN_UID_HERE_1", "YOUR_ADMIN_UID_HERE_2"]; // <<== !! YOU MUST UPDATE THESE UIDs !! ==>>
+    // For local testing, you can temporarily get your UID from the console log
+    // immediately after logging in. For production, hardcode the actual UIDs here.
+    // --- END CRITICAL CONFIGURATION ---
+
 
     /**
      * Renders a list of recent items in a given table.
@@ -310,7 +318,7 @@
             <td>${item.name || "N/A"}</td>
             <td>${item.email || "N/A"}</td>
             <td class="${statusClass}">${displayStatus}</td>
-            <td>${new Date(item.createdAt).toLocaleDateString()}</td>
+            <td>${item.createdAt ? new Date(item.createdAt).toLocaleDateString() : "N/A"}</td>
           `;
         } else if (type === "Seller") {
           displayStatus = item.status || "Pending Approval";
@@ -319,7 +327,7 @@
             <td>${item.name || item.storeName || "N/A"}</td>
             <td>${item.email || "N/A"}</td>
             <td class="${statusClass}">${displayStatus}</td>
-            <td>${new Date(item.registrationDate).toLocaleDateString()}</td>
+            <td>${item.registrationDate ? new Date(item.registrationDate).toLocaleDateString() : "N/A"}</td>
           `;
         } else if (type === "Payment") {
             displayStatus = item.status || "Pending";
@@ -346,25 +354,25 @@
       let allUserPayments = [];
       let allSellerPayments = [];
 
-      // Listen for users data
+      // Listener for users data
       onValue(usersRef, snapshot => {
         allUsers = Object.values(snapshot.val() || {});
         updateStatsAndTables();
       }, (error) => console.error("Error fetching users data:", error));
 
-      // Listen for sellers data
+      // Listener for sellers data
       onValue(sellersRef, snapshot => {
         allSellers = Object.values(snapshot.val() || {});
         updateStatsAndTables();
       }, (error) => console.error("Error fetching sellers data:", error));
 
-      // Listen for user payments (top-ups)
+      // Listener for user payments (top-ups)
       onValue(userPaymentsRef, snapshot => {
         allUserPayments = Object.values(snapshot.val() || {}).map(p => ({ ...p, type: "User Top-up" }));
         updateStatsAndTables();
       }, (error) => console.error("Error fetching user payments data:", error));
 
-      // Listen for seller payments (subscriptions)
+      // Listener for seller payments (subscriptions)
       onValue(sellerPaymentsRef, snapshot => {
         allSellerPayments = Object.values(snapshot.val() || {}).map(p => ({ ...p, type: "Seller Subscription" }));
         updateStatsAndTables();
@@ -397,6 +405,7 @@
 
         // --- Render Recent Tables ---
         renderRecent("recentSellersTable", allSellers, "Seller");
+        // Sort combined payments by date before rendering
         renderRecent("recentPaymentsTable", combinedPayments, "Payment");
       }
     }
@@ -404,11 +413,15 @@
     // Admin Authentication Check: Ensures dashboard loads only for authorized admins
     onAuthStateChanged(auth, (user) => {
       if (user) {
+        // Log the UID to the console to help you find it!
+        console.log("Logged-in user UID:", user.uid);
+        console.log("Logged-in user email:", user.email);
+
         if (ADMIN_Uids.includes(user.uid)) {
-          console.log("Admin user logged in:", user.email, "UID:", user.uid);
+          console.log("Admin user authorized. Loading dashboard.");
           updateDashboard(); // Load dashboard data if the user is an admin
         } else {
-          console.warn("Unauthorized access attempt by:", user.email);
+          console.warn("Unauthorized access attempt by:", user.email, "UID:", user.uid);
           alert("You are not authorized to view this page. Redirecting to home.");
           window.location.href = "index.html"; // Redirect unauthorized users
         }
