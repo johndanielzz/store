@@ -2,253 +2,335 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MatrixMarket Admin - Manage Payments (Firebase)</title>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-    <style>
-        body {
-            font-family: "Poppins", sans-serif;
-            background: linear-gradient(135deg, #0f172a, #1e293b, #4f46e5, #06b6d4);
-            background-size: 400% 400%;
-            animation: gradientBG 15s ease infinite;
-            color: #fff;
-            margin: 0;
-            padding: 0;
-            min-height: 100vh;
-        }
+  <meta charset="UTF="8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MatrixMarket - Admin Payment Control</title>
+  <style>
+    body {
+      font-family: "Poppins", sans-serif;
+      background: linear-gradient(135deg, #0f172a, #1e293b, #4f46e5, #06b6d4);
+      background-size: 400% 400%;
+      animation: bgMove 15s ease infinite;
+      color: white;
+      margin: 0;
+      padding: 0;
+    }
 
-        @keyframes gradientBG {
+    @keyframes bgMove {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+    }
 
-            0%,
-            100% {
-                background-position: 0% 50%;
-            }
+    header {
+      background: rgba(0, 0, 0, 0.4);
+      padding: 15px 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      backdrop-filter: blur(10px);
+    }
 
-            50% {
-                background-position: 100% 50%;
-            }
-        }
+    header .logo {
+      font-size: 1.6rem;
+      color: #06b6d4;
+      font-weight: bold;
+      text-shadow: 0 0 10px #06b6d4;
+    }
 
-        header {
-            background: rgba(0, 0, 0, 0.4);
-            padding: 15px 25px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            color: #06b6d4;
-            font-weight: 600;
-        }
+    nav a {
+      color: white;
+      text-decoration: none;
+      margin-left: 15px;
+      font-weight: 500;
+      transition: 0.3s;
+    }
 
-        header a {
-            color: #fff;
-            text-decoration: none;
-            font-weight: 500;
-            transition: 0.3s;
-            margin-left: 12px;
-        }
+    nav a:hover { color: #06b6d4; }
 
-        header a:hover {
-            color: #06b6d4;
-        }
+    .container {
+      max-width: 1200px;
+      margin: 40px auto;
+      background: rgba(255, 255, 255, 0.08);
+      padding: 30px;
+      border-radius: 20px;
+      box-shadow: 0 0 20px rgba(6, 182, 212, 0.5);
+    }
 
-        .container {
-            max-width: 1100px;
-            margin: 40px auto;
-            background: rgba(255, 255, 255, 0.08);
-            padding: 30px;
-            border-radius: 15px;
-            box-shadow: 0 0 20px rgba(6, 182, 212, 0.4);
-        }
+    h1 {
+      text-align: center;
+      text-shadow: 0 0 10px #06b6d4;
+    }
 
-        h1 {
-            text-align: center;
-            margin-bottom: 25px;
-            color: #06b6d4;
-            text-shadow: 0 0 10px #06b6d4;
-        }
+    input[type="text"] {
+      width: 100%;
+      padding: 10px;
+      border: none;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.1);
+      color: white;
+      margin-bottom: 15px;
+    }
 
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 15px;
-        }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
 
-        th,
-        td {
-            padding: 12px 15px;
-            text-align: center;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        }
+    th, td {
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 10px;
+      text-align: center;
+      vertical-align: middle;
+    }
 
-        th {
-            background: rgba(6, 182, 212, 0.2);
-            color: #06b6d4;
-        }
+    th { background: rgba(6, 182, 212, 0.3); }
 
-        tr:hover {
-            background: rgba(255, 255, 255, 0.05);
-        }
+    .btn {
+      padding: 6px 12px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      color: white;
+      margin: 2px;
+      font-weight: 500;
+      transition: 0.2s ease-in-out;
+    }
 
-        .btn {
-            padding: 8px 14px;
-            border: none;
-            border-radius: 8px;
-            font-size: 0.9rem;
-            cursor: pointer;
-            transition: 0.3s;
-            margin: 0 2px;
-        }
+    .approve { background: #06b6d4; }
+    .approve:hover { background: #0891b2; transform: translateY(-1px); }
 
-        .accept {
-            background: #22c55e;
-            color: #fff;
-        }
+    .decline { background: #ef4444; }
+    .decline:hover { background: #b91c1c; transform: translateY(-1px); }
 
-        .accept:hover {
-            background: #16a34a;
-        }
+    .status {
+      padding: 5px 10px;
+      border-radius: 8px;
+      font-weight: bold;
+    }
 
-        .decline {
-            background: #ef4444;
-            color: #fff;
-        }
+    .pending { background: rgba(245, 158, 11, 0.2); color: #f59e0b; }
+    .approved { background: rgba(34, 197, 94, 0.2); color: #22c55e; }
+    .declined { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
 
-        .decline:hover {
-            background: #dc2626;
-        }
-
-        .status {
-            padding: 6px 12px;
-            border-radius: 6px;
-            font-weight: 600;
-            display: inline-block;
-        }
-
-        .pending {
-            background: rgba(250, 204, 21, 0.2);
-            color: #facc15;
-        }
-
-        .approved {
-            background: rgba(34, 197, 94, 0.2);
-            color: #22c55e;
-        }
-
-        .declined {
-            background: rgba(239, 68, 68, 0.2);
-            color: #ef4444;
-        }
-
-        .empty {
-            text-align: center;
-            padding: 20px;
-            color: #cbd5e1;
-            font-size: 1rem;
-        }
-
-        footer {
-            text-align: center;
-            padding: 20px;
-            font-size: 0.9rem;
-            color: #cbd5e1;
-            background: rgba(255, 255, 255, 0.08);
-            margin-top: 30px;
-        }
-    </style>
+    footer {
+      text-align: center;
+      padding: 15px;
+      background: rgba(255, 255, 255, 0.08);
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      margin-top: 40px;
+    }
+  </style>
 </head>
 
 <body>
-    <header>
-        <div>💼 MatrixMarket Admin</div>
-        <nav>
-            <a href="dashboard-admin.html">Dashboard</a>
-            <a href="admin-sellers.html">Sellers</a>
-            <a href="index.html">Logout</a>
-        </nav>
-    </header>
+  <header>
+    <div class="logo">MatrixMarket Admin</div>
+    <nav>
+      <a href="dashboard-admin.html">Dashboard</a>
+      <a href="admin-sellers.html">Sellers</a>
+      <a href="admin-users.html">Users</a>
+      <a href="admin-payments.html">Payments</a>
+    </nav>
+  </header>
 
-    <div class="container">
-        <h1>📋 Manage Payment Requests</h1>
-        <table id="paymentTable">
-            <thead>
-                <tr>
-                    <th>Name</th>
-                    <th>Email</th>
-                    <th>Amount (GMD)</th>
-                    <th>Method</th>
-                    <th>Date</th>
-                    <th>Status</th>
-                    <th>Action</th>
-                </tr>
-            </thead>
-            <tbody id="paymentBody"></tbody>
-        </table>
-        <div class="empty" id="emptyMsg">No pending payments found.</div>
-    </div>
+  <div class="container">
+    <h1>💸 Manage Payment Requests</h1>
+    <input type="text" id="searchBox" placeholder="Search by user email or payment method..." onkeyup="renderPaymentRequests()">
+    <table id="paymentRequestTable"></table>
+  </div>
 
-    <footer>© 2025 MatrixMarket | Admin Panel</footer>
+  <footer>© 2025 MatrixMarket | Admin Payment Control</footer>
 
-    <script>
-        // Firebase config
-        const firebaseConfig = {
-           apiKey: "AIzaSyDFrctk2MZajP7OmECXe5npHAV0dODH9jk",
-  authDomain: "matrixmarketplace-1bd71.firebaseapp.com",
-  databaseURL: "https://matrixmarketplace-1bd71-default-rtdb.firebaseio.com",
-  projectId: "matrixmarketplace-1bd71",
-  storageBucket: "matrixmarketplace-1bd71.firebasestorage.app",
-  messagingSenderId: "10374416997",
-  appId: "1:10374416997:web:9626c569e845c14a87548c",
-  measurementId: "G-DTC2GM9L92"
-        };
+  <!-- Firebase Modular SDK -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
+    import { getDatabase, ref, get, update, onValue } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js"; // Added onValue
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
 
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.database();
+    const firebaseConfig = {
+      apiKey: "AIzaSyDFrctk2MZajP7OmECXe5npHAV0dODH9jk",
+      authDomain: "matrixmarketplace-1bd71.firebaseapp.com",
+      databaseURL: "https://matrixmarketplace-1bd71-default-rtdb.firebaseio.com",
+      projectId: "matrixmarketplace-1bd71",
+      messagingSenderId: "10374416997",
+      appId: "1:10374416997:web:9626c569e845c14a87548c",
+      measurementId: "G-DTC2GM9L92"
+    };
 
-        const paymentBody = document.getElementById("paymentBody");
-        const emptyMsg = document.getElementById("emptyMsg");
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    const auth = getAuth(app);
 
-        function renderPayments(payments) {
-            paymentBody.innerHTML = "";
-            if (!payments || payments.length === 0) {
-                emptyMsg.style.display = "block";
-                return;
-            } else emptyMsg.style.display = "none";
+    // Global variable to store all requests for filtering
+    let allRequests = [];
+    let requestsUnsubscribe = null; // To manage the onValue listener
 
-            payments.forEach((p, i) => {
-                const row = document.createElement("tr");
-                row.innerHTML = `
-                <td>${p.name}</td>
-                <td>${p.email}</td>
-                <td>${p.amount}</td>
-                <td>${p.method}</td>
-                <td>${p.date}</td>
-                <td><span class="status ${p.status.toLowerCase()}">${p.status}</span></td>
-                <td>
-                    ${p.status === "Pending"
-                        ? `<button class="btn accept" onclick="updatePayment('${p.id}','Approved')">Accept</button>
-                           <button class="btn decline" onclick="updatePayment('${p.id}','Declined')">Decline</button>`
-                        : "-"
-                    }
-                </td>
-            `;
-                paymentBody.appendChild(row);
-            });
-        }
+    async function fetchAndRenderPaymentRequests() {
+      if (requestsUnsubscribe) {
+          requestsUnsubscribe(); // Detach previous listener if exists
+      }
 
-        function updatePayment(id, newStatus) {
-            db.ref('payments/' + id).update({ status: newStatus });
-        }
+      const requestsRef = ref(db, 'requests'); // CORRECT PATH: /requests
 
-        // Listen for realtime changes
-        db.ref('payments').on('value', snapshot => {
-            const data = snapshot.val();
-            const payments = data ? Object.keys(data).map(k => ({ id: k, ...data[k] })) : [];
-            renderPayments(payments);
+      // Use onValue for real-time updates in the admin panel as well
+      requestsUnsubscribe = onValue(requestsRef, (snapshot) => {
+        const requestsObj = snapshot.val() || {};
+        allRequests = Object.entries(requestsObj).map(([id, request]) => ({ id, ...request })); // Store with ID
+        renderPaymentRequests(); // Render whenever data changes
+      }, (error) => {
+        console.error("Error fetching payment requests:", error);
+        alert("⚠️ Error fetching payment requests for admin panel.");
+      });
+    }
+
+
+    function renderPaymentRequests() {
+      const search = document.getElementById("searchBox").value.toLowerCase();
+      const table = document.getElementById("paymentRequestTable");
+
+      table.innerHTML = `
+        <tr>
+          <th>Type</th>
+          <th>User Email</th>
+          <th>Method</th>
+          <th>Amount</th>
+          <th>Status</th>
+          <th>Date</th>
+          <th>Action</th>
+        </tr>
+      `;
+
+      const filtered = allRequests.filter(request =>
+        request.email?.toLowerCase().includes(search) ||
+        request.method?.toLowerCase().includes(search) ||
+        request.status?.toLowerCase().includes(search) ||
+        request.type?.toLowerCase().includes(search) // Also search by type
+      );
+
+      if (!filtered.length) {
+        table.innerHTML += `<tr><td colspan="7">No payment requests found matching your search.</td></tr>`; // Updated colspan
+        return;
+      }
+
+      // Sort by timestamp, newest first
+      filtered.sort((a, b) => b.timestamp - a.timestamp);
+
+
+      filtered.forEach(req => {
+        const statusClass = req.status === "Approved"
+          ? "approved"
+          : req.status === "Declined"
+          ? "declined"
+          : "pending";
+
+        const actionButtons = `
+            <button class="btn approve" onclick="updatePaymentRequest('${req.id}', 'Approved', '${req.userId}', ${req.amount})">Approve</button>
+            <button class="btn decline" onclick="updatePaymentRequest('${req.id}', 'Declined', '${req.userId}', ${req.amount})">Decline</button>
+        `;
+        const noActionButtons = `<span style="color: #ccc;">No Action Needed</span>`;
+
+        table.innerHTML += `
+          <tr>
+            <td>${req.type || "N/A"}</td>
+            <td>${req.email || "N/A"}</td>
+            <td>${req.method}</td>
+            <td>${req.amount.toFixed(2)} GMD</td>
+            <td><span class="status ${statusClass}">${req.status}</span></td>
+            <td>${req.date || (new Date(req.timestamp).toLocaleString())}</td>
+            <td>
+              ${req.status === "Pending" ? actionButtons : noActionButtons}
+            </td>
+          </tr>
+        `;
+      });
+    }
+
+    async function updatePaymentRequest(requestId, action, userId, amount) {
+      try {
+        await update(ref(db, 'requests/' + requestId), { // CORRECT PATH: /requests
+          status: action,
+          adminActionDate: new Date().toLocaleString()
         });
-    </script>
+
+        if (action === 'Approved') {
+          // Fetch current user balance
+          const userBalanceRef = ref(db, `users/${userId}/balance`);
+          const userSnapshot = await get(userBalanceRef);
+          
+          let currentBalance = 0;
+          if (userSnapshot.exists()) {
+              currentBalance = userSnapshot.val() || 0;
+          } else {
+              // If user balance node doesn't exist, create it (e.g., first deposit)
+              console.warn(`User balance node for ${userId} does not exist, initializing to 0.`);
+          }
+
+          let newBalance = currentBalance;
+          // Apply amount based on request type
+          const requestDetails = allRequests.find(r => r.id === requestId);
+          if (requestDetails && requestDetails.type === "Top-Up") {
+              newBalance = currentBalance + amount;
+          } else if (requestDetails && requestDetails.type === "Withdrawal") {
+              // Ensure withdrawal doesn't go negative, though client-side check is done too
+              if (currentBalance >= amount) {
+                  newBalance = currentBalance - amount;
+              } else {
+                  alert(`⚠️ Admin Override: User ${userId} requested withdrawal of ${amount} but only has ${currentBalance}. Declining request to prevent negative balance.`);
+                  // Optionally, set status back to pending or declined explicitly here
+                  await update(ref(db, 'requests/' + requestId), { status: 'Declined' });
+                  renderPaymentRequests();
+                  return; // Stop further processing for this approval
+              }
+          }
+
+          await update(ref(db, `users/${userId}`), { // Update user's balance
+            balance: newBalance,
+            lastTransactionAmount: amount, // Generic name for last transaction
+            lastTransactionType: requestDetails?.type,
+            lastTransactionDate: new Date().toLocaleString()
+          });
+          alert(`✅ Request ${requestId} ${action.toLowerCase()} and user balance updated to ${newBalance.toFixed(2)} GMD!`);
+        } else {
+          alert(`❌ Request ${requestId} ${action.toLowerCase()}!`);
+        }
+
+        // The onValue listener will automatically call renderPaymentRequests()
+        // so no need to call it explicitly here.
+
+      } catch (error) {
+        console.error("Error updating payment request or user balance:", error);
+        alert("⚠️ An error occurred while processing the request. Check console for details.");
+      }
+    }
+
+    // Assign global functions
+    window.renderPaymentRequests = renderPaymentRequests;
+    window.updatePaymentRequest = updatePaymentRequest;
+
+    // IMPORTANT: Admin Authentication Implementation
+    onAuthStateChanged(auth, async (user) => {
+        if (user) {
+            // For a real app, implement a secure server-side check (e.g., Firebase Cloud Function)
+            // to verify if the user has admin privileges.
+            // For now, we'll use a client-side placeholder check:
+            const adminUID = "your-admin-user-uid-here"; // <--- REPLACE THIS with your actual admin user's UID
+            const isAdmin = (user.uid === adminUID); // Check if the logged-in user's UID matches the admin UID
+
+            if (isAdmin) {
+                console.log("Admin user logged in:", user.email, "UID:", user.uid);
+                fetchAndRenderPaymentRequests(); // Fetch and render if user is identified as admin
+            } else {
+                console.warn("Unauthorized access attempt by:", user.email);
+                alert("You are not authorized to view this page. Redirecting to home.");
+                window.location.href = "index.html"; // Redirect unauthorized users
+            }
+        } else {
+            // No user logged in, redirect to login page
+            alert("You must be logged in to access the admin panel.");
+            window.location.href = "login.html"; // Ensure you have a login.html for admins
+        }
+    });
+  </script>
 </body>
-
-
 </html>
