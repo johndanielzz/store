@@ -14,16 +14,19 @@
       color: white;
       margin: 0;
       padding: 0;
-      min-height: 100vh; /* Ensure body takes full height */
+      min-height: 100vh;
+      /* Ensure body takes full height */
       display: flex;
       flex-direction: column;
     }
 
     @keyframes bgMove {
+
       0%,
       100% {
         background-position: 0% 50%;
       }
+
       50% {
         background-position: 100% 50%;
       }
@@ -64,7 +67,8 @@
       padding: 30px;
       border-radius: 20px;
       box-shadow: 0 0 20px rgba(6, 182, 212, 0.5);
-      flex-grow: 1; /* Allow container to grow and push footer down */
+      flex-grow: 1;
+      /* Allow container to grow and push footer down */
     }
 
     h1 {
@@ -123,9 +127,11 @@
       width: 100%;
       border-collapse: collapse;
       margin-top: 15px;
-      background: rgba(255, 255, 255, 0.05); /* Slightly darker table background */
+      background: rgba(255, 255, 255, 0.05);
+      /* Slightly darker table background */
       border-radius: 10px;
-      overflow: hidden; /* For rounded corners */
+      overflow: hidden;
+      /* For rounded corners */
     }
 
     th,
@@ -133,7 +139,8 @@
       border: 1px solid rgba(255, 255, 255, 0.2);
       padding: 10px;
       text-align: center;
-      white-space: nowrap; /* Prevent wrapping in cells */
+      white-space: nowrap;
+      /* Prevent wrapping in cells */
       overflow: hidden;
       text-overflow: ellipsis;
     }
@@ -143,25 +150,34 @@
       font-weight: 600;
     }
 
-    .pending {
+    .status-pending {
       color: #fbbf24;
       font-weight: bold;
     }
 
-    .paid, /* Renamed approved to paid for payments */
-    .approved {
+    .status-paid,
+    .status-approved {
       color: #22c55e;
       font-weight: bold;
     }
 
-    .declined {
+    .status-declined {
       color: #ef4444;
       font-weight: bold;
     }
+    .status-confirmed-by-seller {
+        color: #8b5cf6;
+        font-weight: bold;
+    }
+    .status-proof-submitted {
+        color: #3b82f6;
+        font-weight: bold;
+    }
+
 
     .loading-text {
-        font-style: italic;
-        color: rgba(255, 255, 255, 0.7);
+      font-style: italic;
+      color: rgba(255, 255, 255, 0.7);
     }
   </style>
 </head>
@@ -173,9 +189,10 @@
       <a href="dashboard-admin.html">Dashboard</a>
       <a href="admin-sellers.html">Sellers</a>
       <a href="admin-users.html">Users</a>
-      <a href="admin-accept-payment.html">Payments</a>
-      <a href="admin-edit-user-seller.html">Edit</a>
+      <a href="admin-payments.html">Seller Payments</a>
       <a href="admin-code.html">Codes</a>
+      <!-- Placeholder for admin-edit-user-seller.html -->
+      <a href="admin-edit-user-seller.html">Edit</a>
     </nav>
   </header>
 
@@ -202,13 +219,13 @@
     </div>
 
     <div class="section-title">Recent Seller Registrations</div>
-    <table id="recentSellers">
-        <tr><td colspan="4" class="loading-text">Loading recent sellers...</td></tr>
+    <table id="recentSellersTable">
+      <!-- Content loaded by JS -->
     </table>
 
-    <div class="section-title">Recent User Payments</div>
-    <table id="recentUsers">
-        <tr><td colspan="4" class="loading-text">Loading recent users...</td></tr>
+    <div class="section-title">Recent Payment Requests</div>
+    <table id="recentPaymentsTable">
+      <!-- Content loaded by JS -->
     </table>
   </div>
 
@@ -222,129 +239,166 @@
 
     // Firebase Config
     const firebaseConfig = {
-     apiKey: "AIzaSyDFrctk2MZajP7OmECXe5npHAV0dODH9jk",
-  authDomain: "matrixmarketplace-1bd71.firebaseapp.com",
-  databaseURL: "https://matrixmarketplace-1bd71-default-rtdb.firebaseio.com",
-  projectId: "matrixmarketplace-1bd71",
-  storageBucket: "matrixmarketplace-1bd71.firebasestorage.app",
-  messagingSenderId: "10374416997",
-  appId: "1:10374416997:web:9626c569e845c14a87548c",
-  measurementId: "G-DTC2GM9L92"
+      apiKey: "AIzaSyDFrctk2MZajP7OmECXe5npHAV0dODH9jk",
+      authDomain: "matrixmarketplace-1bd71.firebaseapp.com",
+      databaseURL: "https://matrixmarketplace-1bd71-default-rtdb.firebaseio.com",
+      projectId: "matrixmarketplace-1bd71",
+      storageBucket: "matrixmarketplace-1bd71.firebasestorage.app",
+      messagingSenderId: "10374416997",
+      appId: "1:10374416997:web:9626c569e845c14a87548c",
+      measurementId: "G-DTC2GM9L92"
     };
 
     // Initialize Firebase (Modular SDK)
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
-    const auth = getAuth(app); // Get the Auth service
+    const auth = getAuth(app);
 
-    const usersRef = ref(db, "users"); // Modular ref
-    const sellersRef = ref(db, "sellers"); // Modular ref
+    const usersRef = ref(db, "users");
+    const sellersRef = ref(db, "sellers");
+    const userPaymentsRef = ref(db, "pendingRequests"); // User top-up requests
+    const sellerPaymentsRef = ref(db, "pendingSellerPayments"); // Seller subscription requests
 
     // Admin UIDs for client-side check.
     // IMPORTANT: For production applications, replace these with the actual UIDs of your administrators.
-    // For robust security, you should use Firebase Custom Claims and server-side verification (e.g., Cloud Functions).
+    // For robust security, use Firebase Custom Claims and server-side verification (e.g., Cloud Functions).
     const ADMIN_Uids = ["YOUR_ADMIN_UID_HERE", "ANOTHER_ADMIN_UID"]; // <<== !! IMPORTANT: Update these UIDs !! ==>>
 
-    // Utility: Render recent items in a table
+    /**
+     * Renders a list of recent items in a given table.
+     * @param {string} tableId The ID of the HTML table.
+     * @param {Array} list The array of items to display.
+     * @param {string} type "User" or "Seller" or "Payment".
+     */
     function renderRecent(tableId, list, type) {
       const table = document.getElementById(tableId);
       table.innerHTML = ""; // Clear existing content
 
-      // Create header row
       const headerRow = document.createElement("tr");
-      headerRow.innerHTML = `
-        <th>${type} Name</th>
-        <th>Email</th>
-        <th>Status</th>
-        <th>Country</th>
-      `;
+      if (type === "Payment") {
+        headerRow.innerHTML = `<th>Type</th><th>Email</th><th>Amount</th><th>Status</th><th>Date</th>`;
+      } else { // For User or Seller
+        headerRow.innerHTML = `<th>${type} Name</th><th>Email</th><th>Status</th><th>Registered On</th>`;
+      }
       table.appendChild(headerRow);
 
-      if (!list || !list.length) {
+      if (!list || list.length === 0) {
         const noRecordsRow = document.createElement("tr");
-        noRecordsRow.innerHTML = `<td colspan="4" class="loading-text">No ${type.toLowerCase()} records found.</td>`;
+        noRecordsRow.innerHTML = `<td colspan="${type === 'Payment' ? 5 : 4}" class="loading-text">No recent ${type.toLowerCase()} records found.</td>`;
         table.appendChild(noRecordsRow);
         return;
       }
 
-      // Sort by creationTime or a similar timestamp field.
-      // Adjust field names (`createdAt`, `timestamp`) if your data uses different conventions.
+      // Sort by creation/request time (most recent first)
       list.sort((a, b) => {
-        const timeA = (type === "User" ? a.createdAt : a.timestamp) || 0; // Assuming 'createdAt' for users
-        const timeB = (type === "User" ? b.createdAt : b.timestamp) || 0; // Assuming 'timestamp' for sellers
-        return timeB - timeA; // Sort descending (most recent first)
+        let timeA, timeB;
+        if (type === "User") { timeA = a.createdAt; timeB = b.createdAt; }
+        else if (type === "Seller") { timeA = a.registrationDate; timeB = b.registrationDate; }
+        else if (type === "Payment") { timeA = a.requestDate || a.submittedAt; timeB = b.requestDate || b.submittedAt; }
+        return new Date(timeB).getTime() - new Date(timeA).getTime();
       });
 
       list.slice(0, 5).forEach(item => { // Show up to 5 recent items
         let displayStatus;
         let statusClass;
+        const row = document.createElement("tr");
 
         if (type === "User") {
-          // For users, specifically use paymentStatus for the status column and styling
           displayStatus = item.paymentStatus || "Pending";
-          if (displayStatus === "Paid") {
-            statusClass = "paid";
-          } else if (displayStatus === "Declined") { // Assuming 'Declined' is a possible payment status
-            statusClass = "declined";
-          } else {
-            statusClass = "pending";
-          }
-        } else { // For sellers, use their general 'status'
-          displayStatus = item.status || "Pending";
-          if (displayStatus === "Approved") {
-            statusClass = "approved";
-          } else if (displayStatus === "Declined") {
-            statusClass = "declined";
-          } else {
-            statusClass = "pending";
-          }
-        }
+          statusClass = `status-${displayStatus.toLowerCase().replace(/\s/g, '-')}`;
+          row.innerHTML = `
+            <td>${item.name || "N/A"}</td>
+            <td>${item.email || "N/A"}</td>
+            <td class="${statusClass}">${displayStatus}</td>
+            <td>${new Date(item.createdAt).toLocaleDateString()}</td>
+          `;
+        } else if (type === "Seller") {
+          displayStatus = item.status || "Pending Approval";
+          statusClass = `status-${displayStatus.toLowerCase().replace(/\s/g, '-')}`;
+          row.innerHTML = `
+            <td>${item.name || item.storeName || "N/A"}</td>
+            <td>${item.email || "N/A"}</td>
+            <td class="${statusClass}">${displayStatus}</td>
+            <td>${new Date(item.registrationDate).toLocaleDateString()}</td>
+          `;
+        } else if (type === "Payment") {
+            displayStatus = item.status || "Pending";
+            statusClass = `status-${displayStatus.toLowerCase().replace(/\s/g, '-')}`;
+            const amount = parseFloat(item.amount || 0).toFixed(2);
+            const date = item.requestDate || item.submittedAt;
 
-        const row = document.createElement("tr");
-        row.innerHTML = `
-          <td>${item.name || "N/A"}</td>
-          <td>${item.email || "N/A"}</td>
-          <td class="${statusClass}">${displayStatus}</td>
-          <td>${item.country || "Unknown"}</td>
-        `;
+            row.innerHTML = `
+                <td>${item.type}</td>
+                <td>${item.email || "N/A"}</td>
+                <td>${amount} GMD</td>
+                <td class="${statusClass}">${displayStatus}</td>
+                <td>${date ? new Date(date).toLocaleDateString() : "N/A"}</td>
+            `;
+        }
         table.appendChild(row);
       });
     }
 
     // Function to update all dashboard statistics and tables
     function updateDashboard() {
-      // Set up real-time listener for users data
+      let allUsers = [];
+      let allSellers = [];
+      let allUserPayments = [];
+      let allSellerPayments = [];
+
+      // Listen for users data
       onValue(usersRef, snapshot => {
-        const users = Object.values(snapshot.val() || {}); // Handle null snapshot gracefully
-        const totalUsers = users.length;
-        // Count pending payments strictly based on 'paymentStatus' field
-        const pendingPayments = users.filter(u => u.paymentStatus === "Pending").length;
-        // Count approved payments strictly based on 'paymentStatus' field (e.g., "Paid")
-        const approvedPayments = users.filter(u => u.paymentStatus === "Paid").length;
+        allUsers = Object.values(snapshot.val() || {});
+        updateStatsAndTables();
+      }, (error) => console.error("Error fetching users data:", error));
 
-        document.getElementById("totalUsers").textContent = totalUsers;
-        document.getElementById("pendingPayments").textContent = pendingPayments;
-        document.getElementById("approvedPayments").textContent = approvedPayments;
-
-        renderRecent("recentUsers", users, "User");
-      }, (error) => {
-        console.error("Error fetching users data:", error);
-        document.getElementById("totalUsers").textContent = "Error";
-        document.getElementById("pendingPayments").textContent = "Error";
-        document.getElementById("approvedPayments").textContent = "Error";
-        document.getElementById("recentUsers").innerHTML = `<tr><td colspan="4" class="loading-text">Error loading users.</td></tr>`;
-      });
-
-      // Set up real-time listener for sellers data
+      // Listen for sellers data
       onValue(sellersRef, snapshot => {
-        const sellers = Object.values(snapshot.val() || {}); // Handle null snapshot gracefully
-        document.getElementById("totalSellers").textContent = sellers.length;
-        renderRecent("recentSellers", sellers, "Seller");
-      }, (error) => {
-        console.error("Error fetching sellers data:", error);
-        document.getElementById("totalSellers").textContent = "Error";
-        document.getElementById("recentSellers").innerHTML = `<tr><td colspan="4" class="loading-text">Error loading sellers.</td></tr>`;
-      });
+        allSellers = Object.values(snapshot.val() || {});
+        updateStatsAndTables();
+      }, (error) => console.error("Error fetching sellers data:", error));
+
+      // Listen for user payments (top-ups)
+      onValue(userPaymentsRef, snapshot => {
+        allUserPayments = Object.values(snapshot.val() || {}).map(p => ({ ...p, type: "User Top-up" }));
+        updateStatsAndTables();
+      }, (error) => console.error("Error fetching user payments data:", error));
+
+      // Listen for seller payments (subscriptions)
+      onValue(sellerPaymentsRef, snapshot => {
+        allSellerPayments = Object.values(snapshot.val() || {}).map(p => ({ ...p, type: "Seller Subscription" }));
+        updateStatsAndTables();
+      }, (error) => console.error("Error fetching seller payments data:", error));
+
+
+      function updateStatsAndTables() {
+        // --- Calculate Statistics ---
+        const totalUsers = allUsers.length;
+        const totalSellers = allSellers.length;
+
+        const combinedPayments = [...allUserPayments, ...allSellerPayments];
+
+        const pendingPaymentsCount = combinedPayments.filter(p =>
+          p.status === "Pending" ||
+          p.status === "Payment Confirmed by Seller" ||
+          p.status === "Payment Proof Submitted"
+        ).length;
+
+        const approvedPaymentsCount = combinedPayments.filter(p =>
+          p.status === "Approved" || p.status === "Paid" // "Paid" typically for user top-ups
+        ).length;
+
+
+        // --- Update Dashboard Cards ---
+        document.getElementById("totalUsers").textContent = totalUsers;
+        document.getElementById("totalSellers").textContent = totalSellers;
+        document.getElementById("pendingPayments").textContent = pendingPaymentsCount;
+        document.getElementById("approvedPayments").textContent = approvedPaymentsCount;
+
+        // --- Render Recent Tables ---
+        renderRecent("recentSellersTable", allSellers, "Seller");
+        renderRecent("recentPaymentsTable", combinedPayments, "Payment");
+      }
     }
 
     // Admin Authentication Check: Ensures dashboard loads only for authorized admins
@@ -368,6 +422,3 @@
 </body>
 
 </html>
-
-
-
