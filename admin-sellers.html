@@ -2,7 +2,7 @@
 <html lang="en">
 
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF="8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>MatrixMarket - Admin Payment Control</title>
   <style>
@@ -86,19 +86,6 @@
 
     th { background: rgba(6, 182, 212, 0.3); }
 
-    /* Removed .proof image styles as there is no proof to display */
-    /* img.proof {
-      width: 80px;
-      height: 80px;
-      border-radius: 10px;
-      border: 2px solid rgba(6, 182, 212, 0.4);
-      object-fit: cover;
-      cursor: pointer;
-      transition: 0.3s;
-    }
-
-    img.proof:hover { transform: scale(1.2); } */
-
     .btn {
       padding: 6px 12px;
       border: none;
@@ -133,27 +120,6 @@
       border-top: 1px solid rgba(255, 255, 255, 0.1);
       margin-top: 40px;
     }
-
-    /* Removed modal styles as there is no proof to view */
-    /* .modal {
-      display: none;
-      position: fixed;
-      z-index: 999;
-      left: 0;
-      top: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.7);
-      justify-content: center;
-      align-items: center;
-    }
-
-    .modal img {
-      max-width: 90%;
-      max-height: 80%;
-      border-radius: 15px;
-      border: 3px solid #06b6d4;
-    } */
   </style>
 </head>
 
@@ -174,27 +140,19 @@
     <table id="paymentRequestTable"></table>
   </div>
 
-  <!-- Removed: Image modal as there's no proof to view -->
-  <!-- <div class="modal" id="imageModal" onclick="this.style.display='none'">
-    <img id="modalImg" src="">
-  </div> -->
-
   <footer>© 2025 MatrixMarket | Admin Payment Control</footer>
 
   <!-- Firebase Modular SDK -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
     import { getDatabase, ref, get, update } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
-    // Assuming you have getAuth and onAuthStateChanged imported if you implement admin authentication
-    // import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js"; // Added for admin auth
 
     const firebaseConfig = {
       apiKey: "AIzaSyDFrctk2MZajP7OmECXe5npHAV0dODH9jk",
       authDomain: "matrixmarketplace-1bd71.firebaseapp.com",
       databaseURL: "https://matrixmarketplace-1bd71-default-rtdb.firebaseio.com",
       projectId: "matrixmarketplace-1bd71",
-      // Removed: storageBucket as proof of payment is no longer used
-      // storageBucket: "matrixmarketplace-1bd71.firebasestorage.app",
       messagingSenderId: "10374416997",
       appId: "1:10374416997:web:9626c569e845c14a87548c",
       measurementId: "G-DTC2GM9L92"
@@ -202,17 +160,15 @@
 
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
-    // const auth = getAuth(app); // For admin authentication
+    const auth = getAuth(app); // Initialized for admin auth
 
-    // Function to render payment requests
     async function renderPaymentRequests() {
       const search = document.getElementById("searchBox").value.toLowerCase();
       const table = document.getElementById("paymentRequestTable");
 
-      // Fetch all pending requests
       const snapshot = await get(ref(db, 'pendingRequests'));
       const requestsObj = snapshot.val() || {};
-      const requests = Object.entries(requestsObj); // Convert to array of [key, value] pairs
+      const requests = Object.entries(requestsObj);
 
       table.innerHTML = `
         <tr>
@@ -223,7 +179,7 @@
           <th>Date</th>
           <th>Action</th>
         </tr>
-      `; // Removed 'Proof' column
+      `;
 
       const filtered = requests.filter(([id, request]) =>
         request.email?.toLowerCase().includes(search) ||
@@ -232,7 +188,7 @@
       );
 
       if (!filtered.length) {
-        table.innerHTML += `<tr><td colspan="6">No payment requests found matching your search.</td></tr>`; // Updated colspan
+        table.innerHTML += `<tr><td colspan="6">No payment requests found matching your search.</td></tr>`;
         return;
       }
 
@@ -242,11 +198,6 @@
           : req.status === "Declined"
           ? "declined"
           : "pending";
-
-        // Removed: Proof HTML generation as there is no proofURL
-        // const proofHTML = req.proofURL
-        //   ? `<img src="${req.proofURL}" class="proof" onclick="viewProof('${req.proofURL}')">`
-        //   : "No proof";
 
         table.innerHTML += `
           <tr>
@@ -264,25 +215,13 @@
       });
     }
 
-    // Removed: Function to view the proof image in a modal
-    // function viewProof(src) {
-    //   const modal = document.getElementById("imageModal");
-    //   document.getElementById("modalImg").src = src;
-    //   modal.style.display = "flex";
-    // }
-
-    // Function to update a payment request status and potentially user balance
     async function updatePaymentRequest(requestId, action, userId, amount) {
       try {
-        // 1. Update the status of the specific payment request
         await update(ref(db, 'pendingRequests/' + requestId), {
           status: action,
           adminActionDate: new Date().toLocaleString()
         });
 
-        // 2. If approved, potentially update the user's balance.
-        // This assumes you store user balances under a 'users' node,
-        // with each user's data keyed by their userId.
         if (action === 'Approved') {
           const userSnapshot = await get(ref(db, `users/${userId}`));
           if (userSnapshot.exists()) {
@@ -304,7 +243,6 @@
           alert(`❌ Payment request ${action.toLowerCase()}!`);
         }
 
-        // Re-render the list to show updated status
         renderPaymentRequests();
 
       } catch (error) {
@@ -315,31 +253,30 @@
 
     // Assign global functions
     window.renderPaymentRequests = renderPaymentRequests;
-    // Removed: window.viewProof as it's no longer needed
-    // window.viewProof = viewProof;
     window.updatePaymentRequest = updatePaymentRequest;
 
-    // Initial render when the page loads
-    window.onload = renderPaymentRequests;
-
-    // IMPORTANT: For a real admin panel, you MUST implement Firebase Authentication
-    // to restrict access to only authorized administrators.
-    // Example (uncomment and implement proper admin check):
-    /*
-    onAuthStateChanged(auth, (user) => {
+    // IMPORTANT: Admin Authentication Implementation
+    onAuthStateChanged(auth, async (user) => {
         if (user) {
-            // Check if this user is an admin (e.g., by looking up their role in a database)
-            // If they are admin, call renderPaymentRequests()
-            // Else, redirect them away or show an access denied message
-            console.log("Admin user logged in:", user.email);
-            // Simulate admin check for now
-            renderPaymentRequests();
+            // Placeholder for real admin role check:
+            // In a real app, you would check if this user's UID corresponds to an admin role
+            // e.g., by fetching data from a '/admins' node or checking custom claims.
+            const isAdmin = true; // For now, we assume any logged-in user is an admin for testing
+
+            if (isAdmin) {
+                console.log("Admin user logged in:", user.email, "UID:", user.uid);
+                renderPaymentRequests(); // Only render if user is identified as admin
+            } else {
+                console.warn("Unauthorized access attempt by:", user.email);
+                alert("You are not authorized to view this page. Redirecting to home.");
+                window.location.href = "index.html"; // Redirect unauthorized users
+            }
         } else {
             // No user logged in, redirect to login page
-            window.location.href = "login.html"; // Or show an unauthorized message
+            alert("You must be logged in to access the admin panel.");
+            window.location.href = "login.html"; // Ensure you have a login.html for admins
         }
     });
-    */
   </script>
 </body>
 </html>
