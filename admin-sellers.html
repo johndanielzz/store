@@ -2,494 +2,387 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MatrixMarket - Admin Seller Control</title>
-    <style>
-        body {
-            font-family: "Poppins", sans-serif;
-            background: linear-gradient(135deg, #0f172a, #1e293b, #4f46e5, #06b6d4);
-            background-size: 400% 400%;
-            animation: bgMove 15s ease infinite;
-            color: white;
-            margin: 0;
-            padding: 0;
-        }
+  <meta charset="UTF="8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MatrixMarket - Admin Payment Control</title>
+  <style>
+    body {
+      font-family: "Poppins", sans-serif;
+      background: linear-gradient(135deg, #0f172a, #1e293b, #4f46e5, #06b6d4);
+      background-size: 400% 400%;
+      animation: bgMove 15s ease infinite;
+      color: white;
+      margin: 0;
+      padding: 0;
+    }
 
-        @keyframes bgMove {
+    @keyframes bgMove {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+    }
 
-            0%,
-            100% {
-                background-position: 0% 50%;
-            }
+    header {
+      background: rgba(0, 0, 0, 0.4);
+      padding: 15px 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      backdrop-filter: blur(10px);
+    }
 
-            50% {
-                background-position: 100% 50%;
-            }
-        }
+    header .logo {
+      font-size: 1.6rem;
+      color: #06b6d4;
+      font-weight: bold;
+      text-shadow: 0 0 10px #06b6d4;
+    }
 
-        header {
-            background: rgba(0, 0, 0, 0.4);
-            padding: 15px 30px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            backdrop-filter: blur(10px);
-        }
+    nav a {
+      color: white;
+      text-decoration: none;
+      margin-left: 15px;
+      font-weight: 500;
+      transition: 0.3s;
+    }
 
-        header .logo {
-            font-size: 1.6rem;
-            color: #06b6d4;
-            font-weight: bold;
-            text-shadow: 0 0 10px #06b6d4;
-        }
+    nav a:hover { color: #06b6d4; }
 
-        nav a {
-            color: white;
-            text-decoration: none;
-            margin-left: 15px;
-            font-weight: 500;
-            transition: 0.3s;
-        }
+    .container {
+      max-width: 1200px;
+      margin: 40px auto;
+      background: rgba(255, 255, 255, 0.08);
+      padding: 30px;
+      border-radius: 20px;
+      box-shadow: 0 0 20px rgba(6, 182, 212, 0.5);
+      overflow-x: auto; /* Added for responsiveness */
+    }
 
-        nav a:hover {
-            color: #06b6d4;
-        }
+    h1 {
+      text-align: center;
+      text-shadow: 0 0 10px #06b6d4;
+    }
 
-        .container {
-            max-width: 1300px;
-            margin: 40px auto;
-            background: rgba(255, 255, 255, 0.08);
-            padding: 30px;
-            border-radius: 20px;
-            box-shadow: 0 0 20px rgba(6, 182, 212, 0.5);
-            overflow-x: auto;
-        }
+    input[type="text"] {
+      width: 100%;
+      padding: 10px;
+      border: none;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.1);
+      color: white;
+      margin-bottom: 15px;
+    }
 
-        h1 {
-            text-align: center;
-            text-shadow: 0 0 10px #06b6d4;
-        }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+      min-width: 800px; /* Ensure table doesn't get too small */
+    }
 
-        input[type="text"] {
-            width: 100%;
-            padding: 10px;
-            border: none;
-            border-radius: 10px;
-            background: rgba(255, 255, 255, 0.1);
-            color: white;
-            margin-bottom: 15px;
-        }
+    th, td {
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 10px;
+      text-align: center;
+      vertical-align: middle;
+      font-size: 0.9rem; /* Smaller font for more content */
+    }
 
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            min-width: 1100px;
-        }
+    th { background: rgba(6, 182, 212, 0.3); }
 
-        th,
-        td {
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            padding: 10px;
-            text-align: center;
-            font-size: 0.95rem;
-        }
+    .btn {
+      padding: 6px 12px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      color: white;
+      margin: 2px;
+      font-weight: 500;
+      transition: 0.2s ease-in-out;
+    }
 
-        th {
-            background: rgba(6, 182, 212, 0.3);
-        }
+    .approve { background: #06b6d4; }
+    .approve:hover { background: #0891b2; transform: translateY(-1px); }
 
-        img.proof {
-            width: 80px;
-            height: 80px;
-            border-radius: 10px;
-            border: 2px solid rgba(6, 182, 212, 0.4);
-            object-fit: cover;
-            cursor: pointer;
-            transition: 0.3s;
-        }
+    .decline { background: #ef4444; }
+    .decline:hover { background: #b91c1c; transform: translateY(-1px); }
 
-        img.proof:hover {
-            transform: scale(1.2);
-        }
+    .status-badge { /* Renamed for clarity */
+      padding: 5px 10px;
+      border-radius: 8px;
+      font-weight: bold;
+      white-space: nowrap; /* Prevent status text from wrapping */
+    }
 
-        .btn {
-            padding: 6px 12px;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            color: white;
-            margin: 2px;
-            font-weight: 500;
-        }
+    .status-pending { background: rgba(245, 158, 11, 0.2); color: #f59e0b; }
+    .status-approved { background: rgba(34, 197, 94, 0.2); color: #22c55e; }
+    .status-declined { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+    .status-proof-submitted { background: rgba(59, 130, 246, 0.2); color: #3b82f6; } /* For seller payments */
+    .status-confirmed-by-seller { background: rgba(139, 92, 246, 0.2); color: #8b5cf6; } /* For seller payments */
 
-        .approve {
-            background: #06b6d4;
-        }
 
-        .decline {
-            background: #ef4444;
-        }
+    footer {
+      text-align: center;
+      padding: 15px;
+      background: rgba(255, 255, 255, 0.08);
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      margin-top: 40px;
+    }
 
-        .approve:hover {
-            background: #0891b2;
-        }
-
-        .decline:hover {
-            background: #b91c1c;
-        }
-
-        .status {
-            padding: 5px 10px;
-            border-radius: 8px;
-            font-weight: bold;
-            white-space: nowrap; /* Prevent status text from wrapping */
-        }
-
-        .pending-approval { /* Specific class for initial status */
-            background: rgba(245, 158, 11, 0.2);
-            color: #f59e0b;
-        }
-        .payment-confirmed { /* Specific class for payment confirmed */
-            background: rgba(59, 130, 246, 0.2); /* Blueish tint */
-            color: #3b82f6;
-        }
-        .proof-submitted { /* If proof is re-enabled */
-            background: rgba(139, 92, 246, 0.2); /* Purplish tint */
-            color: #8b5cf6;
-        }
-        .approved-status {
-            background: rgba(34, 197, 94, 0.2);
-            color: #22c55e;
-        }
-
-        .declined-status {
-            background: rgba(239, 68, 68, 0.2);
-            color: #ef4444;
-        }
-
-        footer {
-            text-align: center;
-            padding: 15px;
-            background: rgba(255, 255, 255, 0.08);
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
-            margin-top: 40px;
-        }
-
-        .copy {
-            color: #06b6d4;
-            cursor: pointer;
-            font-weight: bold;
-            text-decoration: underline;
-        }
-
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 999;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.7);
-            justify-content: center;
-            align-items: center;
-        }
-
-        .modal img {
-            max-width: 90%;
-            max-height: 80%;
-            border-radius: 15px;
-            border: 3px solid #06b6d4;
-        }
-    </style>
+    .proof-link {
+        color: #06b6d4;
+        text-decoration: underline;
+        cursor: pointer;
+    }
+  </style>
 </head>
 
 <body>
-    <header>
-        <div class="logo">MatrixMarket Admin</div>
-        <nav>
-            <a href="dashboard-admin.html">Dashboard</a>
-            <a href="admin-sellers.html">Sellers</a>
-            <a href="admin-users.html">Users</a>
-            <a href="admin-payments.html">Payments</a>
-        </nav>
-    </header>
+  <header>
+    <div class="logo">MatrixMarket Admin</div>
+    <nav>
+      <a href="dashboard-admin.html">Dashboard</a>
+      <a href="admin-sellers.html">Sellers</a>
+      <a href="admin-users.html">Users</a>
+      <a href="admin-payments.html">Payments</a>
+    </nav>
+  </header>
 
-    <div class="container">
-        <h1>🧾 Manage Sellers & Subscriptions</h1>
-        <input type="text" id="searchBox" placeholder="Search seller by name, email, or code..."
-            onkeyup="window.handleSearch()">
-        <table id="sellerTable"></table>
-    </div>
+  <div class="container">
+    <h1>💸 Manage Payment Requests</h1>
+    <input type="text" id="searchBox" placeholder="Search by user/seller email, method, or type..." onkeyup="window.handleSearch()">
+    <table id="paymentRequestTable"></table>
+  </div>
 
-    <div class="modal" id="imageModal" onclick="window.hideProofModal()">
-        <img id="modalImg" src="">
-    </div>
+  <footer>© 2025 MatrixMarket | Admin Payment Control</footer>
 
-    <footer>© 2025 MatrixMarket | Admin Seller Control</footer>
+  <!-- Firebase Modular SDK -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
+    import { getDatabase, ref, get, update, onValue } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js"; 
 
-    <!-- Firebase Modular SDK -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
-        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
-        import { getDatabase, ref, onValue, update, query, orderByChild, equalTo, get } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
+    const firebaseConfig = {
+      apiKey: "AIzaSyDFrctk2MZajP7OmECXe5npHAV0dODH9jk",
+      authDomain: "matrixmarketplace-1bd71.firebaseapp.com",
+      databaseURL: "https://matrixmarketplace-1bd71-default-rtdb.firebaseio.com",
+      projectId: "matrixmarketplace-1bd71",
+      messagingSenderId: "10374416997",
+      appId: "1:10374416997:web:9626c569e845c14a87548c",
+      measurementId: "G-DTC2GM9L92"
+    };
 
-        // Firebase configuration (ensure this matches your project settings)
-        const firebaseConfig = {
-            apiKey: "AIzaSyDFrctk2MZajP7OmECXe5npHAV0dODH9jk",
-            authDomain: "matrixmarketplace-1bd71.firebaseapp.com",
-            databaseURL: "https://matrixmarketplace-1bd71-default-rtdb.firebaseio.com",
-            projectId: "matrixmarketplace-1bd71",
-            storageBucket: "matrixmarketplace-1bd71.firebasestorage.app",
-            messagingSenderId: "10374416997",
-            appId: "1:10374416997:web:9626c569e845c14a87548c",
-            measurementId: "G-DTC2GM9L92"
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    const auth = getAuth(app); 
+
+    let allPaymentRequests = {}; // Local cache for all requests
+
+    /**
+     * Renders all payment requests (user top-ups and seller subscriptions) in the table.
+     */
+    async function renderPaymentRequests() {
+      const search = document.getElementById("searchBox").value.toLowerCase();
+      const table = document.getElementById("paymentRequestTable");
+
+      table.innerHTML = `
+        <tr>
+          <th>Type</th>
+          <th>Email</th>
+          <th>Store/Method</th>
+          <th>Plan</th>
+          <th>Amount</th>
+          <th>Status</th>
+          <th>Date</th>
+          <th>Proof</th>
+          <th>Action</th>
+        </tr>
+      `;
+
+      // Convert combined requests to an array and filter
+      const filtered = Object.values(allPaymentRequests).filter(request => {
+        const type = request.type || "User Top-up"; // Default for old requests
+        return (request.email?.toLowerCase().includes(search) ||
+                request.storeName?.toLowerCase().includes(search) || // For sellers
+                request.method?.toLowerCase().includes(search) ||   // For user top-ups
+                request.plan?.toLowerCase().includes(search) ||     // For sellers
+                type.toLowerCase().includes(search) ||
+                request.status?.toLowerCase().includes(search));
+      });
+
+      if (!filtered.length) {
+        table.innerHTML += `<tr><td colspan="9">No payment requests found matching your search.</td></tr>`;
+        return;
+      }
+
+      // Sort requests to show pending ones first
+      filtered.sort((a, b) => {
+          const statusA = a.status || "Pending";
+          const statusB = b.status || "Pending";
+          if (statusA === "Pending" || statusA === "Payment Confirmed by Seller" || statusA === "Payment Proof Submitted") return -1;
+          if (statusB === "Pending" || statusB === "Payment Confirmed by Seller" || statusB === "Payment Proof Submitted") return 1;
+          return 0;
+      });
+
+
+      filtered.forEach(req => {
+        const type = req.type || "User Top-up"; // Distinguish request type
+        let statusClass = "status-pending"; // Default
+        switch (req.status) {
+            case "Approved": statusClass = "status-approved"; break;
+            case "Declined": statusClass = "status-declined"; break;
+            case "Proof Submitted": statusClass = "status-proof-submitted"; break; // If proof upload is re-enabled for sellers
+            case "Payment Confirmed by Seller": statusClass = "status-confirmed-by-seller"; break;
+            default: statusClass = "status-pending"; break;
+        }
+
+        const proofContent = req.receiptURL 
+                             ? `<a href="${req.receiptURL}" target="_blank" class="proof-link">View Proof</a>`
+                             : "N/A";
+
+        const storeOrMethod = req.storeName || req.method || "N/A";
+        const plan = req.plan || "N/A"; // Seller plan
+        const amount = parseFloat(req.amount).toFixed(2);
+
+        table.innerHTML += `
+          <tr>
+            <td>${type}</td>
+            <td>${req.email || "N/A"}</td>
+            <td>${storeOrMethod}</td>
+            <td>${plan}</td>
+            <td>${amount} GMD</td>
+            <td><span class="status-badge ${statusClass}">${req.status}</span></td>
+            <td>${req.requestDate || req.submittedAt || "N/A"}</td>
+            <td>${proofContent}</td>
+            <td>
+              <button class="btn approve" onclick="window.updatePaymentRequest('${req.id}', 'Approved', '${req.userId || req.uid}', '${req.type || "User Top-up"}', ${amount})">Approve</button>
+              <button class="btn decline" onclick="window.updatePaymentRequest('${req.id}', 'Declined', '${req.userId || req.uid}', '${req.type || "User Top-up"}', ${amount})">Decline</button>
+            </td>
+          </tr>
+        `;
+      });
+    }
+
+    /**
+     * Updates a payment request's status and performs associated actions (e.g., update balance/seller status).
+     * @param {string} requestId The ID of the payment request.
+     * @param {string} action 'Approved' or 'Declined'.
+     * @param {string} entityUid The Firebase UID of the user or seller.
+     * @param {string} requestType 'User Top-up' or 'Seller Subscription'.
+     * @param {number} amount The amount of the payment.
+     */
+    async function updatePaymentRequest(requestId, action, entityUid, requestType, amount) {
+      if (!confirm(`Are you sure you want to ${action} this payment request?`)) {
+        return;
+      }
+
+      try {
+        let paymentPath;
+        let entityPath;
+        let updates = {
+          status: action,
+          adminActionDate: new Date().toLocaleString()
         };
 
-        // Initialize Firebase services
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getDatabase(app);
+        if (requestType === "User Top-up") {
+          paymentPath = `pendingRequests/${requestId}`;
+          entityPath = `users/${entityUid}/balance`;
 
-        let sellersData = {}; // To hold all sellers data for filtering
+          if (action === 'Approved') {
+            // Transactionally update user balance
+            await update(ref(db, paymentPath), updates); // Update payment request status first
+            const userBalanceRef = ref(db, entityPath);
+            await runTransaction(userBalanceRef, (currentBalance) => {
+              return (parseFloat(currentBalance || 0) + amount);
+            });
+            alert(`✅ User top-up request ${action.toLowerCase()} and user balance updated!`);
+          } else { // Declined
+            await update(ref(db, paymentPath), updates);
+            alert(`❌ User top-up request ${action.toLowerCase()}!`);
+          }
 
-        /**
-         * Renders the list of sellers in the admin table, applying search filters.
-         */
-        async function renderSellers() {
-            const search = document.getElementById("searchBox").value.toLowerCase();
-            const table = document.getElementById("sellerTable");
+        } else if (requestType === "Seller Subscription") {
+          paymentPath = `pendingSellerPayments/${requestId}`;
+          entityPath = `sellers/${entityUid}`;
 
-            table.innerHTML = `
-                <tr>
-                    <th>Name</th>
-                    <th>Email</th>
-                    <th>Code</th>
-                    <th>Password</th>
-                    <th>Plan</th>
-                    <th>Store</th>
-                    <th>Status</th>
-                    <th>Proof</th>
-                    <th>Subscription</th>
-                    <th>Action</th>
-                </tr>
-            `; // Reset table header
-
-            const filteredSellers = Object.values(sellersData).filter(s =>
-                (s.email?.toLowerCase().includes(search)) ||
-                (s.name?.toLowerCase().includes(search)) ||
-                (s.subscriptionCode?.toLowerCase().includes(search)) ||
-                (s.status?.toLowerCase().includes(search))
-            );
-
-            if (!filteredSellers.length) {
-                table.innerHTML += `<tr><td colspan="10">No sellers found.</td></tr>`;
-                return;
-            }
-
-            for (const seller of filteredSellers) {
-                // Determine display status and class based on the seller's main status
-                const displayStatus = seller.status || "Pending Approval";
-                let statusClass;
-                switch (displayStatus) {
-                    case "Approved":
-                        statusClass = "approved-status";
-                        break;
-                    case "Declined":
-                        statusClass = "declined-status";
-                        break;
-                    case "Payment Confirmed by Seller":
-                        statusClass = "payment-confirmed";
-                        break;
-                    case "Payment Proof Submitted": // If proof upload is re-enabled
-                        statusClass = "proof-submitted";
-                        break;
-                    default:
-                        statusClass = "pending-approval";
-                }
-
-                // Try to find the latest pending payment request for this seller to get proof (if applicable)
-                let proofHTML = "No proof submitted";
-                let latestPaymentRequest = null;
-                if (seller.uid) {
-                    const qRef = query(ref(db, 'pendingSellerPayments'), orderByChild('userId'), equalTo(seller.uid));
-                    const snapshot = await get(qRef); // Fetch once
-                    const paymentRequests = snapshot.val();
-                    if (paymentRequests) {
-                        const sortedRequests = Object.values(paymentRequests).sort((a, b) => {
-                            return new Date(b.requestDate) - new Date(a.requestDate);
-                        });
-                        // Find the most recent one that is relevant (e.g., 'Proof Submitted' or 'Payment Confirmed by Seller')
-                        latestPaymentRequest = sortedRequests.find(req => 
-                            req.status === "Payment Confirmed by Seller" || req.status === "Payment Proof Submitted"
-                        );
-
-                        if (latestPaymentRequest && latestPaymentRequest.receiptURL) {
-                            proofHTML = `<img src="${latestPaymentRequest.receiptURL}" class="proof" onclick="window.viewProof('${latestPaymentRequest.receiptURL}')" alt="Payment Proof">`;
-                        } else if (latestPaymentRequest && (latestPaymentRequest.status === "Payment Confirmed by Seller")) {
-                            proofHTML = "Confirmed (no proof uploaded)";
-                        }
-                    }
-                }
-
-
-                const subStatus = seller.subscription || "Inactive";
-                const pass = seller.password || "-"; // Password is not stored in DB for security, but from reg form
-                const code = seller.subscriptionCode || "-";
-
-                table.innerHTML += `
-                    <tr>
-                        <td>${seller.name || "N/A"}</td>
-                        <td>${seller.email || "N/A"}</td>
-                        <td><span class="copy" onclick="window.copyText('${code}')">${code}</span></td>
-                        <td><span class="copy" onclick="window.copyText('${pass}')">${pass}</span></td>
-                        <td>${seller.plan || "N/A"}</td>
-                        <td>${seller.storeName || "N/A"}</td>
-                        <td><span class="status ${statusClass}">${displayStatus}</span></td>
-                        <td>${proofHTML}</td>
-                        <td>${subStatus}</td>
-                        <td>
-                            <button class="btn approve" onclick="window.approveSeller('${seller.uid}', '${latestPaymentRequest ? latestPaymentRequest.requestId : ''}')">Approve</button>
-                            <button class="btn decline" onclick="window.declineSeller('${seller.uid}', '${latestPaymentRequest ? latestPaymentRequest.requestId : ''}')">Decline</button>
-                        </td>
-                    </tr>
-                `;
-            }
+          if (action === 'Approved') {
+            // Update seller's main record and payment request status
+            await update(ref(db, entityPath), {
+                status: "Approved",
+                subscription: "Active"
+            });
+            await update(ref(db, paymentPath), updates);
+            alert(`✅ Seller subscription request ${action.toLowerCase()} and seller status updated!`);
+          } else { // Declined
+            await update(ref(db, entityPath), {
+                status: "Declined",
+                subscription: "Inactive"
+            });
+            await update(ref(db, paymentPath), updates);
+            alert(`❌ Seller subscription request ${action.toLowerCase()}!`);
+          }
         }
+        
+        // Re-render table to reflect changes (onValue listener will usually do this, but force it)
+        renderPaymentRequests(); 
 
-        /**
-         * Copies text to clipboard.
-         * @param {string} text The text to copy.
-         */
-        function copyText(text) {
-            navigator.clipboard.writeText(text);
-            alert("Copied: " + text);
-        }
+      } catch (error) {
+        console.error("Error updating payment request or entity balance/status:", error);
+        alert("⚠️ An error occurred while processing the request. Check console for details.");
+      }
+    }
 
-        /**
-         * Displays a proof image in a modal.
-         * @param {string} src The URL of the image to display.
-         */
-        function viewProof(src) {
-            const modal = document.getElementById("imageModal");
-            const modalImg = document.getElementById("modalImg");
-            modalImg.src = src;
-            modal.style.display = "flex";
-        }
+    // --- Admin Authentication Check ---
+    onAuthStateChanged(auth, async (user) => {
+        if (user) {
+            // IMPORTANT: Placeholder for real admin role check.
+            // In a real app, you would check if this user's UID corresponds to an admin role
+            // e.g., by fetching data from a '/admins' node or checking custom claims.
+            const isAdmin = true; // For now, we assume any logged-in user is an admin for testing
 
-        /**
-         * Hides the proof image modal.
-         */
-        function hideProofModal() {
-            document.getElementById("imageModal").style.display = "none";
-            document.getElementById("modalImg").src = ""; // Clear image src
-        }
+            if (isAdmin) {
+                console.log("Admin user logged in:", user.email, "UID:", user.uid);
+                // Set up real-time listeners for both types of payment requests
+                const userPaymentsRef = ref(db, 'pendingRequests');
+                const sellerPaymentsRef = ref(db, 'pendingSellerPayments');
 
-        /**
-         * Approves a seller and updates their status in Firebase.
-         * @param {string} sellerUid The Firebase UID of the seller.
-         * @param {string} [paymentRequestId] The ID of the payment request to update.
-         */
-        async function approveSeller(sellerUid, paymentRequestId) {
-            if (!confirm("Are you sure you want to APPROVE this seller?")) return;
-
-            try {
-                // 1. Update seller's main record
-                await update(ref(db, `sellers/${sellerUid}`), {
-                    status: "Approved",
-                    subscription: "Active"
-                });
-
-                // 2. Update corresponding payment request (if available)
-                if (paymentRequestId) {
-                    await update(ref(db, `pendingSellerPayments/${paymentRequestId}`), {
-                        status: "Approved"
+                onValue(userPaymentsRef, (snapshot) => {
+                    const payments = snapshot.val() || {};
+                    Object.keys(payments).forEach(key => {
+                        allPaymentRequests[key] = { id: key, type: "User Top-up", ...payments[key] };
                     });
-                }
-                alert("✅ Seller approved!");
-            } catch (error) {
-                console.error("Error approving seller:", error);
-                alert(`❌ Failed to approve seller: ${error.message}`);
-            }
-        }
+                    renderPaymentRequests();
+                }, (error) => console.error("Error fetching user payments:", error));
 
-        /**
-         * Declines a seller and updates their status in Firebase.
-         * @param {string} sellerUid The Firebase UID of the seller.
-         * @param {string} [paymentRequestId] The ID of the payment request to update.
-         */
-        async function declineSeller(sellerUid, paymentRequestId) {
-            if (!confirm("Are you sure you want to DECLINE this seller?")) return;
-
-            try {
-                // 1. Update seller's main record
-                await update(ref(db, `sellers/${sellerUid}`), {
-                    status: "Declined",
-                    subscription: "Inactive"
-                });
-
-                // 2. Update corresponding payment request (if available)
-                if (paymentRequestId) {
-                    await update(ref(db, `pendingSellerPayments/${paymentRequestId}`), {
-                        status: "Declined"
+                onValue(sellerPaymentsRef, (snapshot) => {
+                    const payments = snapshot.val() || {};
+                    Object.keys(payments).forEach(key => {
+                        allPaymentRequests[key] = { id: key, type: "Seller Subscription", ...payments[key] };
                     });
-                }
-                alert("❌ Seller declined!");
-            } catch (error) {
-                console.error("Error declining seller:", error);
-                alert(`❌ Failed to decline seller: ${error.message}`);
-            }
-        }
+                    renderPaymentRequests();
+                }, (error) => console.error("Error fetching seller payments:", error));
 
-        // --- Admin Authentication Check ---
-        onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                // IMPORTANT: Placeholder for real admin role check.
-                // Replace this with your actual admin verification logic.
-                // e.g., check if user.uid exists in a '/admins' node in RTDB or use custom claims.
-                const isAdmin = true; // For testing, assume any logged-in user is admin
-
-                if (isAdmin) {
-                    console.log("Admin user logged in:", user.email, "UID:", user.uid);
-                    // Set up a real-time listener for sellers data
-                    onValue(ref(db, 'sellers'), (snapshot) => {
-                        sellersData = snapshot.val() || {}; // Update local cache
-                        renderSellers(); // Re-render table when data changes
-                    }, (error) => {
-                        console.error("Error fetching sellers data:", error);
-                        document.getElementById("sellerTable").innerHTML = `<tr><td colspan="10">Error loading sellers.</td></tr>`;
-                    });
-
-                } else {
-                    console.warn("Unauthorized access attempt by:", user.email);
-                    alert("You are not authorized to view this page. Redirecting to home.");
-                    window.location.href = "index.html"; // Redirect unauthorized users
-                }
             } else {
-                // No user logged in, redirect to admin login page (you'll need to create one)
-                alert("You must be logged in as an admin to access this panel.");
-                window.location.href = "admin-login.html"; // Assuming an admin-login.html
+                console.warn("Unauthorized access attempt by:", user.email);
+                alert("You are not authorized to view this page. Redirecting to home.");
+                window.location.href = "index.html"; // Redirect unauthorized users
             }
-        });
+        } else {
+            // No user logged in, redirect to login page
+            alert("You must be logged in to access the admin panel.");
+            window.location.href = "admin-login.html"; // Ensure you have an admin-login.html
+        }
+    });
 
-        // --- Expose functions to the global window object for HTML onclick attributes ---
-        window.renderSellers = renderSellers; // Now called via onValue listener
-        window.copyText = copyText;
-        window.viewProof = viewProof;
-        window.hideProofModal = hideProofModal;
-        window.approveSeller = approveSeller;
-        window.declineSeller = declineSeller;
-
-        // Debounced search handler for better performance on keyup
-        let searchTimeout;
-        window.handleSearch = () => {
-          clearTimeout(searchTimeout);
-          searchTimeout = setTimeout(() => {
-            renderSellers(); // Calls the now filtered renderSellers
-          }, 300); // Wait 300ms after the last keypress before searching
-        };
-    </script>
+    // --- Expose functions to the global window object for HTML onclick attributes ---
+    window.updatePaymentRequest = updatePaymentRequest;
+    // Debounced search handler for better performance on keyup
+    let searchTimeout;
+    window.handleSearch = () => {
+      clearTimeout(searchTimeout);
+      searchTimeout = setTimeout(() => {
+        renderPaymentRequests();
+      }, 300); // Wait 300ms after the last keypress before searching
+    };
+  </script>
 </body>
-
 </html>
