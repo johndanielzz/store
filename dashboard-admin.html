@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -13,11 +14,21 @@
       color: white;
       margin: 0;
       padding: 0;
+      min-height: 100vh; /* Ensure body takes full height */
+      display: flex;
+      flex-direction: column;
     }
+
     @keyframes bgMove {
-      0%, 100% { background-position: 0% 50%; }
-      50% { background-position: 100% 50%; }
+      0%,
+      100% {
+        background-position: 0% 50%;
+      }
+      50% {
+        background-position: 100% 50%;
+      }
     }
+
     header {
       background: rgba(0, 0, 0, 0.4);
       padding: 15px 30px;
@@ -26,12 +37,14 @@
       align-items: center;
       backdrop-filter: blur(10px);
     }
+
     header .logo {
       font-size: 1.6rem;
       color: #06b6d4;
       font-weight: bold;
       text-shadow: 0 0 10px #06b6d4;
     }
+
     nav a {
       color: white;
       text-decoration: none;
@@ -39,7 +52,10 @@
       font-weight: 500;
       transition: 0.3s;
     }
-    nav a:hover { color: #06b6d4; }
+
+    nav a:hover {
+      color: #06b6d4;
+    }
 
     .container {
       max-width: 1200px;
@@ -48,6 +64,7 @@
       padding: 30px;
       border-radius: 20px;
       box-shadow: 0 0 20px rgba(6, 182, 212, 0.5);
+      flex-grow: 1; /* Allow container to grow and push footer down */
     }
 
     h1 {
@@ -70,15 +87,18 @@
       transition: 0.3s;
       box-shadow: 0 0 15px rgba(6, 182, 212, 0.2);
     }
+
     .card:hover {
       transform: translateY(-5px);
       box-shadow: 0 0 25px rgba(6, 182, 212, 0.4);
     }
+
     .card h2 {
       font-size: 2.2rem;
       margin: 10px 0;
       color: #06b6d4;
     }
+
     .card p {
       font-size: 1rem;
       color: #ddd;
@@ -103,16 +123,46 @@
       width: 100%;
       border-collapse: collapse;
       margin-top: 15px;
+      background: rgba(255, 255, 255, 0.05); /* Slightly darker table background */
+      border-radius: 10px;
+      overflow: hidden; /* For rounded corners */
     }
-    th, td {
+
+    th,
+    td {
       border: 1px solid rgba(255, 255, 255, 0.2);
       padding: 10px;
       text-align: center;
+      white-space: nowrap; /* Prevent wrapping in cells */
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
-    th { background: rgba(6, 182, 212, 0.3); }
-    .pending { color: #fbbf24; }
-    .approved { color: #22c55e; }
-    .declined { color: #ef4444; }
+
+    th {
+      background: rgba(6, 182, 212, 0.3);
+      font-weight: 600;
+    }
+
+    .pending {
+      color: #fbbf24;
+      font-weight: bold;
+    }
+
+    .paid, /* Renamed approved to paid for payments */
+    .approved {
+      color: #22c55e;
+      font-weight: bold;
+    }
+
+    .declined {
+      color: #ef4444;
+      font-weight: bold;
+    }
+
+    .loading-text {
+        font-style: italic;
+        color: rgba(255, 255, 255, 0.7);
+    }
   </style>
 </head>
 
@@ -133,108 +183,188 @@
     <h1>📊 Admin Control Dashboard</h1>
 
     <div class="stats">
-      <div class="card"><h2 id="totalUsers">0</h2><p>Total Users</p></div>
-      <div class="card"><h2 id="totalSellers">0</h2><p>Total Sellers</p></div>
-      <div class="card"><h2 id="pendingPayments">0</h2><p>Pending Payments</p></div>
-      <div class="card"><h2 id="approvedPayments">0</h2><p>Approved Payments</p></div>
+      <div class="card">
+        <h2 id="totalUsers" class="loading-text">Loading...</h2>
+        <p>Total Users</p>
+      </div>
+      <div class="card">
+        <h2 id="totalSellers" class="loading-text">Loading...</h2>
+        <p>Total Sellers</p>
+      </div>
+      <div class="card">
+        <h2 id="pendingPayments" class="loading-text">Loading...</h2>
+        <p>Pending Payments</p>
+      </div>
+      <div class="card">
+        <h2 id="approvedPayments" class="loading-text">Loading...</h2>
+        <p>Approved Payments</p>
+      </div>
     </div>
 
     <div class="section-title">Recent Seller Registrations</div>
-    <table id="recentSellers"></table>
+    <table id="recentSellers">
+        <tr><td colspan="4" class="loading-text">Loading recent sellers...</td></tr>
+    </table>
 
     <div class="section-title">Recent User Payments</div>
-    <table id="recentUsers"></table>
+    <table id="recentUsers">
+        <tr><td colspan="4" class="loading-text">Loading recent users...</td></tr>
+    </table>
   </div>
 
   <footer>© 2025 MatrixMarket | Admin Dashboard</footer>
 
-  <!-- Firebase -->
-  <script src="https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js"></script>
+  <!-- Firebase Modular SDK -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
+    import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
 
-  <script>
     // Firebase Config
     const firebaseConfig = {
-      apiKey: "AIzaSyDFrctk2MZajP7OmECXe5npHAV0dODH9jk",
+      apiKey: "AIzaSyDFrctk2MZajP7OmECXe5npHAV0dODH9jk", // Using the key from your provided HTML
       authDomain: "matrixmarketplace-1bd71.firebaseapp.com",
       databaseURL: "https://matrixmarketplace-1bd71-default-rtdb.firebaseio.com",
       projectId: "matrixmarketplace-1bd71",
       storageBucket: "matrixmarketplace-1bd71.firebasestorage.app",
       messagingSenderId: "10374416997",
-      appId: "1:10374416997:web:9626c569e845c14a87548c",
+      appId: "1:10374416997:web:9626c569e845c14a87548c", // Using the ID from your provided HTML
       measurementId: "G-DTC2GM9L92"
     };
 
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
+    // Initialize Firebase (Modular SDK)
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    const auth = getAuth(app); // Get the Auth service
 
-    const usersRef = db.ref("users");
-    const sellersRef = db.ref("sellers");
+    const usersRef = ref(db, "users"); // Modular ref
+    const sellersRef = ref(db, "sellers"); // Modular ref
 
-    // Utility: Render recent items
+    // Admin UIDs for client-side check.
+    // IMPORTANT: For production applications, replace these with the actual UIDs of your administrators.
+    // For robust security, you should use Firebase Custom Claims and server-side verification (e.g., Cloud Functions).
+    const ADMIN_Uids = ["YOUR_ADMIN_UID_HERE", "ANOTHER_ADMIN_UID"]; // <<== !! IMPORTANT: Update these UIDs !! ==>>
+
+    // Utility: Render recent items in a table
     function renderRecent(tableId, list, type) {
       const table = document.getElementById(tableId);
-      table.innerHTML = `
-        <tr>
-          <th>${type} Name</th>
-          <th>Email</th>
-          <th>Status</th>
-          <th>Country</th>
-        </tr>
-      `;
+      table.innerHTML = ""; // Clear existing content
 
-      if (!list.length) {
-        table.innerHTML += `<tr><td colspan="4">No ${type.toLowerCase()} records found.</td></tr>`;
+      // Create header row
+      const headerRow = document.createElement("tr");
+      headerRow.innerHTML = `
+        <th>${type} Name</th>
+        <th>Email</th>
+        <th>Status</th>
+        <th>Country</th>
+      `;
+      table.appendChild(headerRow);
+
+      if (!list || !list.length) {
+        const noRecordsRow = document.createElement("tr");
+        noRecordsRow.innerHTML = `<td colspan="4" class="loading-text">No ${type.toLowerCase()} records found.</td>`;
+        table.appendChild(noRecordsRow);
         return;
       }
 
-      // Sort by timestamp if exists
-      list.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+      // Sort by creationTime or a similar timestamp field.
+      // Adjust field names (`createdAt`, `timestamp`) if your data uses different conventions.
+      list.sort((a, b) => {
+        const timeA = (type === "User" ? a.createdAt : a.timestamp) || 0; // Assuming 'createdAt' for users
+        const timeB = (type === "User" ? b.createdAt : b.timestamp) || 0; // Assuming 'timestamp' for sellers
+        return timeB - timeA; // Sort descending (most recent first)
+      });
 
-      list.slice(0, 5).forEach(item => {
-        const statusClass = item.status === "Approved"
-          ? "approved"
-          : item.status === "Declined"
-          ? "declined"
-          : "pending";
+      list.slice(0, 5).forEach(item => { // Show up to 5 recent items
+        let displayStatus;
+        let statusClass;
 
-        table.innerHTML += `
-          <tr>
-            <td>${item.name || "N/A"}</td>
-            <td>${item.email || "N/A"}</td>
-            <td class="${statusClass}">${item.status || "Pending"}</td>
-            <td>${item.country || "Unknown"}</td>
-          </tr>
+        if (type === "User") {
+          // For users, specifically use paymentStatus for the status column and styling
+          displayStatus = item.paymentStatus || "Pending";
+          if (displayStatus === "Paid") {
+            statusClass = "paid";
+          } else if (displayStatus === "Declined") { // Assuming 'Declined' is a possible payment status
+            statusClass = "declined";
+          } else {
+            statusClass = "pending";
+          }
+        } else { // For sellers, use their general 'status'
+          displayStatus = item.status || "Pending";
+          if (displayStatus === "Approved") {
+            statusClass = "approved";
+          } else if (displayStatus === "Declined") {
+            statusClass = "declined";
+          } else {
+            statusClass = "pending";
+          }
+        }
+
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td>${item.name || "N/A"}</td>
+          <td>${item.email || "N/A"}</td>
+          <td class="${statusClass}">${displayStatus}</td>
+          <td>${item.country || "Unknown"}</td>
         `;
+        table.appendChild(row);
       });
     }
 
-    // Real-time Dashboard Updates
+    // Function to update all dashboard statistics and tables
     function updateDashboard() {
-      usersRef.on("value", snapshot => {
-        const users = Object.values(snapshot.val() || {});
+      // Set up real-time listener for users data
+      onValue(usersRef, snapshot => {
+        const users = Object.values(snapshot.val() || {}); // Handle null snapshot gracefully
         const totalUsers = users.length;
-        const pending = users.filter(u => u.paymentStatus === "Pending" || u.status === "Pending").length;
-        const approved = users.filter(u => u.paymentStatus === "Paid" || u.status === "Approved").length;
+        // Count pending payments strictly based on 'paymentStatus' field
+        const pendingPayments = users.filter(u => u.paymentStatus === "Pending").length;
+        // Count approved payments strictly based on 'paymentStatus' field (e.g., "Paid")
+        const approvedPayments = users.filter(u => u.paymentStatus === "Paid").length;
 
         document.getElementById("totalUsers").textContent = totalUsers;
-        document.getElementById("pendingPayments").textContent = pending;
-        document.getElementById("approvedPayments").textContent = approved;
+        document.getElementById("pendingPayments").textContent = pendingPayments;
+        document.getElementById("approvedPayments").textContent = approvedPayments;
 
         renderRecent("recentUsers", users, "User");
+      }, (error) => {
+        console.error("Error fetching users data:", error);
+        document.getElementById("totalUsers").textContent = "Error";
+        document.getElementById("pendingPayments").textContent = "Error";
+        document.getElementById("approvedPayments").textContent = "Error";
+        document.getElementById("recentUsers").innerHTML = `<tr><td colspan="4" class="loading-text">Error loading users.</td></tr>`;
       });
 
-      sellersRef.on("value", snapshot => {
-        const sellers = Object.values(snapshot.val() || {});
+      // Set up real-time listener for sellers data
+      onValue(sellersRef, snapshot => {
+        const sellers = Object.values(snapshot.val() || {}); // Handle null snapshot gracefully
         document.getElementById("totalSellers").textContent = sellers.length;
         renderRecent("recentSellers", sellers, "Seller");
+      }, (error) => {
+        console.error("Error fetching sellers data:", error);
+        document.getElementById("totalSellers").textContent = "Error";
+        document.getElementById("recentSellers").innerHTML = `<tr><td colspan="4" class="loading-text">Error loading sellers.</td></tr>`;
       });
     }
 
-    window.onload = updateDashboard;
+    // Admin Authentication Check: Ensures dashboard loads only for authorized admins
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        if (ADMIN_Uids.includes(user.uid)) {
+          console.log("Admin user logged in:", user.email, "UID:", user.uid);
+          updateDashboard(); // Load dashboard data if the user is an admin
+        } else {
+          console.warn("Unauthorized access attempt by:", user.email);
+          alert("You are not authorized to view this page. Redirecting to home.");
+          window.location.href = "index.html"; // Redirect unauthorized users
+        }
+      } else {
+        // No user logged in, redirect to an admin login page
+        alert("You must be logged in as an admin to access this panel.");
+        window.location.href = "admin-login.html"; // Make sure you have an 'admin-login.html'
+      }
+    });
   </script>
 </body>
+
 </html>
-
-
-
