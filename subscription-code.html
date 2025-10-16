@@ -3,13 +3,12 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MatrixMarket - Subscription Code</title>
-    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- QR Code library -->
     <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+    <!-- jsPDF library for PDF generation -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-
     <style>
         body {
             background: linear-gradient(135deg, #0f172a, #1e293b, #4f46e5, #06b6d4);
@@ -25,14 +24,16 @@
         }
 
         @keyframes gradientBG {
-
-            0%,
-            100% {
+            0% {
                 background-position: 0% 50%;
             }
 
             50% {
                 background-position: 100% 50%;
+            }
+
+            100% {
+                background-position: 0% 50%;
             }
         }
 
@@ -73,7 +74,7 @@
             color: white;
             cursor: pointer;
             font-size: 16px;
-            transition: .3s;
+            transition: 0.3s;
         }
 
         .btn:hover {
@@ -98,6 +99,11 @@
             margin: 15px auto;
             display: block;
         }
+        .error-message {
+            color: #ef4444; /* Tailwind red-500 equivalent */
+            font-size: 1rem;
+            margin-top: 15px;
+        }
     </style>
 </head>
 
@@ -109,95 +115,227 @@
         <canvas id="qrCanvas"></canvas>
         <p id="expiry"></p>
 
-        <button class="btn" onclick="copyCode()">📋 Copy Code</button>
-        <button class="btn" onclick="downloadPDF()">⬇ Download PDF</button>
+        <button class="btn" onclick="window.copyCode()">📋 Copy Code</button>
+        <button class="btn" onclick="window.downloadPDF()">⬇ Download PDF</button>
         <p id="copyMsg" class="copied">✅ Code copied!</p>
         <br>
-        <button class="btn" onclick="window.location.href='index.html'">⬅ Back to Dashboard</button>
+        <button class="btn" onclick="window.location.href='seller-dashboard.html'">⬅ Go to Dashboard</button>
     </div>
 
-    <script>
-        // Firebase config
+    <!-- Firebase Modular SDK -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
+        import { getDatabase, ref, get, set } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
+
+        // ====== Firebase Config ======
         const firebaseConfig = {
-            const firebaseConfig = {
-  apiKey: "AIzaSyDFrctk2MZajP7OmECXe5npHAV0dODH9jk",
-  authDomain: "matrixmarketplace-1bd71.firebaseapp.com",
-  databaseURL: "https://matrixmarketplace-1bd71-default-rtdb.firebaseio.com",
-  projectId: "matrixmarketplace-1bd71",
-  storageBucket: "matrixmarketplace-1bd71.firebasestorage.app",
-  messagingSenderId: "10374416997",
-  appId: "1:10374416997:web:9626c569e845c14a87548c",
-  measurementId: "G-DTC2GM9L92"
-};
+            apiKey: "AIzaSyDFrctk2MZajP7OmECXe5npHAV0dODH9jk",
+            authDomain: "matrixmarketplace-1bd71.firebaseapp.com",
+            databaseURL: "https://matrixmarketplace-1bd71-default-rtdb.firebaseio.com",
+            projectId: "matrixmarketplace-1bd71",
+            storageBucket: "matrixmarketplace-1bd71.firebasestorage.app",
+            messagingSenderId: "10374416997",
+            appId: "1:10374416997:web:9626c569e845c14a87548c",
+            measurementId: "G-DTC2GM9L92"
         };
 
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.database();
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getDatabase(app);
 
-        // Generate secure code
+        let currentSellerUid = null; // Will hold the UID of the authenticated seller
+        let sellerData = null; // Will store the fetched seller's data from RTDB
+
+        /**
+         * Generates a secure unique subscription code.
+         * @returns {string} The generated code.
+         */
         function generateCode() {
             const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
             let code = "";
-            for (let i = 0; i < 12; i++) { code += chars.charAt(Math.floor(Math.random() * chars.length)); }
+            for (let i = 0; i < 12; i++) {
+                code += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            // Add a simple checksum for more uniqueness (not for security)
             const sum = [...code].reduce((acc, c) => acc + c.charCodeAt(0), 0);
             code += "-" + (sum % 36).toString(36).toUpperCase().padStart(2, "0");
             return code;
         }
 
-        // Assign/fetch subscription code from Firebase
-        async function assignCode(userEmail) {
-            const ref = db.ref('subscriptionCodes/' + userEmail.replace(/\./g, '_'));
-            const snapshot = await ref.once('value');
-            const data = snapshot.val();
-            const now = new Date();
-            if (data && new Date(data.expiry) > now) return data;
-
-            const expiry = new Date(); expiry.setDate(expiry.getDate() + 30);
-            const newCode = { value: generateCode(), expiry: expiry.toISOString() };
-            await ref.set(newCode);
-            return newCode;
+        /**
+         * Calculates the expiry date based on the plan.
+         * @param {string} plan The seller's subscription plan string (e.g., "Weekly - GMD1000/week").
+         * @returns {string} ISO string of the expiry date.
+         */
+        function calculateExpiry(plan) {
+            const expiry = new Date();
+            if (plan.includes("Weekly")) {
+                expiry.setDate(expiry.getDate() + 7); // 7 days for weekly
+            } else if (plan.includes("Monthly")) {
+                expiry.setMonth(expiry.getMonth() + 1); // 1 month for monthly
+            } else if (plan.includes("Yearly")) {
+                expiry.setFullYear(expiry.getFullYear() + 1); // 1 year for yearly
+            } else {
+                // Default to a short period if plan is unrecognized
+                expiry.setDate(expiry.getDate() + 30); // Default to 30 days
+            }
+            return expiry.toISOString();
         }
 
+        /**
+         * Copies the displayed code to the clipboard.
+         */
         function copyCode() {
             const code = document.getElementById("codeDisplay").innerText;
-            if (code) {
+            if (code && !code.includes("Loading") && !code.includes("Error") && !code.includes("Expired")) {
                 navigator.clipboard.writeText(code).then(() => {
-                    const msg = document.getElementById("copyMsg"); msg.style.display = "block";
+                    const msg = document.getElementById("copyMsg");
+                    msg.style.display = "block";
                     setTimeout(() => msg.style.display = "none", 2000);
+                }).catch(err => {
+                    console.error("Failed to copy code: ", err);
+                    alert("Failed to copy code. Please try manually.");
                 });
             }
         }
 
+        /**
+         * Downloads the subscription code and expiry as a PDF.
+         */
         async function downloadPDF() {
             const { jsPDF } = window.jspdf;
             const pdf = new jsPDF();
             const code = document.getElementById("codeDisplay").innerText;
             const expiry = document.getElementById("expiry").innerText;
-            pdf.setFontSize(18);
-            pdf.text("MatrixMarket Subscription Code", 20, 20);
-            pdf.setFontSize(14);
-            pdf.text("Code: " + code, 20, 40);
-            pdf.text(expiry, 20, 60);
-            pdf.save("MatrixMarket_Code.pdf");
-        }
+            const userName = document.getElementById("userName").innerText;
 
-        async function initPage() {
-            const user = JSON.parse(localStorage.getItem("currentUser"));
-            if (!user) { document.getElementById("codeDisplay").innerText = "❌ Please log in first."; return; }
-            document.getElementById("userName").innerText = "👋 Welcome, " + (user.fullName || user.email);
-            if (!user.subscription || user.subscription !== "active") {
-                document.getElementById("codeDisplay").innerText = "⚠️ You need an active subscription to view your code."; return;
+            if (code.includes("Loading") || code.includes("Error") || code.includes("Expired")) {
+                alert("Cannot download PDF: No valid code to display.");
+                return;
             }
-            const userCode = await assignCode(user.email);
-            const expiryDate = new Date(userCode.expiry);
-            document.getElementById("codeDisplay").innerText = userCode.value;
-            document.getElementById("expiry").innerText = "⏳ Expires on: " + expiryDate.toDateString();
-            QRCode.toCanvas(document.getElementById("qrCanvas"), userCode.value, { width: 200 });
+
+            pdf.setFontSize(22);
+            pdf.setTextColor(33, 150, 243); // A nice blue
+            pdf.text("MatrixMarket Subscription Code", 20, 20);
+
+            pdf.setFontSize(16);
+            pdf.setTextColor(0, 0, 0); // Black for text
+            pdf.text(userName, 20, 35);
+            pdf.text("Your Exclusive Code:", 20, 50);
+
+            pdf.setFontSize(24);
+            pdf.setTextColor(0, 182, 212); // Teal
+            pdf.text(code, 20, 65);
+
+            pdf.setFontSize(14);
+            pdf.setTextColor(70, 70, 70); // Dark grey
+            pdf.text(expiry, 20, 80);
+
+            // Add QR code to PDF
+            const canvas = document.getElementById('qrCanvas');
+            if (canvas) {
+                const imgData = canvas.toDataURL('image/png');
+                pdf.addImage(imgData, 'PNG', 75, 90, 60, 60); // Centered roughly
+            }
+
+            pdf.save(`MatrixMarket_Code_${code}.pdf`);
         }
 
-        window.onload = initPage;
+        /**
+         * Initializes the page by fetching seller data and displaying the subscription code.
+         */
+        async function initPage() {
+            const codeDisplay = document.getElementById("codeDisplay");
+            const userNameElement = document.getElementById("userName");
+            const expiryElement = document.getElementById("expiry");
+            const qrCanvas = document.getElementById("qrCanvas");
+
+            codeDisplay.innerText = "Loading...";
+            qrCanvas.style.display = "none"; // Hide QR until loaded
+
+            if (!currentSellerUid) {
+                // This case should ideally be handled by onAuthStateChanged redirect
+                codeDisplay.innerText = "❌ No seller authenticated.";
+                codeDisplay.classList.add('error-message');
+                return;
+            }
+
+            try {
+                // Fetch seller data from Firebase
+                const sellerSnapshot = await get(ref(db, `sellers/${currentSellerUid}`));
+                sellerData = sellerSnapshot.val();
+
+                if (!sellerData) {
+                    codeDisplay.innerText = "⚠️ Seller data not found.";
+                    codeDisplay.classList.add('error-message');
+                    userNameElement.innerText = "";
+                    return;
+                }
+
+                userNameElement.innerText = "👋 Welcome, " + (sellerData.name || sellerData.email);
+
+                // Check subscription status
+                // The payment-status-sellers.html sets this to "Active" upon admin approval
+                if (sellerData.subscription !== "Active") {
+                    codeDisplay.innerText = "⚠️ You need an active subscription to view your code.";
+                    codeDisplay.classList.add('error-message');
+                    expiryElement.innerText = "";
+                    return;
+                }
+
+                let currentCode = sellerData.subscriptionCode;
+                let currentExpiry = sellerData.subscriptionExpiry;
+                let expiryDateObj = currentExpiry ? new Date(currentExpiry) : null;
+                const now = new Date();
+
+                // Check if code exists and is not expired
+                if (currentCode && expiryDateObj && expiryDateObj > now) {
+                    codeDisplay.innerText = currentCode;
+                    expiryElement.innerText = "⏳ Expires on: " + expiryDateObj.toDateString();
+                    qrCanvas.style.display = "block"; // Show QR code
+                    QRCode.toCanvas(qrCanvas, currentCode, { width: 200, color: { dark: '#000000', light: '#ffffff' } });
+                } else {
+                    // Code does not exist or is expired, generate and save new one
+                    const newCodeValue = generateCode();
+                    const newExpiryIso = calculateExpiry(sellerData.plan); // Use seller's plan
+                    const newExpiryDateObj = new Date(newExpiryIso);
+
+                    // Update Firebase with new code and expiry
+                    await set(ref(db, `sellers/${currentSellerUid}/subscriptionCode`), newCodeValue);
+                    await set(ref(db, `sellers/${currentSellerUid}/subscriptionExpiry`), newExpiryIso);
+
+                    codeDisplay.innerText = newCodeValue;
+                    expiryElement.innerText = "⏳ Expires on: " + newExpiryDateObj.toDateString();
+                    qrCanvas.style.display = "block"; // Show QR code
+                    QRCode.toCanvas(qrCanvas, newCodeValue, { width: 200, color: { dark: '#000000', light: '#ffffff' } });
+                }
+
+            } catch (error) {
+                console.error("Error initializing subscription code page:", error);
+                codeDisplay.innerText = `❌ Error: ${error.message}`;
+                codeDisplay.classList.add('error-message');
+                expiryElement.innerText = "";
+            }
+        }
+
+        // --- Main Execution Flow ---
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                currentSellerUid = user.uid;
+                initPage(); // Call initPage once authenticated
+            } else {
+                console.warn("No authenticated seller. Redirecting to login.");
+                // Redirect to login page if not authenticated
+                window.location.href = "seller-login.html";
+            }
+        });
+
+        // Expose functions to global scope for HTML onclick attributes
+        window.copyCode = copyCode;
+        window.downloadPDF = downloadPDF;
     </script>
 </body>
-
 
 </html>
