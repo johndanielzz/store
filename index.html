@@ -70,7 +70,8 @@
             overflow: hidden;
             min-width: 160px;
             box-shadow: 0 0 12px rgba(0, 0, 0, 0.5);
-            z-index: 1001; /* Ensure dropdown is above other content */
+            z-index: 1001;
+            /* Ensure dropdown is above other content */
         }
 
         .dropdown-content a {
@@ -414,7 +415,7 @@
                 document.getElementById("accountLinks").innerHTML = `
                 <a href="buyers-orders.html">📦 My Orders</a>
                 <a href="settings.html">⚙ Settings</a>
-                <a href="#" onclick="logoutUser()">🚪 Logout</a>`; // This calls the globally exposed logoutUser
+                <a href="#" onclick="window.logoutUser(event)">🚪 Logout</a>`; // Pass event to logoutUser
 
                 // Update local storage currentUser balance for other parts of the app if they need a current value
                 let localUser = JSON.parse(localStorage.getItem("currentUser") || "{}");
@@ -460,16 +461,21 @@
             } else {
                 // User is signed out
                 updateUserInfoDisplay(null);
+                // Redirect to login page after logout for a cleaner experience
+                if (window.location.pathname !== '/login.html' && window.location.pathname !== '/register.html') {
+                    window.location.href = 'login.html';
+                }
             }
         });
 
         // === LOGOUT ===
-        function logoutUser() {
+        function logoutUser(event) {
+            event.preventDefault(); // Prevent the default action of the anchor tag
             console.log("Logout button clicked, attempting to sign out..."); // Added for debugging
             auth.signOut().then(() => {
                 console.log("User signed out from Firebase successfully.");
-                // onAuthStateChanged listener will automatically update the UI
                 alert("✅ Logged out successfully!");
+                // The onAuthStateChanged listener will handle UI updates and redirection.
             }).catch((error) => {
                 console.error("Error signing out:", error);
                 alert("❌ Error logging out. Please try again.");
@@ -522,7 +528,7 @@
                     <p>${safe(p.category)}</p>
                     <div class="product-price">
                     <div class="price">${safe(p.price)} GMD</div>
-                    <button class="small-btn" onclick='addToCart(${JSON.stringify(p)})'>Add</button>
+                    <button class="small-btn" onclick='window.addToCart(${JSON.stringify(p)})'>Add</button>
                     </div>
                 </div>`;
             }).join('');
@@ -534,15 +540,6 @@
             // onAuthStateChanged will handle the initial user info display and balance listener setup
             renderProducts(); // Initial product render
         });
-
-        // The storage listener for balance is no longer needed as Firebase RTDB handles it
-        // and the local currentUser is kept in sync by the RTDB listener.
-        // If other parts of local storage (e.g., 'products', 'cart') are updated elsewhere
-        // and need to trigger a re-render here, you might keep a modified storage listener.
-        // For now, removing the one that touched balance logic.
-        // window.addEventListener("storage", function () {
-        //     renderProducts();
-        // });
     </script>
 </body>
 
