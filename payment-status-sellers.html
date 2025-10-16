@@ -6,10 +6,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>MatrixMarket - Seller Payment Status</title>
 
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
-
     <style>
         body {
             margin: 0;
@@ -116,7 +112,7 @@
             border-radius: 12px;
             margin-top: 20px;
             text-align: left;
-            display: none;
+            /* display: none; */ /* Will be set dynamically by JS */
         }
 
         .details p {
@@ -176,17 +172,18 @@
 
     <div class="container">
         <div class="card">
-            <h1 id="title">Loading...</h1>
+            <h1 id="title">Loading Payment Status...</h1>
             <p id="statusMsg" class="status"></p>
 
-            <div class="details" id="details">
-                <p><strong>Name:</strong> <span id="detailsName"></span></p>
-                <p><strong>Amount:</strong> <span id="detailsAmount"></span></p>
-                <p><strong>Method:</strong> <span id="detailsMethod"></span></p>
-                <p><strong>Date:</strong> <span id="detailsDate"></span></p>
+            <div class="details" id="detailsSection">
+                <p><strong>Plan:</strong> <span id="detailsPlan"></span></p>
+                <p><strong>Amount:</strong> <span id="detailsAmount"></span> GMD</p>
+                <p><strong>Submitted Date:</strong> <span id="detailsDate"></span></p>
+                <p><strong>Your Store:</strong> <span id="detailsStore"></span></p>
             </div>
 
-            <button id="continueBtn" class="btn">Go to Subscription</button>
+            <button id="continueBtn" class="btn" style="display: none;">Go to Dashboard</button>
+            <button id="goToSubscriptionBtn" class="btn" style="display: none;">Go to Subscription</button>
         </div>
     </div>
 
@@ -194,110 +191,172 @@
         <p>© 2025 MatrixMarket | Seller Payment Status</p>
     </footer>
 
-    <script>
+    <!-- Firebase Modular SDK -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
+        import { getDatabase, ref, onValue, off, update } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
+
         // ===== Firebase Config =====
         const firebaseConfig = {
-    apiKey: "AIzaSyDFrctk2MZajP7OmECXe5npHAV0dODH9jk",
-  authDomain: "matrixmarketplace-1bd71.firebaseapp.com",
-  databaseURL: "https://matrixmarketplace-1bd71-default-rtdb.firebaseio.com",
-  projectId: "matrixmarketplace-1bd71",
-  storageBucket: "matrixmarketplace-1bd71.firebasestorage.app",
-  messagingSenderId: "10374416997",
-  appId: "1:10374416997:web:9626c569e845c14a87548c",
-  measurementId: "G-DTC2GM9L92"
+            apiKey: "AIzaSyDFrctk2MZajP7OmECXe5npHAV0dODH9jk",
+            authDomain: "matrixmarketplace-1bd71.firebaseapp.com",
+            databaseURL: "https://matrixmarketplace-1bd71-default-rtdb.firebaseio.com",
+            projectId: "matrixmarketplace-1bd71",
+            storageBucket: "matrixmarketplace-1bd71.firebasestorage.app",
+            messagingSenderId: "10374416997",
+            appId: "1:10374416997:web:9626c569e845c14a87548c",
+            measurementId: "G-DTC2GM9L92"
         };
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.database();
 
-        function getSeller() {
-            return JSON.parse(localStorage.getItem("currentSeller")) || null;
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getDatabase(app);
+
+        let currentSellerUid = null;
+        let currentPaymentRequestId = null;
+        let paymentStatusListener = null; // To store the listener function for cleanup
+
+        /**
+         * Retrieves a specific query parameter from the URL.
+         * @param {string} param The name of the query parameter.
+         * @returns {string|null} The value of the parameter or null if not found.
+         */
+        function getQueryParam(param) {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get(param);
         }
 
-        async function updateStatus() {
-            const seller = getSeller();
-            const title = document.getElementById("title");
-            const msg = document.getElementById("statusMsg");
-            const details = document.getElementById("details");
-            const btn = document.getElementById("continueBtn");
+        /**
+         * Renders the payment status and details on the page.
+         * @param {object} paymentRequest The payment request data from Firebase.
+         */
+        async function renderPaymentStatus(paymentRequest) {
+            const titleElement = document.getElementById("title");
+            const statusMsgElement = document.getElementById("statusMsg");
+            const detailsSection = document.getElementById("detailsSection");
+            const continueBtn = document.getElementById("continueBtn");
+            const goToSubscriptionBtn = document.getElementById("goToSubscriptionBtn");
 
-            if (!seller) {
-                title.innerText = "⚠️ Seller Not Logged In";
-                msg.innerText = "Please log in to view your payment status.";
-                msg.className = "status declined";
-                btn.style.display = "none";
-                details.style.display = "none";
+            // Clear previous states
+            statusMsgElement.className = "status";
+            continueBtn.style.display = "none";
+            goToSubscriptionBtn.style.display = "none";
+
+            if (!paymentRequest) {
+                titleElement.innerText = "Payment Request Not Found";
+                statusMsgElement.innerText = "The payment request could not be found or has been removed.";
+                statusMsgElement.classList.add("declined");
+                detailsSection.style.display = "none";
                 return;
             }
 
-            try {
-                // Fetch seller's latest pending payment request from Firebase
-                const snapshot = await db.ref("pendingRequests").orderByChild("email").equalTo(seller.email).limitToLast(1).get();
-                if (!snapshot.exists()) {
-                    title.innerText = "⌛ No Pending Payments";
-                    msg.innerText = "No payment requests found. Please complete a payment.";
-                    msg.className = "status pending";
-                    btn.style.display = "none";
-                    details.style.display = "none";
-                    return;
-                }
+            // Display details
+            document.getElementById("detailsPlan").innerText = paymentRequest.plan || "N/A";
+            document.getElementById("detailsAmount").innerText = parseFloat(paymentRequest.amount).toFixed(2);
+            document.getElementById("detailsDate").innerText = paymentRequest.submittedAt ? new Date(paymentRequest.submittedAt).toLocaleString() : "N/A";
+            document.getElementById("detailsStore").innerText = paymentRequest.storeName || "N/A";
+            detailsSection.style.display = "block"; // Show details section
 
-                const request = Object.values(snapshot.val())[0];
-                details.style.display = "block";
-                document.getElementById("detailsName").innerText = seller.name || seller.fullName || seller.email;
-                document.getElementById("detailsAmount").innerText = request.amount + " GMD";
-                document.getElementById("detailsMethod").innerText = request.method || "N/A";
-                document.getElementById("detailsDate").innerText = request.date;
-
-                switch (request.status) {
-                    case "Approved":
-                        title.innerText = "✅ Payment Approved";
-                        msg.innerText = "Your payment has been approved by admin!";
-                        msg.className = "status success";
-                        btn.style.display = "inline-block";
-                        btn.innerText = "Go to Subscription";
-                        btn.onclick = goToSubscription;
-                        break;
-                    case "Declined":
-                        title.innerText = "❌ Payment Declined";
-                        msg.innerText = "Your payment was declined by admin.";
-                        msg.className = "status declined";
-                        btn.style.display = "none";
-                        break;
-                    default:
-                        title.innerText = "⌛ Payment Pending";
-                        msg.innerText = "Waiting for admin approval...";
-                        msg.className = "status pending";
-                        btn.style.display = "none";
-                }
-
-            } catch (err) {
-                console.error(err);
-                title.innerText = "⚠️ Error";
-                msg.innerText = "Failed to fetch payment status.";
-                msg.className = "status declined";
-                btn.style.display = "none";
-                details.style.display = "none";
+            switch (paymentRequest.status) {
+                case "Approved":
+                    titleElement.innerText = "✅ Payment Approved!";
+                    statusMsgElement.innerText = "Your subscription payment has been approved by our team. Welcome to MatrixMarket!";
+                    statusMsgElement.classList.add("success");
+                    goToSubscriptionBtn.style.display = "inline-block";
+                    goToSubscriptionBtn.onclick = goToSubscription;
+                    // Update seller's main status and subscription status upon approval
+                    await update(ref(db, `sellers/${currentSellerUid}`), {
+                        status: "Approved",
+                        subscription: "Active"
+                    });
+                    break;
+                case "Declined":
+                    titleElement.innerText = "❌ Payment Declined";
+                    statusMsgElement.innerText = "Unfortunately, your payment could not be approved. Please contact support.";
+                    statusMsgElement.classList.add("declined");
+                    continueBtn.innerText = "Contact Support";
+                    continueBtn.style.display = "inline-block";
+                    // Update seller's main status upon decline
+                     await update(ref(db, `sellers/${currentSellerUid}`), {
+                        status: "Declined",
+                        subscription: "Inactive"
+                    });
+                    break;
+                case "Payment Confirmed by Seller": // This is the status after seller clicks "Confirm Payment Made"
+                default: // Fallback for any other pending or unknown status
+                    titleElement.innerText = "⌛ Payment Under Review";
+                    statusMsgElement.innerText = "Your payment confirmation is currently being reviewed by our team. Please check back later.";
+                    statusMsgElement.classList.add("pending");
+                    continueBtn.innerText = "Back to Seller Login";
+                    continueBtn.style.display = "inline-block";
+                    continueBtn.onclick = () => { window.location.href = "seller-login.html"; };
+                    break;
             }
         }
 
+        /**
+         * Redirects the seller to their subscription-code.html page.
+         */
         function goToSubscription() {
-            const seller = getSeller();
-            db.ref("sellers").orderByChild("email").equalTo(seller.email).once("value", snapshot => {
-                const sellerId = Object.keys(snapshot.val())[0];
-                db.ref(`sellers/${sellerId}`).update({ subscription: "active" });
-                localStorage.setItem("currentSeller", JSON.stringify({ ...seller, subscription: "active" }));
-                window.location.href = "subscription-code.html";
-            });
+            // Once approved, redirect to the subscription page
+            window.location.href = "subscription-code.html";
         }
 
-        window.onload = () => {
-            updateStatus();
-            setInterval(updateStatus, 5000); // real-time refresh every 5 seconds
-        }
+        // --- Main execution flow ---
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                currentSellerUid = user.uid;
+                currentPaymentRequestId = getQueryParam("paymentRequestId");
+
+                if (!currentSellerUid || !currentPaymentRequestId) {
+                    document.getElementById("title").innerText = "Error: Missing Information";
+                    document.getElementById("statusMsg").innerText = "Could not retrieve payment status. Required IDs are missing.";
+                    document.getElementById("statusMsg").classList.add("declined");
+                    return;
+                }
+
+                // Verify that the authenticated user matches the sellerId from the URL
+                const userIdFromUrl = getQueryParam("userId");
+                if (currentSellerUid !== userIdFromUrl) {
+                     document.getElementById("title").innerText = "Access Denied";
+                    document.getElementById("statusMsg").innerText = "You are not authorized to view this payment status.";
+                    document.getElementById("statusMsg").classList.add("declined");
+                    console.error("Unauthorized access attempt: Authenticated user UID does not match userId from URL.");
+                    auth.signOut(); // Log out unauthorized user
+                    return;
+                }
+
+                // Set up real-time listener for the specific payment request
+                const paymentRef = ref(db, `pendingSellerPayments/${currentPaymentRequestId}`);
+                paymentStatusListener = onValue(paymentRef, (snapshot) => {
+                    const paymentRequest = snapshot.val();
+                    renderPaymentStatus(paymentRequest);
+                }, (error) => {
+                    console.error("Error fetching payment request:", error);
+                    document.getElementById("title").innerText = "Error Loading Status";
+                    document.getElementById("statusMsg").innerText = `Failed to load payment details: ${error.message}`;
+                    document.getElementById("statusMsg").classList.add("declined");
+                });
+
+            } else {
+                // Not authenticated, redirect to login
+                console.warn("No Firebase Auth user logged in. Redirecting to seller login.");
+                window.location.href = "seller-login.html";
+            }
+        });
+
+        // Clean up listener when the page is unloaded
+        window.addEventListener('beforeunload', () => {
+            if (paymentStatusListener) {
+                off(paymentStatusListener);
+            }
+        });
+
+        // Expose functions to global scope if needed for future button clicks (e.g., Contact Support)
+        window.goToSubscription = goToSubscription;
     </script>
-
 </body>
 
-
 </html>
-
