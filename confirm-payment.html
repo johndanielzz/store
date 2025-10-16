@@ -90,8 +90,9 @@
     <label for="amount">Enter Amount (GMD)</label>
     <input type="number" id="amount" placeholder="Enter amount" min="1">
 
-    <label for="proof">Upload Proof of Payment (Image)</label>
-    <input type="file" id="proof" accept="image/*">
+    <!-- Removed: Proof of Payment upload section -->
+    <!-- <label for="proof">Upload Proof of Payment (Image)</label> -->
+    <!-- <input type="file" id="proof" accept="image/*"> -->
 
     <button type="button" id="submitBtn" disabled>📩 Submit Request</button>
     <button class="back-btn" onclick="window.location.href='index.html'">⬅ Back</button>
@@ -103,8 +104,8 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
     import { getDatabase, ref as dbRef, push, set } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
-    // FIX: Corrected typo in Firebase Storage import URL and changed to uploadBytesResumable
-    import { getStorage, ref as storageRef, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-storage.js";
+    // Removed: Firebase Storage imports as proof of payment is no longer needed
+    // import { getStorage, ref as storageRef, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-storage.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
 
     const firebaseConfig = {
@@ -112,7 +113,8 @@
       authDomain: "matrixmarketplace-1bd71.firebaseapp.com",
       databaseURL: "https://matrixmarketplace-1bd71-default-rtdb.firebaseio.com",
       projectId: "matrixmarketplace-1bd71",
-      storageBucket: "matrixmarketplace-1bd71.appspot.com",
+      // Removed: storageBucket as it's no longer used on this page
+      // storageBucket: "matrixmarketplace-1bd71.appspot.com",
       messagingSenderId: "10374416997",
       appId: "1:10374416997:web:9626c569e845c14a87548c",
       measurementId: "G-DTC2GM9L92"
@@ -120,7 +122,8 @@
 
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
-    const storage = getStorage(app);
+    // Removed: storage initialization as it's no longer used
+    // const storage = getStorage(app);
     const auth = getAuth(app);
 
     let firebaseUser = null;
@@ -129,7 +132,8 @@
     const userInfoBox = document.getElementById("userInfo");
     const methodSelect = document.getElementById("method");
     const amountInput = document.getElementById("amount");
-    const proofInput = document.getElementById("proof");
+    // Removed: proofInput as it's no longer needed
+    // const proofInput = document.getElementById("proof");
 
     function showError(msg) {
       const errorMsg = document.getElementById("errorMsg");
@@ -174,50 +178,47 @@
 
       const method = methodSelect.value;
       const amount = parseFloat(amountInput.value);
-      const proofFile = proofInput.files[0];
+      // Removed: proofFile validation as proof of payment is no longer needed
+      // const proofFile = proofInput.files[0];
 
       if (!method) return showError("⚠️ Select a payment method.");
       if (!amount || amount <= 0) return showError("⚠️ Enter a valid amount.");
-      if (!proofFile) return showError("⚠️ Please upload proof of payment.");
-      if (proofFile.size > 5 * 1024 * 1024) return showError("⚠️ File must be under 5MB.");
+      // Removed: proofFile validation
+      // if (!proofFile) return showError("⚠️ Please upload proof of payment.");
+      // if (proofFile.size > 5 * 1024 * 1024) return showError("⚠️ File must be under 5MB.");
 
       submitBtn.disabled = true; // Disable button immediately
 
       try {
+        // Removed: All Firebase Storage related code
         // 1. Upload proof to Firebase Storage with progress tracking
-        const proofRef = storageRef(storage, `payment_proofs/${firebaseUser.uid}/${Date.now()}_${proofFile.name}`);
-        const uploadTask = uploadBytesResumable(proofRef, proofFile); // Use uploadBytesResumable
-
-        // Listen for state changes, errors, and completion of the upload.
-        await new Promise((resolve, reject) => {
-            uploadTask.on('state_changed',
-                (snapshot) => {
-                    const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                    submitBtn.innerText = `⏳ Uploading... ${progress.toFixed(0)}%`;
-                    // You can add more visual feedback here, e.g., to a dedicated progress bar
-                },
-                (error) => {
-                    // Handle unsuccessful uploads
-                    console.error("Storage upload failed:", error);
-                    let errorMessage = "⚠️ Error uploading proof. Please try again.";
-                    if (error.code === 'storage/unauthorized') {
-                        errorMessage = "⚠️ Permission denied! Check Firebase Storage rules for 'payment_proofs'.";
-                    } else if (error.code === 'storage/canceled') {
-                        errorMessage = "⚠️ Upload canceled.";
-                    }
-                    showError(errorMessage);
-                    reject(error); // Reject the promise to trigger the outer catch block
-                },
-                () => {
-                    // Handle successful uploads on complete
-                    console.log('Proof upload complete!');
-                    resolve(); // Resolve the promise when upload is done
-                }
-            );
-        });
-
-        // 2. Get the download URL after successful upload
-        const proofURL = await getDownloadURL(uploadTask.snapshot.ref);
+        // const proofRef = storageRef(storage, `payment_proofs/${firebaseUser.uid}/${Date.now()}_${proofFile.name}`);
+        // const uploadTask = uploadBytesResumable(proofRef, proofFile);
+        // await new Promise((resolve, reject) => {
+        //     uploadTask.on('state_changed',
+        //         (snapshot) => {
+        //             const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+        //             submitBtn.innerText = `⏳ Uploading... ${progress.toFixed(0)}%`;
+        //         },
+        //         (error) => {
+        //             console.error("Storage upload failed:", error);
+        //             let errorMessage = "⚠️ Error uploading proof. Please try again.";
+        //             if (error.code === 'storage/unauthorized') {
+        //                 errorMessage = "⚠️ Permission denied! Check Firebase Storage rules for 'payment_proofs'.";
+        //             } else if (error.code === 'storage/canceled') {
+        //                 errorMessage = "⚠️ Upload canceled.";
+        //             }
+        //             showError(errorMessage);
+        //             reject(error);
+        //         },
+        //         () => {
+        //             console.log('Proof upload complete!');
+        //             resolve();
+        //         }
+        //     );
+        // });
+        // 2. Removed: Get the download URL after successful upload
+        // const proofURL = await getDownloadURL(uploadTask.snapshot.ref);
 
         // 3. Save payment request to Realtime Database
         submitBtn.innerText = "💾 Saving data..."; // Update button text for next step
@@ -228,8 +229,9 @@
           email: firebaseUser.email,
           method,
           amount,
-          proofURL,
-          status: "Pending",
+          // Removed: proofURL as proof of payment is no longer needed
+          // proofURL,
+          status: "Pending", // Status will still be pending for admin review
           date: new Date().toLocaleString()
         });
 
@@ -239,16 +241,18 @@
         // Clear form fields after successful submission
         methodSelect.value = "";
         amountInput.value = "";
-        proofInput.value = ""; // Clear file input
+        // Removed: Clear file input
+        // proofInput.value = "";
 
         setTimeout(() => window.location.href = "payment-status.html", 2000);
 
       } catch (err) {
         console.error("Payment submission error:", err);
-        // This catch block handles errors from both upload and database set operations
-        if (err.code && err.code.startsWith('storage/')) {
-            // Error message already set by the uploadTask.on error handler
-        } else if (err.message.includes("auth.currentUser is null") || err.message.includes("no-auth")) {
+        // Removed: Storage-specific error handling
+        // if (err.code && err.code.startsWith('storage/')) {
+        //     // Error message already set by the uploadTask.on error handler
+        // } else
+        if (err.message.includes("auth.currentUser is null") || err.message.includes("no-auth")) {
             showError("⚠️ You must be logged in to Firebase to submit a payment.");
         } else if (err.message) {
             showError(`⚠️ Error: ${err.message}`);
