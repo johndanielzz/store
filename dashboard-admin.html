@@ -299,11 +299,14 @@
 
       // Sort by creation/request time (most recent first)
       list.sort((a, b) => {
-        let timeA, timeB;
-        if (type === "User") { timeA = a.createdAt; timeB = b.createdAt; }
-        else if (type === "Seller") { timeA = a.registrationDate; timeB = b.registrationDate; }
-        else if (type === "Payment") { timeA = a.requestDate || a.submittedAt; timeB = b.requestDate || b.submittedAt; }
-        return new Date(timeB).getTime() - new Date(timeA).getTime();
+        let timeA = 0, timeB = 0; // Default values
+        if (type === "User" && a.createdAt && b.createdAt) { timeA = new Date(a.createdAt).getTime(); timeB = new Date(b.createdAt).getTime(); }
+        else if (type === "Seller" && a.registrationDate && b.registrationDate) { timeA = new Date(a.registrationDate).getTime(); timeB = new Date(b.registrationDate).getTime(); }
+        else if (type === "Payment") {
+            timeA = new Date(a.requestDate || a.submittedAt || 0).getTime();
+            timeB = new Date(b.requestDate || b.submittedAt || 0).getTime();
+        }
+        return timeB - timeA;
       });
 
       list.slice(0, 5).forEach(item => { // Show up to 5 recent items
@@ -413,9 +416,10 @@
     // Admin Authentication Check: Ensures dashboard loads only for authorized admins
     onAuthStateChanged(auth, (user) => {
       if (user) {
-        // Log the UID to the console to help you find it!
+        // --- DEBUGGING STEP: LOG THE UID ---
         console.log("Logged-in user UID:", user.uid);
         console.log("Logged-in user email:", user.email);
+        // --- END DEBUGGING STEP ---
 
         if (ADMIN_Uids.includes(user.uid)) {
           console.log("Admin user authorized. Loading dashboard.");
