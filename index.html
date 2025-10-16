@@ -70,6 +70,7 @@
             overflow: hidden;
             min-width: 160px;
             box-shadow: 0 0 12px rgba(0, 0, 0, 0.5);
+            z-index: 1001; /* Ensure dropdown is above other content */
         }
 
         .dropdown-content a {
@@ -380,12 +381,9 @@
     </div>
 
     <script type="module">
-        // Import the functions you need from the SDKs you need
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
         import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
-        // getAnalytics is not used in this script, can be removed if not needed
-        // import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-analytics.js"; 
 
         // Your web app's Firebase configuration
         const firebaseConfig = {
@@ -403,8 +401,6 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getDatabase(app);
-        // const analytics = getAnalytics(app); // Only initialize if you plan to use it here
-
 
         // === UPDATE USER INFO DISPLAY ===
         // This function updates the UI based on the current user and their balance
@@ -418,7 +414,7 @@
                 document.getElementById("accountLinks").innerHTML = `
                 <a href="buyers-orders.html">📦 My Orders</a>
                 <a href="settings.html">⚙ Settings</a>
-                <a href="#" onclick="logoutUser()">🚪 Logout</a>`;
+                <a href="#" onclick="logoutUser()">🚪 Logout</a>`; // This calls the globally exposed logoutUser
 
                 // Update local storage currentUser balance for other parts of the app if they need a current value
                 let localUser = JSON.parse(localStorage.getItem("currentUser") || "{}");
@@ -469,8 +465,9 @@
 
         // === LOGOUT ===
         function logoutUser() {
+            console.log("Logout button clicked, attempting to sign out..."); // Added for debugging
             auth.signOut().then(() => {
-                console.log("User signed out from Firebase.");
+                console.log("User signed out from Firebase successfully.");
                 // onAuthStateChanged listener will automatically update the UI
                 alert("✅ Logged out successfully!");
             }).catch((error) => {
