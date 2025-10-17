@@ -48,8 +48,8 @@
     }
 
     nav {
-        display: flex;
-        align-items: center;
+      display: flex;
+      align-items: center;
     }
 
     nav a {
@@ -65,18 +65,20 @@
     }
 
     .logout-btn {
-        background-color: #ef4444; /* Red for logout */
-        color: white;
-        padding: 8px 15px;
-        border: none;
-        border-radius: 5px;
-        cursor: pointer;
-        margin-left: 20px; /* Space from other nav items */
-        transition: background-color 0.3s ease;
+      background-color: #ef4444;
+      /* Red for logout */
+      color: white;
+      padding: 8px 15px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      margin-left: 20px;
+      /* Space from other nav items */
+      transition: background-color 0.3s ease;
     }
 
     .logout-btn:hover {
-        background-color: #dc2626;
+      background-color: #dc2626;
     }
 
     .container {
@@ -180,12 +182,18 @@
       color: #ef4444;
       font-weight: bold;
     }
+
     .status-confirmed-by-seller {
-        color: #8b5cf6;
-        font-weight: bold;
+      color: #8b5cf6;
+      font-weight: bold;
     }
+
     .status-proof-submitted {
-        color: #3b82f6;
+      color: #3b82f6;
+      font-weight: bold;
+    }
+    .status-pending-approval { /* Added for general pending seller status */
+        color: #fbbf24;
         font-weight: bold;
     }
 
@@ -203,7 +211,7 @@
       <a href="dashboard-admin.html">Dashboard</a>
       <a href="admin-sellers.html">Sellers</a>
       <a href="admin-users.html">Users</a>
-      <a href="admin-payments.html">Seller Payments</a> <!-- Adjusted this link as per common admin UI structure -->
+      <a href="admin-payments.html">Payments</a>
       <a href="admin-code.html">Codes</a>
       <a href="admin-edit-user-seller.html">Edit</a>
       <button class="logout-btn" id="logoutBtn">Logout</button>
@@ -258,7 +266,7 @@
       authDomain: "matrixmarketplace-1bd71.firebaseapp.com",
       databaseURL: "https://matrixmarketplace-1bd71-default-rtdb.firebaseio.com",
       projectId: "matrixmarketplace-1bd71",
-      storageBucket: "matrixmarketplace-1bd71.firebasestorage.app",
+      storageBucket: "matrixmarketplace-1bd71.appspot.com", // Keeping consistent
       messagingSenderId: "10374416997",
       appId: "1:10374416997:web:9626c569e845c14a87548c",
       measurementId: "G-DTC2GM9L92"
@@ -269,10 +277,11 @@
     const db = getDatabase(app);
     const auth = getAuth(app); // Initialize Firebase Authentication
 
+    // Database References
     const usersRef = ref(db, "users");
     const sellersRef = ref(db, "sellers");
     const userPaymentsRef = ref(db, "pendingRequests"); // User top-up requests
-    const sellerPaymentsRef = ref(db, "pendingSellerPayments"); // Seller subscription requests
+    const sellerPaymentsRef = ref(db, "pendingSellerPayments"); // Assuming this is where seller subscription requests are stored
 
     /**
      * Renders a list of recent items in a given table.
@@ -301,16 +310,26 @@
 
       // Sort by creation/request time (most recent first)
       list.sort((a, b) => {
-        let timeA = 0, timeB = 0; // Default values for items without valid dates
-        if (type === "User" && a.createdAt) { timeA = new Date(a.createdAt).getTime(); }
-        else if (type === "Seller" && a.registrationDate) { timeA = new Date(a.registrationDate).getTime(); }
-        else if (type === "Payment") { timeA = new Date(a.submittedAt || a.requestDate || 0).getTime(); }
+        let dateA = new Date(0), dateB = new Date(0); // Default to epoch if date is invalid
 
-        if (type === "User" && b.createdAt) { timeB = new Date(b.createdAt).getTime(); }
-        else if (type === "Seller" && b.registrationDate) { timeB = new Date(b.registrationDate).getTime(); }
-        else if (type === "Payment") { timeB = new Date(b.submittedAt || b.requestDate || 0).getTime(); }
+        // Determine the date field based on type and preference
+        if (type === "User" && a.createdAt) { dateA = new Date(a.createdAt); }
+        else if (type === "Seller" && a.registrationDate) { dateA = new Date(a.registrationDate); }
+        else if (type === "Payment" && (a.timestamp || a.date)) { // Use timestamp if available, fallback to date string
+            dateA = new Date(a.timestamp || a.date);
+        }
 
-        return timeB - timeA;
+        if (type === "User" && b.createdAt) { dateB = new Date(b.createdAt); }
+        else if (type === "Seller" && b.registrationDate) { dateB = new Date(b.registrationDate); }
+        else if (type === "Payment" && (b.timestamp || b.date)) {
+            dateB = new Date(b.timestamp || b.date);
+        }
+
+        // Handle invalid dates by pushing them to the end or ensuring they don't break sorting
+        if (isNaN(dateA.getTime())) dateA = new Date(0);
+        if (isNaN(dateB.getTime())) dateB = new Date(0);
+
+        return dateB.getTime() - dateA.getTime();
       });
 
       list.slice(0, 5).forEach(item => { // Show up to 5 recent items
@@ -319,7 +338,7 @@
         const row = document.createElement("tr");
 
         if (type === "User") {
-          displayStatus = item.paymentStatus || "Pending";
+          displayStatus = item.paymentStatus || item.status || "N/A"; // User payment status or user status
           statusClass = `status-${displayStatus.toLowerCase().replace(/\s/g, '-')}`;
           row.innerHTML = `
             <td>${item.name || "N/A"}</td>
@@ -337,107 +356,107 @@
             <td>${item.registrationDate ? new Date(item.registrationDate).toLocaleDateString() : "N/A"}</td>
           `;
         } else if (type === "Payment") {
-            displayStatus = item.status || "Pending";
-            statusClass = `status-${displayStatus.toLowerCase().replace(/\s/g, '-')}`;
-            const amount = parseFloat(item.amount || 0).toFixed(2);
-            const date = item.requestDate || item.submittedAt; // Prefer submittedAt for more specific payments
+          displayStatus = item.status || "Pending";
+          statusClass = `status-${displayStatus.toLowerCase().replace(/\s/g, '-')}`;
+          const amount = parseFloat(item.amount || 0).toFixed(2);
+          const paymentDate = item.date || "N/A"; // Use the 'date' string for display
 
-            row.innerHTML = `
+          row.innerHTML = `
                 <td>${item.type || "N/A"}</td>
                 <td>${item.email || "N/A"}</td>
                 <td>${amount} GMD</td>
                 <td class="${statusClass}">${displayStatus}</td>
-                <td>${date ? new Date(date).toLocaleDateString() : "N/A"}</td>
+                <td>${paymentDate}</td>
             `;
         }
         table.appendChild(row);
       });
     }
 
-    // Function to update all dashboard statistics and tables
-    function updateDashboard() {
-      let allUsers = [];
-      let allSellers = [];
-      let allUserPayments = [];
-      let allSellerPayments = [];
+    // Consolidated dashboard update logic
+    let dashboardData = {
+      users: [],
+      sellers: [],
+      userPayments: [],
+      sellerPayments: []
+    };
 
-      // Listener for users data
+    function updateDashboardUI() {
+      const { users, sellers, userPayments, sellerPayments } = dashboardData;
+
+      // --- Calculate Statistics ---
+      const totalUsers = users.length;
+      const totalSellers = sellers.length;
+
+      const combinedPayments = [...userPayments, ...sellerPayments];
+
+      const pendingPaymentsCount = combinedPayments.filter(p =>
+        p.status === "Pending" ||
+        p.status === "Payment Confirmed by Seller" || // For seller type
+        p.status === "Payment Proof Submitted"       // For seller type
+      ).length;
+
+      const approvedPaymentsCount = combinedPayments.filter(p =>
+        p.status === "Approved" || p.status === "Paid" // "Paid" typically for user top-ups
+      ).length;
+
+      // --- Update Dashboard Cards ---
+      document.getElementById("totalUsers").textContent = totalUsers;
+      document.getElementById("totalSellers").textContent = totalSellers;
+      document.getElementById("pendingPayments").textContent = pendingPaymentsCount;
+      document.getElementById("approvedPayments").textContent = approvedPaymentsCount;
+
+      // --- Render Recent Tables ---
+      renderRecent("recentSellersTable", sellers, "Seller");
+      renderRecent("recentPaymentsTable", combinedPayments, "Payment");
+    }
+
+    // --- Setup Listeners (called once after admin auth) ---
+    function setupRealtimeListeners() {
       onValue(usersRef, snapshot => {
-        allUsers = Object.values(snapshot.val() || {});
-        updateStatsAndTables();
+        dashboardData.users = Object.values(snapshot.val() || {});
+        updateDashboardUI();
       }, (error) => console.error("Error fetching users data:", error));
 
-      // Listener for sellers data
       onValue(sellersRef, snapshot => {
-        allSellers = Object.values(snapshot.val() || {});
-        updateStatsAndTables();
+        dashboardData.sellers = Object.values(snapshot.val() || {});
+        updateDashboardUI();
       }, (error) => console.error("Error fetching sellers data:", error));
 
-      // Listener for user payments (top-ups)
       onValue(userPaymentsRef, snapshot => {
-        allUserPayments = Object.values(snapshot.val() || {}).map(p => ({ ...p, type: "User Top-up" }));
-        updateStatsAndTables();
+        dashboardData.userPayments = Object.values(snapshot.val() || {}).map(p => ({ ...p, type: "User Top-up" }));
+        updateDashboardUI();
       }, (error) => console.error("Error fetching user payments data:", error));
 
-      // Listener for seller payments (subscriptions)
       onValue(sellerPaymentsRef, snapshot => {
-        allSellerPayments = Object.values(snapshot.val() || {}).map(p => ({ ...p, type: "Seller Subscription" }));
-        updateStatsAndTables();
+        dashboardData.sellerPayments = Object.values(snapshot.val() || {}).map(p => ({ ...p, type: "Seller Subscription" }));
+        updateDashboardUI();
       }, (error) => console.error("Error fetching seller payments data:", error));
-
-
-      function updateStatsAndTables() {
-        // --- Calculate Statistics ---
-        const totalUsers = allUsers.length;
-        const totalSellers = allSellers.length;
-
-        const combinedPayments = [...allUserPayments, ...allSellerPayments];
-
-        const pendingPaymentsCount = combinedPayments.filter(p =>
-          p.status === "Pending" ||
-          p.status === "Payment Confirmed by Seller" ||
-          p.status === "Payment Proof Submitted"
-        ).length;
-
-        const approvedPaymentsCount = combinedPayments.filter(p =>
-          p.status === "Approved" || p.status === "Paid" // "Paid" typically for user top-ups
-        ).length;
-
-
-        // --- Update Dashboard Cards ---
-        document.getElementById("totalUsers").textContent = totalUsers;
-        document.getElementById("totalSellers").textContent = totalSellers;
-        document.getElementById("pendingPayments").textContent = pendingPaymentsCount;
-        document.getElementById("approvedPayments").textContent = approvedPaymentsCount;
-
-        // --- Render Recent Tables ---
-        renderRecent("recentSellersTable", allSellers, "Seller");
-        renderRecent("recentPaymentsTable", combinedPayments, "Payment");
-      }
     }
+
 
     // --- SECURE Admin Authentication Check: Using Firebase Authentication ---
     function checkAdminAuth() {
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                // User is signed in. Now check if they are the designated admin.
-                const ADMIN_EMAIL = "admin@matrixmarket.com"; // Set your actual admin email here
+      onAuthStateChanged(auth, (user) => {
+        if (user) {
+          // User is signed in. Now check if they are the designated admin.
+          const ADMIN_EMAIL = "admin@matrixmarket.com"; // Set your actual admin email here
 
-                if (user.email === ADMIN_EMAIL) {
-                    console.log("SUCCESS: Firebase Admin user authenticated:", user.email);
-                    updateDashboard(); // Load dashboard data only if admin
-                } else {
-                    console.warn("FAILED: Authenticated user is not the designated admin. User:", user.email);
-                    alert("You do not have administrative privileges to access this panel.");
-                    window.location.href = "admin-login.html"; // Redirect unauthorized authenticated users
-                }
-            } else {
-                // No user is signed in.
-                console.warn("FAILED: No user signed in to Firebase Authentication.");
-                alert("You must be logged in as an admin to access this panel.");
-                window.location.href = "admin-login.html"; // Redirect to admin login page
-            }
-        });
+          if (user.email === ADMIN_EMAIL) {
+            console.log("SUCCESS: Firebase Admin user authenticated:", user.email);
+            setupRealtimeListeners(); // Setup listeners and render dashboard data only if admin
+          } else {
+            console.warn("FAILED: Authenticated user is not the designated admin. User:", user.email);
+            alert("You do not have administrative privileges to access this panel.");
+            window.location.href = "admin-login.html"; // Redirect unauthorized authenticated users
+          }
+        } else {
+          // No user is signed in.
+          console.warn("FAILED: No user signed in to Firebase Authentication.");
+          alert("You must be logged in as an admin to access this panel.");
+          window.location.href = "admin-login.html"; // Redirect to admin login page
+        }
+      });
     }
 
     // Firebase Logout Function
@@ -457,10 +476,10 @@
 
     // Attach event listener for logout button
     document.addEventListener('DOMContentLoaded', () => {
-        const logoutButton = document.getElementById('logoutBtn');
-        if (logoutButton) {
-            logoutButton.addEventListener('click', firebaseLogout);
-        }
+      const logoutButton = document.getElementById('logoutBtn');
+      if (logoutButton) {
+        logoutButton.addEventListener('click', firebaseLogout);
+      }
     });
   </script>
 </body>
