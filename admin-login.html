@@ -1,12 +1,9 @@
-
-
-
 <!DOCTYPE html>
 <html lang="en">
 
 <head>
     <meta charset="UTF-8">
-    <title>Login - MatrixMarketplace</title>
+    <title>Admin Login - MatrixMarketplace</title>
     <link rel="stylesheet" href="style.css">
     <style>
         body {
@@ -128,7 +125,7 @@
 <body>
     <div class="login-box">
         <h1>Admin Login</h1>
-        <form onsubmit="return loginAdmin(event)">
+        <form id="adminLoginForm">
             <input type="email" id="email" placeholder="Email Address" required>
             <input type="password" id="password" placeholder="Password" required>
             <button type="submit">Login</button>
@@ -136,33 +133,50 @@
         <p>Support: <a href="mailto:support@neo-marketplace.com">📧 Email</a></p>
     </div>
 
-    <script>
-        function loginAdmin(event) {
+    <!-- Firebase Modular SDK -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
+        // We'll add Realtime Database for admin role check in the next step,
+        // but it's not strictly needed for the login page itself.
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDFrctk2MZajP7OmECXe5npHAV0dODH9jk",
+            authDomain: "matrixmarketplace-1bd71.firebaseapp.com",
+            databaseURL: "https://matrixmarketplace-1bd71-default-rtdb.firebaseio.com",
+            projectId: "matrixmarketplace-1bd71",
+            messagingSenderId: "10374416997",
+            appId: "1:10374416997:web:9626c569e845c14a87548c",
+            measurementId: "G-DTC2GM9L92"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+
+        document.getElementById("adminLoginForm").addEventListener("submit", async (event) => {
             event.preventDefault();
             const email = document.getElementById("email").value.trim();
             const password = document.getElementById("password").value.trim();
 
-            // Hardcoded admin credentials
-            const ADMIN_EMAIL = "admin@matrixmarket.com";
-            const ADMIN_PASSWORD = "11223344@Fantastic";
-
-            if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
-                // Store admin session
-                sessionStorage.setItem("currentUser", JSON.stringify({
-                    email: ADMIN_EMAIL,
-                    role: "admin",
-                    fullName: "Matrix Admin",
-                    subscription: "active"
-                }));
+            try {
+                // Use Firebase Auth to sign in
+                await signInWithEmailAndPassword(auth, email, password);
                 alert("✅ Admin login successful! Redirecting...");
-                window.location.href = "dashboard-admin.html"; // Redirect to admin dashboard
-            } else {
-                alert("❌ Invalid email or password.");
+                window.location.href = "admin-accept-payment.html"; // Redirect to admin dashboard
+            } catch (error) {
+                console.error("Firebase Admin Login Error:", error.code, error.message);
+                let errorMessage = "❌ Login failed. Please check your credentials.";
+                if (error.code === 'auth/user-not-found') {
+                    errorMessage = "❌ No user found with this email.";
+                } else if (error.code === 'auth/wrong-password') {
+                    errorMessage = "❌ Incorrect password.";
+                } else if (error.code === 'auth/invalid-email') {
+                    errorMessage = "❌ Invalid email format.";
+                }
+                alert(errorMessage);
             }
-        }
+        });
     </script>
 </body>
 
 </html>
-
-
