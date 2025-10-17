@@ -8,12 +8,12 @@
     <style>
         /* General Body Styling */
         body {
+            font-family: "Poppins", sans-serif;
             background: linear-gradient(135deg, #0f172a, #1e293b, #4f46e5, #06b6d4);
             background-size: 400% 400%;
             animation: gradientBG 15s ease infinite;
-            font-family: "Poppins", sans-serif;
-            margin: 0;
             color: white;
+            margin: 0;
             min-height: 100vh;
         }
 
@@ -43,14 +43,16 @@
         /* Container for Content */
         .container {
             width: 90%;
-            max-width: 1300px; /* Increased max-width to accommodate new columns */
+            max-width: 1300px;
+            /* Increased max-width to accommodate new columns */
             margin: 30px auto;
             background: rgba(255, 255, 255, 0.08);
             padding: 25px;
             border-radius: 15px;
             box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
             backdrop-filter: blur(10px);
-            overflow-x: auto; /* Added for responsiveness with more columns */
+            overflow-x: auto;
+            /* Added for responsiveness with more columns */
         }
 
         /* Search Bar Styling */
@@ -77,7 +79,8 @@
             width: 100%;
             border-collapse: collapse;
             color: white;
-            min-width: 1000px; /* Ensure table doesn't get too small for content */
+            min-width: 1000px;
+            /* Ensure table doesn't get too small for content */
         }
 
         th,
@@ -106,12 +109,16 @@
             border: none;
             outline: none;
             text-align: center;
-            background-color: rgba(255, 255, 255, 0.2); /* Semi-transparent background */
-            color: white; /* White text for inputs/selects */
-            width: 100%; /* Make inputs fill their cell */
-            box-sizing: border-box; /* Include padding in width */
+            background-color: rgba(255, 255, 255, 0.2);
+            /* Semi-transparent background */
+            color: white;
+            /* White text for inputs/selects */
+            width: 100%;
+            /* Make inputs fill their cell */
+            box-sizing: border-box;
+            /* Include padding in width */
         }
-        
+
         /* Button Styling */
         button {
             padding: 8px 14px;
@@ -121,7 +128,8 @@
             font-size: 14px;
             transition: 0.3s;
             color: white;
-            margin: 2px; /* Added spacing between buttons */
+            margin: 2px;
+            /* Added spacing between buttons */
         }
 
         .save {
@@ -155,6 +163,21 @@
         .back-btn:hover {
             background: #06b6d4;
         }
+
+        /* Temporary Message Styling */
+        .temp-message {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: bold;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
+            text-align: center;
+        }
     </style>
 </head>
 
@@ -169,11 +192,11 @@
         <table id="accountsTable">
             <thead>
                 <tr>
-                    <th>Type</th> <!-- New: User or Seller -->
+                    <th>Type</th>
                     <th>Name</th>
                     <th>Email</th>
                     <th>Role</th>
-                    <th>Balance (GMD)</th> <!-- New: Balance column -->
+                    <th>Balance (GMD)</th>
                     <th>Subscription</th>
                     <th>Status</th>
                     <th>Actions</th>
@@ -190,7 +213,8 @@
         // Import necessary Firebase functions for app, auth, and database
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
-        import { getDatabase, ref, get, update, remove } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
+        // Renamed 'set' to 'dbSet' to avoid potential conflicts with local variables
+        import { getDatabase, ref, get, update, remove, set as dbSet } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
 
         // Your Firebase project configuration - ensure this matches your project exactly
         const firebaseConfig = {
@@ -210,26 +234,66 @@
         let allAccounts = []; // Local array to hold all user and seller accounts
 
         /**
+         * Displays a temporary message (success, error, or info) to the user.
+         * @param {'success'|'error'|'info'} type The type of message.
+         * @param {string} message The message content.
+         */
+        function showMessage(type, message) {
+            const container = document.querySelector('.container');
+            let messageDiv = document.querySelector('.temp-message');
+            if (!messageDiv) {
+                messageDiv = document.createElement('div');
+                messageDiv.className = 'temp-message';
+                messageDiv.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    padding: 10px 20px;
+                    border-radius: 8px;
+                    font-weight: bold;
+                    z-index: 1000;
+                    opacity: 0;
+                    transition: opacity 0.5s ease-in-out;
+                `;
+                container.prepend(messageDiv); // Add to container
+            }
+
+            messageDiv.textContent = message;
+            if (type === 'success') {
+                messageDiv.style.backgroundColor = 'rgba(34, 197, 94, 0.8)'; // Green
+                messageDiv.style.color = 'white';
+            } else if (type === 'error') {
+                messageDiv.style.backgroundColor = 'rgba(239, 68, 68, 0.8)'; // Red
+                messageDiv.style.color = 'white';
+            } else { // info
+                messageDiv.style.backgroundColor = 'rgba(79, 70, 229, 0.8)'; // Indigo/Blue
+                messageDiv.style.color = 'white';
+            }
+
+            messageDiv.style.opacity = 1;
+
+            setTimeout(() => {
+                messageDiv.style.opacity = 0;
+                // Optional: messageDiv.remove(); after it fades out, but keep for re-use
+            }, 3000); // Message disappears after 3 seconds
+        }
+
+
+        /**
          * Checks if the given user UID is an admin by looking it up in the Realtime Database.
          * This function is crucial for restricting access to admin pages.
          * @param {string} uid The Firebase User ID to check.
          * @returns {Promise<boolean>} Resolves to true if the user is an admin, false otherwise.
          */
         async function checkAdminStatus(uid) {
-            // --- DEBUGGING LINES - These help diagnose the "not authorized" issue ---
-            console.log("DEBUG (admin-users.html): checkAdminStatus called for UID:", uid); 
-            // --- END DEBUGGING LINES ---
             try {
                 const adminRef = ref(db, `admins/${uid}`); // Reference to the admin UID in RTDB
-                const snapshot = await get(adminRef);       // Fetch the data at that reference
-                // --- DEBUGGING LINES ---
-                console.log("DEBUG (admin-users.html): Realtime DB snapshot for path 'admins/", uid, "' exists:", snapshot.exists()); 
-                console.log("DEBUG (admin-users.html): Realtime DB snapshot value:", snapshot.val());     
-                // --- END DEBUGGING LINES ---
+                const snapshot = await get(adminRef); // Fetch the data at that reference
                 // An admin is identified if the snapshot exists AND its value is explicitly 'true'
                 return snapshot.exists() && snapshot.val() === true;
             } catch (error) {
-                console.error("DEBUG (admin-users.html): Error checking admin status:", error);
+                console.error("Error checking admin status:", error);
                 return false; // Return false if an error occurs
             }
         }
@@ -258,14 +322,14 @@
                     <td><input type="number" step="0.01" value="${(acc.balance || 0).toFixed(2)}" id="balance${i}"/></td>
                     <td>
                         <select id="sub${i}">
-                            <option value="inactive" ${acc.subscription === 'Inactive' || acc.subscription === 'inactive' ? 'selected' : ''}>Inactive</option>
-                            <option value="active" ${acc.subscription === 'Active' || acc.subscription === 'active' ? 'selected' : ''}>Active</option>
+                            <option value="inactive" ${acc.subscription && (acc.subscription.toLowerCase() === 'inactive') ? 'selected' : ''}>Inactive</option>
+                            <option value="active" ${acc.subscription && (acc.subscription.toLowerCase() === 'active') ? 'selected' : ''}>Active</option>
                         </select>
                     </td>
                     <td>
                         <select id="status${i}">
-                            <option value="active" ${acc.status !== 'suspended' ? 'selected' : ''}>Active</option>
-                            <option value="suspended" ${acc.status === 'suspended' ? 'selected' : ''}>Suspended</option>
+                            <option value="active" ${acc.status && (acc.status.toLowerCase() !== 'suspended') ? 'selected' : ''}>Active</option>
+                            <option value="suspended" ${acc.status && (acc.status.toLowerCase() === 'suspended') ? 'selected' : ''}>Suspended</option>
                         </select>
                     </td>
                     <td>
@@ -295,7 +359,7 @@
                 // Map user data into a consistent format
                 const users = Object.entries(usersData).map(([key, value]) => ({
                     ...value,
-                    _dbKey: key, // Store the original database key (e.g., email.replace('.',','))
+                    _dbKey: key, // Store the original database key (assuming this is the UID)
                     type: 'user',
                     fullName: value.fullName || value.name || '' // Use fullName or name for display
                 }));
@@ -303,22 +367,23 @@
                 // Map seller data into a consistent format
                 const sellers = Object.entries(sellersData).map(([key, value]) => ({
                     ...value,
-                    _dbKey: key, // Store the original database key
+                    _dbKey: key, // Store the original database key (assuming this is the UID)
                     type: 'seller',
                     fullName: value.name || value.fullName || '' // Use name or fullName for display
                 }));
 
                 // Combine and store all accounts, then render the table
                 allAccounts = [...users, ...sellers];
-                renderAccounts(allAccounts); 
+                renderAccounts(allAccounts);
             } catch (error) {
                 console.error("Error loading accounts:", error);
-                alert("Failed to load accounts. See console for details.");
+                showMessage('error', "Failed to load accounts. See console for details.");
             }
         }
 
         /**
          * Saves changes for a specific user or seller account to the Realtime Database.
+         * Handles changing account type (role) by moving data between paths.
          * @param {number} i Index of the account in the 'allAccounts' array.
          */
         async function saveChanges(i) {
@@ -336,26 +401,45 @@
             const updatedData = {
                 fullName: updatedFullName,
                 email: updatedEmail,
-                balance: isNaN(updatedBalance) ? 0 : updatedBalance, // Ensure balance is a number
+                balance: isNaN(updatedBalance) ? 0 : updatedBalance,
                 subscription: updatedSubscription,
-                status: updatedStatus
+                status: updatedStatus,
+                // IMPORTANT: We assume _dbKey (from loadAccounts) is the Firebase Auth UID.
+                // If your database keys are based on email addresses, changing the email property
+                // would require a more complex delete-and-recreate operation with a new key.
+                // For this fix, changing 'email' only updates the property, not the key.
             };
 
-            // Determine the correct database path ('users' or 'sellers') based on account type
-            // Note: Changing 'role' (type) and 'email' for an existing entry dynamically can be complex.
-            // For this implementation, we're updating fields of the *original* account type and key.
-            // A change in 'role' or 'email' that changes the database path would require a more elaborate
-            // delete-old-and-create-new mechanism, which is beyond this current scope.
-            const path = acc.type === 'user' ? 'users' : 'sellers';
-            const dbRef = ref(db, `${path}/${acc._dbKey}`);
-
             try {
-                await update(dbRef, updatedData); // Update the data in Firebase
-                alert("✅ Account changes saved!");
+                // Scenario 1: Account type (role) is changing
+                if (acc.type !== updatedRole) {
+                    if (!confirm(`Are you sure you want to change this account from ${acc.type} to ${updatedRole}? This will move its data in the database.`)) {
+                        return; // Abort if not confirmed
+                    }
+
+                    const oldPath = acc.type === 'user' ? 'users' : 'sellers';
+                    const newPath = updatedRole === 'user' ? 'users' : 'sellers';
+
+                    // 1. Delete the record from its old path
+                    await remove(ref(db, `${oldPath}/${acc._dbKey}`));
+
+                    // 2. Create the record in the new path with updated data
+                    updatedData.type = updatedRole; // Ensure the stored data also reflects the new type
+                    await dbSet(ref(db, `${newPath}/${acc._dbKey}`), updatedData); // Use dbSet for complete overwrite
+
+                    showMessage('success', `✅ Account type changed to ${updatedRole} and data moved!`);
+
+                } else {
+                    // Scenario 2: Only properties are changing within the same account type
+                    const path = acc.type === 'user' ? 'users' : 'sellers';
+                    await update(ref(db, `${path}/${acc._dbKey}`), updatedData);
+                    showMessage('success', "✅ Account changes saved!");
+                }
+
                 loadAccounts(); // Reload all accounts to ensure data consistency and UI refresh
             } catch (err) {
                 console.error("Error saving changes:", err);
-                alert("❌ Error saving changes: " + err.message);
+                showMessage('error', "❌ Error saving changes: " + err.message);
             }
         }
 
@@ -376,11 +460,11 @@
 
             try {
                 await remove(dbRef); // Delete the data from Firebase
-                alert(`🗑 Account (${acc.email}) deleted.`);
+                showMessage('success', `🗑 Account (${acc.email}) deleted.`);
                 loadAccounts(); // Reload accounts to update the displayed list
             } catch (err) {
                 console.error("Error deleting account:", err);
-                alert("❌ Error deleting account: " + err.message);
+                showMessage('error', "❌ Error deleting account: " + err.message);
             }
         }
 
@@ -407,7 +491,7 @@
         // This runs whenever the user's authentication state changes (login/logout/refresh)
         onAuthStateChanged(auth, async (user) => {
             if (user) { // If a user is logged in
-                const isAdmin = await checkAdminStatus(user.uid); // Check if this user is an admin
+                const isAdmin = await checkAdminStatus(user.uid);
 
                 if (isAdmin) {
                     console.log("Admin user logged in:", user.email, "UID:", user.uid);
@@ -416,19 +500,19 @@
                     window.saveChanges = saveChanges;
                     window.deleteAccount = deleteAccount;
                 } else {
-                    console.warn("Unauthorized access attempt by:", user.email);
-                    alert("You are not authorized to view this page. Redirecting to login.");
+                    console.warn("Unauthorized access attempt by non-admin user:", user.email, "UID:", user.uid);
+                    showMessage('error', "You are not authorized to view this page. Redirecting...");
                     // Sign out the unauthorized user for security and redirect
-                    signOut(auth).then(() => { 
+                    signOut(auth).then(() => {
                         window.location.href = "admin-login.html";
                     }).catch((error) => {
-                        console.error("Error signing out:", error);
-                        window.location.href = "admin-login.html";
+                        console.error("Error signing out unauthorized user:", error);
+                        window.location.href = "admin-login.html"; // Still redirect even if sign out fails
                     });
                 }
             } else {
                 // If no user is logged in at all, redirect to the admin login page
-                alert("You must be logged in as an admin to access this panel.");
+                showMessage('info', "You must be logged in as an admin to access this panel. Redirecting...");
                 window.location.href = "admin-login.html";
             }
         });
