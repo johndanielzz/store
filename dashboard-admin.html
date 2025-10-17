@@ -192,9 +192,10 @@
       color: #3b82f6;
       font-weight: bold;
     }
-    .status-pending-approval { /* Added for general pending seller status */
-        color: #fbbf24;
-        font-weight: bold;
+    .status-pending-approval {
+      /* Added for general pending seller status */
+      color: #fbbf24;
+      font-weight: bold;
     }
 
     .loading-text {
@@ -256,9 +257,10 @@
   <!-- Firebase Modular SDK -->
   <script type="module">
     // --- Firebase SDK Imports for the latest modular syntax ---
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/app";
-    import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/database";
-    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/auth";
+    // FIX: Corrected Firebase SDK import URLs
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
+    import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
+    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
 
     // Firebase Config (your existing config)
     const firebaseConfig = {
@@ -310,19 +312,24 @@
 
       // Sort by creation/request time (most recent first)
       list.sort((a, b) => {
-        let dateA = new Date(0), dateB = new Date(0); // Default to epoch if date is invalid
+        let dateA = new Date(0),
+          dateB = new Date(0); // Default to epoch if date is invalid
 
         // Determine the date field based on type and preference
-        if (type === "User" && a.createdAt) { dateA = new Date(a.createdAt); }
-        else if (type === "Seller" && a.registrationDate) { dateA = new Date(a.registrationDate); }
-        else if (type === "Payment" && (a.timestamp || a.date)) { // Use timestamp if available, fallback to date string
-            dateA = new Date(a.timestamp || a.date);
+        if (type === "User" && a.createdAt) {
+          dateA = new Date(a.createdAt);
+        } else if (type === "Seller" && a.registrationDate) {
+          dateA = new Date(a.registrationDate);
+        } else if (type === "Payment" && (a.timestamp || a.date)) { // Use timestamp if available, fallback to date string
+          dateA = new Date(a.timestamp || a.date);
         }
 
-        if (type === "User" && b.createdAt) { dateB = new Date(b.createdAt); }
-        else if (type === "Seller" && b.registrationDate) { dateB = new Date(b.registrationDate); }
-        else if (type === "Payment" && (b.timestamp || b.date)) {
-            dateB = new Date(b.timestamp || b.date);
+        if (type === "User" && b.createdAt) {
+          dateB = new Date(b.createdAt);
+        } else if (type === "Seller" && b.registrationDate) {
+          dateB = new Date(b.registrationDate);
+        } else if (type === "Payment" && (b.timestamp || b.date)) {
+          dateB = new Date(b.timestamp || b.date);
         }
 
         // Handle invalid dates by pushing them to the end or ensuring they don't break sorting
@@ -393,7 +400,7 @@
       const pendingPaymentsCount = combinedPayments.filter(p =>
         p.status === "Pending" ||
         p.status === "Payment Confirmed by Seller" || // For seller type
-        p.status === "Payment Proof Submitted"       // For seller type
+        p.status === "Payment Proof Submitted" // For seller type
       ).length;
 
       const approvedPaymentsCount = combinedPayments.filter(p =>
