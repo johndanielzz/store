@@ -6,6 +6,7 @@
     <title>Admin - Edit Users & Sellers | MatrixMarket</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
+        /* General Body Styling */
         body {
             background: linear-gradient(135deg, #0f172a, #1e293b, #4f46e5, #06b6d4);
             background-size: 400% 400%;
@@ -30,6 +31,7 @@
             }
         }
 
+        /* Header Styling */
         header {
             text-align: center;
             padding: 20px;
@@ -38,9 +40,10 @@
             font-weight: 600;
         }
 
+        /* Container for Content */
         .container {
             width: 90%;
-            max-width: 1300px; /* Increased max-width to accommodate new column */
+            max-width: 1300px; /* Increased max-width to accommodate new columns */
             margin: 30px auto;
             background: rgba(255, 255, 255, 0.08);
             padding: 25px;
@@ -50,6 +53,7 @@
             overflow-x: auto; /* Added for responsiveness with more columns */
         }
 
+        /* Search Bar Styling */
         .search-bar {
             text-align: center;
             margin-bottom: 20px;
@@ -68,6 +72,7 @@
             color: #000;
         }
 
+        /* Table Styling */
         table {
             width: 100%;
             border-collapse: collapse;
@@ -91,6 +96,7 @@
             background: rgba(255, 255, 255, 0.05);
         }
 
+        /* Input and Select Styling within Table */
         input[type="text"],
         input[type="email"],
         input[type="number"],
@@ -102,8 +108,11 @@
             text-align: center;
             background-color: rgba(255, 255, 255, 0.2); /* Semi-transparent background */
             color: white; /* White text for inputs/selects */
+            width: 100%; /* Make inputs fill their cell */
+            box-sizing: border-box; /* Include padding in width */
         }
-
+        
+        /* Button Styling */
         button {
             padding: 8px 14px;
             border: none;
@@ -131,6 +140,7 @@
             background: #dc2626;
         }
 
+        /* Back Button Styling */
         .back-btn {
             display: inline-block;
             margin: 20px 0;
@@ -177,10 +187,12 @@
 
     <!-- Firebase Modular SDK -->
     <script type="module">
+        // Import necessary Firebase functions for app, auth, and database
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
         import { getDatabase, ref, get, update, remove } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
 
+        // Your Firebase project configuration - ensure this matches your project exactly
         const firebaseConfig = {
             apiKey: "AIzaSyDFrctk2MZajP7OmECXe5npHAV0dODH9jk",
             authDomain: "matrixmarketplace-1bd71.firebaseapp.com",
@@ -191,36 +203,46 @@
             measurementId: "G-DTC2GM9L92"
         };
 
+        // Initialize Firebase services
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getDatabase(app);
-        let allAccounts = []; // Stores all user and seller accounts
+        let allAccounts = []; // Local array to hold all user and seller accounts
 
         /**
          * Checks if the given user UID is an admin by looking it up in the Realtime Database.
+         * This function is crucial for restricting access to admin pages.
          * @param {string} uid The Firebase User ID to check.
          * @returns {Promise<boolean>} Resolves to true if the user is an admin, false otherwise.
          */
         async function checkAdminStatus(uid) {
+            // --- DEBUGGING LINES - These help diagnose the "not authorized" issue ---
+            console.log("DEBUG (admin-users.html): checkAdminStatus called for UID:", uid); 
+            // --- END DEBUGGING LINES ---
             try {
-                const adminRef = ref(db, `admins/${uid}`);
-                const snapshot = await get(adminRef);
+                const adminRef = ref(db, `admins/${uid}`); // Reference to the admin UID in RTDB
+                const snapshot = await get(adminRef);       // Fetch the data at that reference
+                // --- DEBUGGING LINES ---
+                console.log("DEBUG (admin-users.html): Realtime DB snapshot for path 'admins/", uid, "' exists:", snapshot.exists()); 
+                console.log("DEBUG (admin-users.html): Realtime DB snapshot value:", snapshot.val());     
+                // --- END DEBUGGING LINES ---
+                // An admin is identified if the snapshot exists AND its value is explicitly 'true'
                 return snapshot.exists() && snapshot.val() === true;
             } catch (error) {
-                console.error("Error checking admin status:", error);
-                return false;
+                console.error("DEBUG (admin-users.html): Error checking admin status:", error);
+                return false; // Return false if an error occurs
             }
         }
 
         /**
          * Renders the table with user and seller account data.
-         * @param {Array} accounts An array of account objects (users and sellers).
-         * @param {string} highlight Optional text to highlight in cells.
+         * @param {Array} accounts An array of account objects (users and sellers) to display.
          */
-        function renderAccounts(accounts, highlight = "") {
+        function renderAccounts(accounts) {
             const tbody = document.getElementById("accountList");
-            tbody.innerHTML = ""; // Clear existing rows
+            tbody.innerHTML = ""; // Clear existing table rows before rendering new ones
 
+            // Iterate over each account and create a table row
             accounts.forEach((acc, i) => {
                 const row = document.createElement("tr");
                 row.innerHTML = `
@@ -257,10 +279,11 @@
 
         /**
          * Loads all user and seller accounts from Firebase Realtime Database.
-         * Each account object will have a '_dbKey' (original email key) and 'type' ('user'/'seller').
+         * Each account object includes a '_dbKey' (for direct DB reference) and 'type' ('user'/'seller').
          */
         async function loadAccounts() {
             try {
+                // Fetch user data and seller data concurrently
                 const [userSnapshot, sellerSnapshot] = await Promise.all([
                     get(ref(db, 'users')),
                     get(ref(db, 'sellers'))
@@ -269,22 +292,25 @@
                 const usersData = userSnapshot.val() || {};
                 const sellersData = sellerSnapshot.val() || {};
 
+                // Map user data into a consistent format
                 const users = Object.entries(usersData).map(([key, value]) => ({
                     ...value,
-                    _dbKey: key, // Store the original database key (email.replace('.',','))
+                    _dbKey: key, // Store the original database key (e.g., email.replace('.',','))
                     type: 'user',
-                    fullName: value.fullName || value.name || '' // Handle potential name difference
+                    fullName: value.fullName || value.name || '' // Use fullName or name for display
                 }));
 
+                // Map seller data into a consistent format
                 const sellers = Object.entries(sellersData).map(([key, value]) => ({
                     ...value,
-                    _dbKey: key, // Store the original database key (email.replace('.',','))
+                    _dbKey: key, // Store the original database key
                     type: 'seller',
-                    fullName: value.name || value.fullName || '' // Handle potential name difference
+                    fullName: value.name || value.fullName || '' // Use name or fullName for display
                 }));
 
+                // Combine and store all accounts, then render the table
                 allAccounts = [...users, ...sellers];
-                renderAccounts(allAccounts); // Initial render
+                renderAccounts(allAccounts); 
             } catch (error) {
                 console.error("Error loading accounts:", error);
                 alert("Failed to load accounts. See console for details.");
@@ -292,39 +318,41 @@
         }
 
         /**
-         * Saves changes for a specific user or seller account.
-         * @param {number} i Index of the account in the allAccounts array.
+         * Saves changes for a specific user or seller account to the Realtime Database.
+         * @param {number} i Index of the account in the 'allAccounts' array.
          */
         async function saveChanges(i) {
-            const acc = allAccounts[i];
-            // Get updated values from the DOM
+            const acc = allAccounts[i]; // Get the original account object
+
+            // Retrieve updated values from the corresponding input fields in the DOM
             const updatedFullName = document.getElementById(`name${i}`).value;
             const updatedEmail = document.getElementById(`email${i}`).value;
-            const updatedRole = document.getElementById(`role${i}`).value;
+            const updatedRole = document.getElementById(`role${i}`).value; // This is the selected type
             const updatedBalance = parseFloat(document.getElementById(`balance${i}`).value);
             const updatedSubscription = document.getElementById(`sub${i}`).value;
             const updatedStatus = document.getElementById(`status${i}`).value;
 
-            // Prepare object with updated data
+            // Prepare the data object to send to Firebase
             const updatedData = {
                 fullName: updatedFullName,
                 email: updatedEmail,
-                // role: updatedRole, // Not storing 'role' directly, 'type' handles it
-                balance: isNaN(updatedBalance) ? 0 : updatedBalance,
+                balance: isNaN(updatedBalance) ? 0 : updatedBalance, // Ensure balance is a number
                 subscription: updatedSubscription,
                 status: updatedStatus
             };
 
-            // If the type/email has changed, this gets complicated.
-            // For simplicity, we assume original email/type for path, but update the object fields.
-            // A more robust solution might involve deleting old entry and creating new if email/type changed.
+            // Determine the correct database path ('users' or 'sellers') based on account type
+            // Note: Changing 'role' (type) and 'email' for an existing entry dynamically can be complex.
+            // For this implementation, we're updating fields of the *original* account type and key.
+            // A change in 'role' or 'email' that changes the database path would require a more elaborate
+            // delete-old-and-create-new mechanism, which is beyond this current scope.
             const path = acc.type === 'user' ? 'users' : 'sellers';
             const dbRef = ref(db, `${path}/${acc._dbKey}`);
 
             try {
-                await update(dbRef, updatedData);
+                await update(dbRef, updatedData); // Update the data in Firebase
                 alert("✅ Account changes saved!");
-                loadAccounts(); // Reload to reflect changes, especially if email was changed (which affects _dbKey)
+                loadAccounts(); // Reload all accounts to ensure data consistency and UI refresh
             } catch (err) {
                 console.error("Error saving changes:", err);
                 alert("❌ Error saving changes: " + err.message);
@@ -332,34 +360,37 @@
         }
 
         /**
-         * Deletes a user or seller account.
-         * @param {number} i Index of the account in the allAccounts array.
+         * Deletes a user or seller account from the Realtime Database.
+         * @param {number} i Index of the account in the 'allAccounts' array.
          */
         async function deleteAccount(i) {
-            const acc = allAccounts[i];
+            const acc = allAccounts[i]; // Get the account object to be deleted
+            // Confirm deletion with the admin
             if (!confirm(`Are you sure you want to delete ${acc.type} account for ${acc.email}? This action cannot be undone.`)) {
-                return;
+                return; // Abort if not confirmed
             }
 
+            // Determine the correct database path based on account type
             const path = acc.type === 'user' ? 'users' : 'sellers';
             const dbRef = ref(db, `${path}/${acc._dbKey}`);
 
             try {
-                await remove(dbRef);
+                await remove(dbRef); // Delete the data from Firebase
                 alert(`🗑 Account (${acc.email}) deleted.`);
-                loadAccounts(); // Reload accounts after deletion
+                loadAccounts(); // Reload accounts to update the displayed list
             } catch (err) {
                 console.error("Error deleting account:", err);
                 alert("❌ Error deleting account: " + err.message);
             }
         }
 
-        // Search functionality (debounce for performance)
+        // Search functionality with debouncing for performance optimization
         let searchTimeout;
         document.getElementById("searchInput").addEventListener("input", e => {
-            clearTimeout(searchTimeout);
-            searchTimeout = setTimeout(() => {
+            clearTimeout(searchTimeout); // Clear previous timeout
+            searchTimeout = setTimeout(() => { // Set a new timeout
                 const value = e.target.value.toLowerCase();
+                // Filter accounts based on various fields
                 const filtered = allAccounts.filter(acc =>
                     (acc.fullName && acc.fullName.toLowerCase().includes(value)) ||
                     (acc.email && acc.email.toLowerCase().includes(value)) ||
@@ -367,28 +398,28 @@
                     (acc.status && acc.status.toLowerCase().includes(value)) ||
                     (acc.subscription && acc.subscription.toLowerCase().includes(value))
                 );
-                renderAccounts(filtered); // Re-render with filtered data (no highlight needed now)
-            }, 300); // 300ms debounce
+                renderAccounts(filtered); // Render only the filtered accounts
+            }, 300); // Wait 300ms after the last keypress before searching
         });
 
 
-        // --- Admin Authentication Check ---
+        // --- Admin Authentication & Authorization Check ---
+        // This runs whenever the user's authentication state changes (login/logout/refresh)
         onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                const isAdmin = await checkAdminStatus(user.uid);
+            if (user) { // If a user is logged in
+                const isAdmin = await checkAdminStatus(user.uid); // Check if this user is an admin
 
                 if (isAdmin) {
                     console.log("Admin user logged in:", user.email, "UID:", user.uid);
-                    // Load accounts and attach event listeners only if admin
-                    await loadAccounts();
-                    // Expose functions to the global window object for HTML onclick attributes
+                    await loadAccounts(); // If admin, load all account data
+                    // Expose functions globally so they can be called from HTML onclick attributes
                     window.saveChanges = saveChanges;
                     window.deleteAccount = deleteAccount;
-                    // No need to highlight with current renderAccounts, can re-add if feature desired
                 } else {
                     console.warn("Unauthorized access attempt by:", user.email);
                     alert("You are not authorized to view this page. Redirecting to login.");
-                    signOut(auth).then(() => { // Sign out unauthorized user
+                    // Sign out the unauthorized user for security and redirect
+                    signOut(auth).then(() => { 
                         window.location.href = "admin-login.html";
                     }).catch((error) => {
                         console.error("Error signing out:", error);
@@ -396,7 +427,7 @@
                     });
                 }
             } else {
-                // No user logged in, redirect to admin login page
+                // If no user is logged in at all, redirect to the admin login page
                 alert("You must be logged in as an admin to access this panel.");
                 window.location.href = "admin-login.html";
             }
