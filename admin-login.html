@@ -135,11 +135,11 @@
 
     <!-- Firebase Modular SDK -->
     <script type="module">
+        // Import the necessary Firebase functions
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
-        // We'll add Realtime Database for admin role check in the next step,
-        // but it's not strictly needed for the login page itself.
-
+        
+        // Your Firebase project configuration
         const firebaseConfig = {
             apiKey: "AIzaSyDFrctk2MZajP7OmECXe5npHAV0dODH9jk",
             authDomain: "matrixmarketplace-1bd71.firebaseapp.com",
@@ -150,28 +150,36 @@
             measurementId: "G-DTC2GM9L92"
         };
 
+        // Initialize Firebase
         const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
+        const auth = getAuth(app); // Get the authentication service
 
+        // Add an event listener for the form submission
         document.getElementById("adminLoginForm").addEventListener("submit", async (event) => {
-            event.preventDefault();
+            event.preventDefault(); // Prevent default form submission behavior
+
             const email = document.getElementById("email").value.trim();
             const password = document.getElementById("password").value.trim();
 
             try {
-                // Use Firebase Auth to sign in
-                await signInWithEmailAndPassword(auth, email, password);
+                // Attempt to sign in the user with Firebase Authentication
+                const userCredential = await signInWithEmailAndPassword(auth, email, password);
+                console.log("Admin logged in successfully:", userCredential.user.email);
                 alert("✅ Admin login successful! Redirecting...");
-                window.location.href = "admin-accept-payment.html"; // Redirect to admin dashboard
+                // Redirect to your admin dashboard after successful login
+                window.location.href = "admin-accept-payment.html"; 
             } catch (error) {
+                // Handle any errors that occur during the login process
                 console.error("Firebase Admin Login Error:", error.code, error.message);
                 let errorMessage = "❌ Login failed. Please check your credentials.";
                 if (error.code === 'auth/user-not-found') {
-                    errorMessage = "❌ No user found with this email.";
+                    errorMessage = "❌ No user found with this email. Please check the email address.";
                 } else if (error.code === 'auth/wrong-password') {
-                    errorMessage = "❌ Incorrect password.";
+                    errorMessage = "❌ Incorrect password. Please try again.";
                 } else if (error.code === 'auth/invalid-email') {
-                    errorMessage = "❌ Invalid email format.";
+                    errorMessage = "❌ Invalid email format. Please enter a valid email address.";
+                } else if (error.code === 'auth/network-request-failed') {
+                    errorMessage = "❌ Network error. Please check your internet connection.";
                 }
                 alert(errorMessage);
             }
