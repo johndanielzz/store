@@ -3,8 +3,8 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>Admin - Edit Users & Sellers | MatrixMarket</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Edit Users & Sellers | MatrixMarket</title>
     <style>
         /* General Body Styling */
         body {
@@ -213,7 +213,6 @@
         // Import necessary Firebase functions for app, auth, and database
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
-        // Renamed 'set' to 'dbSet' to avoid potential conflicts with local variables
         import { getDatabase, ref, get, update, remove, set as dbSet } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
 
         // Your Firebase project configuration - ensure this matches your project exactly
@@ -239,24 +238,11 @@
          * @param {string} message The message content.
          */
         function showMessage(type, message) {
-            const container = document.querySelector('.container');
-            let messageDiv = document.querySelector('.temp-message');
+            let messageDiv = document.querySelector('.temp-message-div'); // Use a unique class for this div
             if (!messageDiv) {
                 messageDiv = document.createElement('div');
-                messageDiv.className = 'temp-message';
-                messageDiv.style.cssText = `
-                    position: fixed;
-                    top: 20px;
-                    left: 50%;
-                    transform: translateX(-50%);
-                    padding: 10px 20px;
-                    border-radius: 8px;
-                    font-weight: bold;
-                    z-index: 1000;
-                    opacity: 0;
-                    transition: opacity 0.5s ease-in-out;
-                `;
-                container.prepend(messageDiv); // Add to container
+                messageDiv.className = 'temp-message-div temp-message'; // Combine the unique class with the styling class
+                document.body.appendChild(messageDiv); // Append to body
             }
 
             messageDiv.textContent = message;
@@ -275,7 +261,6 @@
 
             setTimeout(() => {
                 messageDiv.style.opacity = 0;
-                // Optional: messageDiv.remove(); after it fades out, but keep for re-use
             }, 3000); // Message disappears after 3 seconds
         }
 
@@ -288,13 +273,14 @@
          */
         async function checkAdminStatus(uid) {
             try {
-                const adminRef = ref(db, `admins/${uid}`); // Reference to the admin UID in RTDB
-                const snapshot = await get(adminRef); // Fetch the data at that reference
-                // An admin is identified if the snapshot exists AND its value is explicitly 'true'
+                // Ensure your admin UIDs are stored under the 'admins' path in RTDB
+                // e.g., /admins/{admin_uid}: true
+                const adminRef = ref(db, `admins/${uid}`);
+                const snapshot = await get(adminRef);
                 return snapshot.exists() && snapshot.val() === true;
             } catch (error) {
                 console.error("Error checking admin status:", error);
-                return false; // Return false if an error occurs
+                return false;
             }
         }
 
@@ -306,7 +292,6 @@
             const tbody = document.getElementById("accountList");
             tbody.innerHTML = ""; // Clear existing table rows before rendering new ones
 
-            // Iterate over each account and create a table row
             accounts.forEach((acc, i) => {
                 const row = document.createElement("tr");
                 row.innerHTML = `
@@ -347,7 +332,6 @@
          */
         async function loadAccounts() {
             try {
-                // Fetch user data and seller data concurrently
                 const [userSnapshot, sellerSnapshot] = await Promise.all([
                     get(ref(db, 'users')),
                     get(ref(db, 'sellers'))
@@ -356,23 +340,20 @@
                 const usersData = userSnapshot.val() || {};
                 const sellersData = sellerSnapshot.val() || {};
 
-                // Map user data into a consistent format
                 const users = Object.entries(usersData).map(([key, value]) => ({
                     ...value,
-                    _dbKey: key, // Store the original database key (assuming this is the UID)
+                    _dbKey: key, // Assuming key is the UID
                     type: 'user',
-                    fullName: value.fullName || value.name || '' // Use fullName or name for display
+                    fullName: value.fullName || value.name || ''
                 }));
 
-                // Map seller data into a consistent format
                 const sellers = Object.entries(sellersData).map(([key, value]) => ({
                     ...value,
-                    _dbKey: key, // Store the original database key (assuming this is the UID)
+                    _dbKey: key, // Assuming key is the UID
                     type: 'seller',
-                    fullName: value.name || value.fullName || '' // Use name or fullName for display
+                    fullName: value.name || value.fullName || ''
                 }));
 
-                // Combine and store all accounts, then render the table
                 allAccounts = [...users, ...sellers];
                 renderAccounts(allAccounts);
             } catch (error) {
@@ -387,94 +368,88 @@
          * @param {number} i Index of the account in the 'allAccounts' array.
          */
         async function saveChanges(i) {
-            const acc = allAccounts[i]; // Get the original account object
+            const acc = allAccounts[i];
 
-            // Retrieve updated values from the corresponding input fields in the DOM
             const updatedFullName = document.getElementById(`name${i}`).value;
             const updatedEmail = document.getElementById(`email${i}`).value;
-            const updatedRole = document.getElementById(`role${i}`).value; // This is the selected type
+            const updatedRole = document.getElementById(`role${i}`).value;
             const updatedBalance = parseFloat(document.getElementById(`balance${i}`).value);
             const updatedSubscription = document.getElementById(`sub${i}`).value;
             const updatedStatus = document.getElementById(`status${i}`).value;
 
-            // Prepare the data object to send to Firebase
-            const updatedData = {
+            // Construct the complete updated account data
+            const newAccountData = {
+                ...acc, // Copy existing properties
                 fullName: updatedFullName,
                 email: updatedEmail,
                 balance: isNaN(updatedBalance) ? 0 : updatedBalance,
                 subscription: updatedSubscription,
                 status: updatedStatus,
-                // IMPORTANT: We assume _dbKey (from loadAccounts) is the Firebase Auth UID.
-                // If your database keys are based on email addresses, changing the email property
-                // would require a more complex delete-and-recreate operation with a new key.
-                // For this fix, changing 'email' only updates the property, not the key.
+                type: updatedRole // Update the type in the data object for consistent storage
             };
+            // Remove the _dbKey from the data sent to Firebase itself
+            delete newAccountData._dbKey;
+
 
             try {
                 // Scenario 1: Account type (role) is changing
                 if (acc.type !== updatedRole) {
                     if (!confirm(`Are you sure you want to change this account from ${acc.type} to ${updatedRole}? This will move its data in the database.`)) {
-                        return; // Abort if not confirmed
+                        return;
                     }
 
                     const oldPath = acc.type === 'user' ? 'users' : 'sellers';
                     const newPath = updatedRole === 'user' ? 'users' : 'sellers';
 
-                    // 1. Delete the record from its old path
-                    await remove(ref(db, `${oldPath}/${acc._dbKey}`));
-
-                    // 2. Create the record in the new path with updated data
-                    updatedData.type = updatedRole; // Ensure the stored data also reflects the new type
-                    await dbSet(ref(db, `${newPath}/${acc._dbKey}`), updatedData); // Use dbSet for complete overwrite
-
+                    await remove(ref(db, `${oldPath}/${acc._dbKey}`)); // Delete from old path
+                    await dbSet(ref(db, `${newPath}/${acc._dbKey}`), newAccountData); // Set to new path
                     showMessage('success', `✅ Account type changed to ${updatedRole} and data moved!`);
 
                 } else {
                     // Scenario 2: Only properties are changing within the same account type
                     const path = acc.type === 'user' ? 'users' : 'sellers';
-                    await update(ref(db, `${path}/${acc._dbKey}`), updatedData);
+                    await update(ref(db, `${path}/${acc._dbKey}`), newAccountData); // Use update for partial update
                     showMessage('success', "✅ Account changes saved!");
                 }
 
-                loadAccounts(); // Reload all accounts to ensure data consistency and UI refresh
+                await loadAccounts(); // Reload all accounts to ensure data consistency and UI refresh
             } catch (err) {
                 console.error("Error saving changes:", err);
                 showMessage('error', "❌ Error saving changes: " + err.message);
             }
         }
+        window.saveChanges = saveChanges; // Expose globally
 
         /**
          * Deletes a user or seller account from the Realtime Database.
          * @param {number} i Index of the account in the 'allAccounts' array.
          */
         async function deleteAccount(i) {
-            const acc = allAccounts[i]; // Get the account object to be deleted
-            // Confirm deletion with the admin
+            const acc = allAccounts[i];
             if (!confirm(`Are you sure you want to delete ${acc.type} account for ${acc.email}? This action cannot be undone.`)) {
-                return; // Abort if not confirmed
+                return;
             }
 
-            // Determine the correct database path based on account type
             const path = acc.type === 'user' ? 'users' : 'sellers';
             const dbRef = ref(db, `${path}/${acc._dbKey}`);
 
             try {
-                await remove(dbRef); // Delete the data from Firebase
+                await remove(dbRef);
                 showMessage('success', `🗑 Account (${acc.email}) deleted.`);
-                loadAccounts(); // Reload accounts to update the displayed list
+                await loadAccounts();
             } catch (err) {
                 console.error("Error deleting account:", err);
                 showMessage('error', "❌ Error deleting account: " + err.message);
             }
         }
+        window.deleteAccount = deleteAccount; // Expose globally
 
         // Search functionality with debouncing for performance optimization
         let searchTimeout;
         document.getElementById("searchInput").addEventListener("input", e => {
-            clearTimeout(searchTimeout); // Clear previous timeout
-            searchTimeout = setTimeout(() => { // Set a new timeout
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
                 const value = e.target.value.toLowerCase();
-                // Filter accounts based on various fields
                 const filtered = allAccounts.filter(acc =>
                     (acc.fullName && acc.fullName.toLowerCase().includes(value)) ||
                     (acc.email && acc.email.toLowerCase().includes(value)) ||
@@ -482,23 +457,19 @@
                     (acc.status && acc.status.toLowerCase().includes(value)) ||
                     (acc.subscription && acc.subscription.toLowerCase().includes(value))
                 );
-                renderAccounts(filtered); // Render only the filtered accounts
-            }, 300); // Wait 300ms after the last keypress before searching
+                renderAccounts(filtered);
+            }, 300);
         });
 
 
         // --- Admin Authentication & Authorization Check ---
-        // This runs whenever the user's authentication state changes (login/logout/refresh)
         onAuthStateChanged(auth, async (user) => {
-            if (user) { // If a user is logged in
+            if (user) {
                 const isAdmin = await checkAdminStatus(user.uid);
 
                 if (isAdmin) {
                     console.log("Admin user logged in:", user.email, "UID:", user.uid);
-                    await loadAccounts(); // If admin, load all account data
-                    // Expose functions globally so they can be called from HTML onclick attributes
-                    window.saveChanges = saveChanges;
-                    window.deleteAccount = deleteAccount;
+                    await loadAccounts();
                 } else {
                     console.warn("Unauthorized access attempt by non-admin user:", user.email, "UID:", user.uid);
                     showMessage('error', "You are not authorized to view this page. Redirecting...");
@@ -507,11 +478,10 @@
                         window.location.href = "admin-login.html";
                     }).catch((error) => {
                         console.error("Error signing out unauthorized user:", error);
-                        window.location.href = "admin-login.html"; // Still redirect even if sign out fails
+                        window.location.href = "admin-login.html";
                     });
                 }
             } else {
-                // If no user is logged in at all, redirect to the admin login page
                 showMessage('info', "You must be logged in as an admin to access this panel. Redirecting...");
                 window.location.href = "admin-login.html";
             }
