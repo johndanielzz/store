@@ -243,7 +243,7 @@
         function showMessage(type, message) {
             let messageDiv = document.querySelector('.temp-message-div');
             if (!messageDiv) {
-                // Should not happen if div is pre-existing in HTML
+                // Should not happen if div is pre-existing in HTML, but added for robustness
                 messageDiv = document.createElement('div');
                 messageDiv.className = 'temp-message-div temp-message';
                 document.body.appendChild(messageDiv);
@@ -275,7 +275,8 @@
         async function checkAdminStatus(uid) {
             try {
                 // Admins should be defined in your RTDB under the 'admins' path,
-                // for example: /admins/{admin_uid}: true
+                // for example: /admins/{admin_uid}: true.
+                // You must manually add your admin UIDs to this path in your Firebase Realtime Database.
                 const adminRef = ref(db, `admins/${uid}`);
                 const snapshot = await get(adminRef);
                 return snapshot.exists() && snapshot.val() === true;
@@ -302,8 +303,8 @@
 
             accounts.forEach((acc, i) => {
                 const row = document.createElement("tr");
-                // Ensure default values for undefined properties
-                const fullName = acc.fullName || acc.name || ''; // handle 'name' for sellers, 'fullName' for users
+                // Ensure default values for undefined properties to prevent errors and ensure consistent display
+                const fullName = acc.fullName || acc.name || ''; // Use 'fullName' for users, 'name' for sellers, or empty
                 const email = acc.email || '';
                 const balance = (acc.balance || 0).toFixed(2);
                 const subscription = acc.subscription ? acc.subscription.toLowerCase() : 'inactive';
@@ -401,23 +402,37 @@
             const updatedSubscription = document.getElementById(`sub${i}`).value;
             const updatedStatus = document.getElementById(`status${i}`).value;
 
-            // Basic validation
+            // Basic validation for essential fields
             if (!updatedFullName || !updatedEmail || isNaN(updatedBalance)) {
                 showMessage('error', 'Full Name, Email, and Balance are required and must be valid.');
                 return;
             }
 
             // Construct the complete updated account data
+            // Ensure data structure is consistent (e.g., 'name' for sellers, 'fullName' for users)
             const newAccountData = {
-                fullName: updatedFullName, // Store 'fullName' consistently for users
+                // If role is changing, this will be handled during the move operation.
+                // If staying the same, we update the existing fields.
                 email: updatedEmail,
                 balance: updatedBalance,
                 subscription: updatedSubscription,
                 status: updatedStatus,
-                // For sellers, ensure 'name' field is also updated if 'fullName' changes
-                ...(updatedRole === 'seller' && { name: updatedFullName })
             };
 
+            // Dynamically set 'fullName' or 'name' based on the account type
+            if (updatedRole === 'user') {
+                newAccountData.fullName = updatedFullName;
+                // Ensure 'name' is not present if this is a user, or if it's changing from seller to user
+                if (newAccountData.hasOwnProperty('name')) {
+                    delete newAccountData.name;
+                }
+            } else { // updatedRole === 'seller'
+                newAccountData.name = updatedFullName;
+                // Ensure 'fullName' is not present if this is a seller, or if it's changing from user to seller
+                if (newAccountData.hasOwnProperty('fullName')) {
+                    delete newAccountData.fullName;
+                }
+            }
 
             try {
                 // Scenario 1: Account type (role) is changing
@@ -431,7 +446,7 @@
 
                     // Delete from old path
                     await remove(ref(db, `${oldPath}/${acc._dbKey}`));
-                    // Set to new path with the same _dbKey (UID)
+                    // Set to new path with the same _dbKey (UID). The newAccountData already reflects the new role's naming conventions.
                     await dbSet(ref(db, `${newPath}/${acc._dbKey}`), newAccountData);
 
                     showMessage('success', `✅ Account type changed to ${updatedRole} and data moved!`);
@@ -494,13 +509,14 @@
 
 
         // --- Admin Authentication & Authorization Check ---
+        // This block ensures only authenticated and authorized administrators can access this page.
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 const isAdmin = await checkAdminStatus(user.uid);
 
                 if (isAdmin) {
                     console.log("Admin user logged in:", user.email, "UID:", user.uid);
-                    await loadAccounts();
+                    await loadAccounts(); // Load data only if user is an admin
                 } else {
                     console.warn("Unauthorized access attempt by non-admin user:", user.email, "UID:", user.uid);
                     showMessage('error', "You are not authorized to view this page. Redirecting...");
