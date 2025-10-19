@@ -260,7 +260,9 @@
             messageDiv.style.color = 'white'; // Always white text for visibility
             messageDiv.style.opacity = 1;
 
-            setTimeout(() => {
+            // Immediately clear any previous timeout to ensure message is shown for full duration
+            clearTimeout(messageDiv.hideTimeout);
+            messageDiv.hideTimeout = setTimeout(() => {
                 messageDiv.style.opacity = 0;
             }, 3000); // Message disappears after 3 seconds
         }
@@ -277,6 +279,15 @@
                 // Admins should be defined in your RTDB under the 'admins' path,
                 // for example: /admins/{admin_uid}: true.
                 // You must manually add your admin UIDs to this path in your Firebase Realtime Database.
+                // For example, if your admin's UID from Firebase Authentication is 'someUniqueUID123',
+                // your RTDB should have:
+                // {
+                //   "admins": {
+                //     "someUniqueUID123": true
+                //   },
+                //   "users": { ... },
+                //   "sellers": { ... }
+                // }
                 const adminRef = ref(db, `admins/${uid}`);
                 const snapshot = await get(adminRef);
                 return snapshot.exists() && snapshot.val() === true;
@@ -512,25 +523,35 @@
         // This block ensures only authenticated and authorized administrators can access this page.
         onAuthStateChanged(auth, async (user) => {
             if (user) {
+                // User is signed in. Now check if they are an authorized admin.
                 const isAdmin = await checkAdminStatus(user.uid);
 
                 if (isAdmin) {
                     console.log("Admin user logged in:", user.email, "UID:", user.uid);
                     await loadAccounts(); // Load data only if user is an admin
                 } else {
+                    // User is logged in but NOT an authorized admin.
                     console.warn("Unauthorized access attempt by non-admin user:", user.email, "UID:", user.uid);
                     showMessage('error', "You are not authorized to view this page. Redirecting...");
-                    // Sign out the unauthorized user for security and redirect
-                    signOut(auth).then(() => {
-                        window.location.href = "admin-login.html"; // Redirect to admin login
-                    }).catch((error) => {
-                        console.error("Error signing out unauthorized user:", error);
-                        window.location.href = "admin-login.html";
-                    });
+                    // Add a slight delay before redirecting to allow the message to be seen.
+                    setTimeout(() => {
+                        // Sign out the unauthorized user for security and redirect
+                        signOut(auth).then(() => {
+                            window.location.href = "admin-login.html"; // Redirect to admin login
+                        }).catch((error) => {
+                            console.error("Error signing out unauthorized user:", error);
+                            window.location.href = "admin-login.html";
+                        });
+                    }, 1500); // 1.5 second delay
                 }
             } else {
+                // No user is signed in.
+                console.log("No user signed in. Redirecting to admin login.");
                 showMessage('info', "You must be logged in as an admin to access this panel. Redirecting...");
-                window.location.href = "admin-login.html"; // Redirect to admin login
+                // Add a slight delay before redirecting to allow the message to be seen.
+                setTimeout(() => {
+                    window.location.href = "admin-login.html"; // Redirect to admin login
+                }, 1500); // 1.5 second delay
             }
         });
     </script>
