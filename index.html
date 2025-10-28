@@ -9,10 +9,9 @@
     <link rel="stylesheet" href="style.css" />
 
     <style>
-        /* Page container - reduces overall width */
+        /* === PAGE CONTAINER === */
         .page-container {
             max-width: 1100px;
-            /* reduced width */
             margin: 0 auto;
             padding: 0 16px;
         }
@@ -71,7 +70,6 @@
             min-width: 160px;
             box-shadow: 0 0 12px rgba(0, 0, 0, 0.5);
             z-index: 1001;
-            /* Ensure dropdown is above other content */
         }
 
         .dropdown-content a {
@@ -121,7 +119,7 @@
             background: #4f46e5;
         }
 
-        /* === HERO SECTION === */
+        /* === HERO === */
         .hero {
             text-align: center;
             padding: 56px 16px;
@@ -171,6 +169,50 @@
             background: #4f46e5;
         }
 
+        /* === SLIDESHOW === */
+        .slideshow-container {
+            position: relative;
+            margin: 32px auto;
+            max-width: 100%;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3);
+        }
+
+        .slides {
+            display: none;
+            width: 100%;
+        }
+
+        .slides img {
+            width: 100%;
+            height: 300px;
+            object-fit: cover;
+        }
+
+        /* Next & previous buttons */
+        .prev, .next {
+            cursor: pointer;
+            position: absolute;
+            top: 50%;
+            padding: 8px 12px;
+            margin-top: -20px;
+            color: #fff;
+            font-weight: bold;
+            font-size: 20px;
+            border-radius: 50%;
+            background: rgba(0,0,0,0.5);
+            user-select: none;
+            transition: 0.3s;
+        }
+
+        .prev:hover, .next:hover {
+            background: rgba(6,182,212,0.8);
+        }
+
+        .prev { left: 12px; }
+        .next { right: 12px; }
+
         /* === SEARCH BAR === */
         .search-bar {
             margin: 26px auto;
@@ -187,7 +229,7 @@
             max-width: 45vw;
         }
 
-        /* === PRODUCTS SECTION (centered & narrower) === */
+        /* === PRODUCTS SECTION === */
         .products {
             padding: 28px 0 48px;
             text-align: center;
@@ -211,7 +253,6 @@
             flex-direction: column;
             align-items: stretch;
             min-height: 320px;
-            /* helps cards align vertically */
         }
 
         .product-card:hover {
@@ -243,7 +284,6 @@
 
         .product-price {
             margin-top: auto;
-            /* push button to the bottom */
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -277,48 +317,21 @@
             font-size: 0.9rem;
         }
 
-        /* Responsive tweaks */
+        /* === RESPONSIVE === */
         @media (max-width: 900px) {
-            .page-container {
-                max-width: 920px;
-                padding: 0 12px;
-            }
-
-            .product-grid {
-                gap: 14px;
-            }
-
-            .product-card {
-                min-height: 300px;
-            }
+            .page-container { max-width: 920px; padding: 0 12px; }
+            .product-grid { gap: 14px; }
+            .product-card { min-height: 300px; }
         }
 
         @media (max-width: 560px) {
-            header {
-                padding: 10px 12px;
-            }
-
-            .logo {
-                font-size: 1.25rem;
-            }
-
-            .hero h1 {
-                font-size: 1.6rem;
-            }
-
-            .product-grid {
-                grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-                gap: 12px;
-            }
-
-            .product-thumb {
-                height: 120px;
-            }
-
-            .search-bar input,
-            .search-bar select {
-                width: 140px;
-            }
+            header { padding: 10px 12px; }
+            .logo { font-size: 1.25rem; }
+            .hero h1 { font-size: 1.6rem; }
+            .product-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
+            .product-thumb { height: 120px; }
+            .search-bar input, .search-bar select { width: 140px; }
+            .slides img { height: 180px; }
         }
     </style>
 </head>
@@ -328,19 +341,16 @@
         <!-- Header -->
         <header>
             <div class="logo">MatrixMarket</div>
-
             <nav>
                 <a href="index.html">Home</a>
                 <a href="shop.html">Shop</a>
                 <a href="seller-login.html">Sellers</a>
                 <a href="chat.html">Chat</a>
                 <a href="cart.html">Cart 🛒</a>
-
                 <div class="dropdown" id="accountDropdown">
                     <a href="#">My Account ▼</a>
                     <div class="dropdown-content" id="accountLinks"></div>
                 </div>
-
                 <span class="welcome-user" id="welcomeUser"></span>
                 <span class="balance-box" id="userBalance">Balance: 0.00 GMD</span>
                 <a href="confirm-payment.html" class="topup-btn">💰 Top Up</a>
@@ -353,6 +363,20 @@
             <p>The futuristic marketplace where technology meets style.</p>
             <a href="shop.html" class="btn">Start Shopping</a>
         </section>
+
+        <!-- Slideshow -->
+        <div class="slideshow-container" id="slideshow">
+            <div class="slides fade"><img src="pic0.jpg" alt="Matrix Company Video"></div>
+            <div class="slides fade"><img src="pic1.jpg" alt="Mercedes Car"></div>
+            <div class="slides fade"><img src="pic2.jpg" alt="Ladies Dress"></div>
+            <div class="slides fade"><img src="pic3.jpg" alt="PS5 Console"></div>
+            <div class="slides fade"><img src="pic4.jpg" alt="Smart TV"></div>
+            <div class="slides fade"><img src="pic5.jpg" alt="iPhone, Headset and More"></div>
+            <div class="slides fade"><img src="pic6.jpg" alt="Content Creator's Chair"></div>
+            <div class="slides fade"><img src="pic8.jpg" alt="House for Sale"></div>
+            <a class="prev" onclick="plusSlides(-1)">❮</a>
+            <a class="next" onclick="plusSlides(1)">❯</a>
+        </div>
 
         <!-- Search -->
         <div class="search-bar">
@@ -370,10 +394,7 @@
         <!-- Products -->
         <section class="products">
             <h2>🛍️ Latest Products</h2>
-
-            <div id="productList" class="product-grid" aria-live="polite">
-                <!-- product cards injected by JS -->
-            </div>
+            <div id="productList" class="product-grid" aria-live="polite"></div>
         </section>
 
         <footer>
@@ -386,7 +407,6 @@
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
         import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
 
-        // Your web app's Firebase configuration
         const firebaseConfig = {
             apiKey: "AIzaSyDFrctk2MZajP7OmECXe5npHAV0dODH9jk",
             authDomain: "matrixmarketplace-1bd71.firebaseapp.com",
@@ -398,149 +418,98 @@
             measurementId: "G-DTC2GM9L92"
         };
 
-        // Initialize Firebase
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getDatabase(app);
 
-        // === UPDATE USER INFO DISPLAY ===
-        // This function updates the UI based on the current user and their balance
         function updateUserInfoDisplay(user, balanceValue = 0) {
             if (user) {
-                // Ensure balanceValue is a number and formatted
                 const formattedBalance = parseFloat(balanceValue).toFixed(2);
-
                 document.getElementById("welcomeUser").innerText = "👋 " + (user.displayName ? user.displayName : user.email);
                 document.getElementById("userBalance").innerText = "Balance: " + formattedBalance + " GMD";
                 document.getElementById("accountLinks").innerHTML = `
-                <a href="buyers-orders.html">📦 My Orders</a>
-                <a href="settings.html">⚙ Settings</a>
-                <a href="#" onclick="window.logoutUser(event)">🚪 Logout</a>`; // Pass event to logoutUser
-
-                // Update local storage currentUser balance for other parts of the app if they need a current value
+                    <a href="buyers-orders.html">📦 My Orders</a>
+                    <a href="settings.html">⚙ Settings</a>
+                    <a href="#" onclick="window.logoutUser(event)">🚪 Logout</a>`;
                 let localUser = JSON.parse(localStorage.getItem("currentUser") || "{}");
-                if (localUser.uid === user.uid) { // Only update if it's the same user
-                    localUser.balance = parseFloat(balanceValue); // Store as number
-                    localStorage.setItem("currentUser", JSON.stringify(localUser));
-                } else {
-                    // If localUser.uid doesn't match, or it's new user, save a new one
-                    localUser = {
-                        uid: user.uid,
-                        email: user.email,
-                        displayName: user.displayName,
-                        balance: parseFloat(balanceValue)
-                    };
-                    localStorage.setItem("currentUser", JSON.stringify(localUser));
-                }
-
+                if (localUser.uid === user.uid) { localUser.balance = parseFloat(balanceValue); localStorage.setItem("currentUser", JSON.stringify(localUser)); } 
+                else { localStorage.setItem("currentUser", JSON.stringify({ uid: user.uid, email: user.email, displayName: user.displayName, balance: parseFloat(balanceValue) })); }
             } else {
                 document.getElementById("welcomeUser").innerText = "";
                 document.getElementById("userBalance").innerText = "Balance: 0.00 GMD";
                 document.getElementById("accountLinks").innerHTML = `
-                <a href="login.html">🔑 Login</a>
-                <a href="register.html">📝 Sign Up</a>`;
-                localStorage.removeItem("currentUser"); // Ensure local storage is clean when logged out
+                    <a href="login.html">🔑 Login</a>
+                    <a href="register.html">📝 Sign Up</a>`;
+                localStorage.removeItem("currentUser");
             }
         }
 
-        // === LISTEN FOR AUTH STATE CHANGES ===
         onAuthStateChanged(auth, (user) => {
             if (user) {
-                // User is signed in
-                // Set up a Realtime Database listener for their balance
                 const userBalanceRef = ref(db, `users/${user.uid}/balance`);
                 onValue(userBalanceRef, (snapshot) => {
-                    const currentBalance = snapshot.val() || 0; // Default to 0 if no balance exists
+                    const currentBalance = snapshot.val() || 0;
                     updateUserInfoDisplay(user, parseFloat(currentBalance));
-                }, (error) => {
-                    console.error("Error fetching user balance from Realtime Database:", error);
-                    // Even if there's an error, try to display user info with default balance
-                    updateUserInfoDisplay(user, 0);
-                });
-
+                }, (error) => { console.error(error); updateUserInfoDisplay(user, 0); });
             } else {
-                // User is signed out
                 updateUserInfoDisplay(null);
-                // Redirect to login page after logout for a cleaner experience
-                if (window.location.pathname !== '/login.html' && window.location.pathname !== '/register.html') {
-                    window.location.href = 'login.html';
-                }
+                if (!['/login.html','/register.html'].includes(window.location.pathname)) window.location.href = 'login.html';
             }
         });
 
-        // === LOGOUT ===
-        function logoutUser(event) {
-            event.preventDefault(); // Prevent the default action of the anchor tag
-            console.log("Logout button clicked, attempting to sign out..."); // Added for debugging
-            auth.signOut().then(() => {
-                console.log("User signed out from Firebase successfully.");
-                alert("✅ Logged out successfully!");
-                // The onAuthStateChanged listener will handle UI updates and redirection.
-            }).catch((error) => {
-                console.error("Error signing out:", error);
-                alert("❌ Error logging out. Please try again.");
-            });
-        }
-
-        // Expose logoutUser to the global scope so it can be called from onclick
+        function logoutUser(event) { event.preventDefault(); auth.signOut().then(()=>alert("✅ Logged out successfully!")).catch(e=>alert("❌ Error logging out.")); }
         window.logoutUser = logoutUser;
 
-        // === ADD TO CART ===
         function addToCart(product) {
             let cart = JSON.parse(localStorage.getItem("cart") || "[]");
             cart.push(product);
             localStorage.setItem("cart", JSON.stringify(cart));
             alert("🛒 " + product.name + " added to cart!");
         }
-        window.addToCart = addToCart; // Expose to global scope
+        window.addToCart = addToCart;
 
-        // === FILTER function (simple client-side) ===
         function filterProducts() {
             const q = (document.getElementById('searchInput').value || '').toLowerCase().trim();
             const cat = document.getElementById('categoryFilter').value;
             renderProducts(q, cat);
         }
-        window.filterProducts = filterProducts; // Expose to global scope
+        window.filterProducts = filterProducts;
 
-
-        // === RENDER PRODUCTS ===
         function renderProducts(filterText = '', filterCategory = '') {
             const productList = document.getElementById("productList");
             const products = JSON.parse(localStorage.getItem("products") || "[]");
-
-            const filtered = products.filter(p => {
-                const matchesText = !filterText || (p.name && p.name.toLowerCase().includes(filterText)) || (p.category && p.category.toLowerCase().includes(filterText));
-                const matchesCat = !filterCategory || p.category === filterCategory;
-                return matchesText && matchesCat;
-            });
-
-            if (!filtered.length) {
-                productList.innerHTML = "<p style='color:#cbd5e1;'>No products found.</p>";
-                return;
-            }
-
-            productList.innerHTML = filtered.map(p => {
-                const safe = (v) => (v === undefined || v === null) ? '' : String(v).replace(/"/g, '&quot;');
-                return `
-                <div class="product-card" role="article">
-                    <img class="product-thumb" src="${safe(p.image) || 'https://via.placeholder.com/400x300?text=No+Image'}" alt="${safe(p.name)}" />
-                    <h3>${safe(p.name)}</h3>
-                    <p>${safe(p.category)}</p>
-                    <div class="product-price">
-                    <div class="price">${safe(p.price)} GMD</div>
-                    <button class="small-btn" onclick='window.addToCart(${JSON.stringify(p)})'>Add</button>
-                    </div>
-                </div>`;
-            }).join('');
+            const filtered = products.filter(p => (!filterText || (p.name && p.name.toLowerCase().includes(filterText)) || (p.category && p.category.toLowerCase().includes(filterText))) && (!filterCategory || p.category === filterCategory));
+            if (!filtered.length) { productList.innerHTML = "<p style='color:#cbd5e1;'>No products found.</p>"; return; }
+            productList.innerHTML = filtered.map(p=>`<div class="product-card" role="article">
+                <img class="product-thumb" src="${p.image||'https://via.placeholder.com/400x300?text=No+Image'}" alt="${p.name||''}" />
+                <h3>${p.name||''}</h3>
+                <p>${p.category||''}</p>
+                <div class="product-price">
+                <div class="price">${p.price||0} GMD</div>
+                <button class="small-btn" onclick='window.addToCart(${JSON.stringify(p)})'>Add</button>
+                </div></div>`).join('');
         }
-        window.renderProducts = renderProducts; // Expose to global scope
+        window.renderProducts = renderProducts;
 
-        // === PAGE LOAD ===
-        window.addEventListener('load', function () {
-            // onAuthStateChanged will handle the initial user info display and balance listener setup
-            renderProducts(); // Initial product render
+        // === SLIDESHOW SCRIPT ===
+        let slideIndex = 0;
+        function showSlides() {
+            const slides = document.getElementsByClassName("slides");
+            for (let i = 0; i < slides.length; i++) slides[i].style.display = "none";
+            slideIndex++;
+            if (slideIndex > slides.length) slideIndex = 1;
+            slides[slideIndex-1].style.display = "block";
+            setTimeout(showSlides, 4000); // Change slide every 4 seconds
+        }
+        function plusSlides(n) {
+            slideIndex += n-1; // adjust index to match next automatic slide
+            showSlides();
+        }
+
+        window.addEventListener('load', ()=>{
+            renderProducts();
+            showSlides();
         });
     </script>
 </body>
-
 </html>
