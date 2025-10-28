@@ -14,7 +14,521 @@
             max-width: 1200px;
             margin: 0 auto;
             padding: 0 16px;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Segoe UI', Tahoma, Gen<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MatrixMarket - Home</title>
+    <link rel="icon" type="image/x-icon" href="matrixx.png">
+    <link rel="stylesheet" href="style.css" />
+
+    <style>
+        /* === PAGE CONTAINER === */
+        .page-container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 0 16px;
+        }
+
+        /* === HEADER === */
+        header {
+            background: rgba(0, 0, 0, 0.75);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 20px;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            backdrop-filter: blur(8px);
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
+        }
+
+        .logo {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: #06b6d4;
+            text-shadow: 0 0 8px #06b6d4;
+        }
+
+        nav {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            flex-wrap: wrap;
+        }
+
+        nav a {
+            color: #fff;
+            text-decoration: none;
+            font-weight: 500;
+            transition: 0.25s;
+        }
+
+        nav a:hover {
+            color: #06b6d4;
+        }
+
+        /* === DROPDOWN === */
+        .dropdown {
+            position: relative;
+        }
+
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            right: 0;
+            background: rgba(15, 23, 42, 0.95);
+            border-radius: 8px;
+            overflow: hidden;
+            min-width: 160px;
+            box-shadow: 0 0 12px rgba(0, 0, 0, 0.5);
+            z-index: 1001;
+        }
+
+        .dropdown-content a {
+            display: block;
+            padding: 10px 12px;
+            color: #fff;
+            text-decoration: none;
+            font-size: 0.95rem;
+        }
+
+        .dropdown-content a:hover {
+            background: rgba(6, 182, 212, 0.18);
+        }
+
+        .dropdown:hover .dropdown-content {
+            display: block;
+        }
+
+        .welcome-user {
+            font-size: 0.88rem;
+            color: #cbd5e1;
+            margin-left: 6px;
+        }
+
+        .balance-box {
+            font-weight: 700;
+            color: #22c55e;
+            background: rgba(34, 197, 94, 0.12);
+            padding: 6px 10px;
+            border-radius: 8px;
+            margin-left: 6px;
+            font-size: 0.9rem;
+        }
+
+        .topup-btn {
+            background: #06b6d4;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-weight: 700;
+            color: #fff;
+            text-decoration: none;
+            transition: 0.2s;
+            margin-left: 6px;
+        }
+
+        .topup-btn:hover {
+            background: #4f46e5;
+        }
+
+        /* === HERO === */
+        .hero {
+            text-align: center;
+            padding: 56px 16px;
+            background: linear-gradient(135deg, #0f172a, #1e293b, #4f46e5, #06b6d4);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+            color: #fff;
+        }
+
+        @keyframes gradientBG {
+            0% {
+                background-position: 0% 50%;
+            }
+
+            50% {
+                background-position: 100% 50%;
+            }
+
+            100% {
+                background-position: 0% 50%;
+            }
+        }
+
+        .hero h1 {
+            font-size: 2.2rem;
+            margin: 0 0 8px;
+            text-shadow: 0 0 10px #06b6d4;
+        }
+
+        .hero p {
+            font-size: 1rem;
+            margin: 0 0 18px;
+            color: #e6eef8;
+        }
+
+        .btn {
+            background: #06b6d4;
+            padding: 10px 16px;
+            border-radius: 10px;
+            color: white;
+            font-weight: 700;
+            border: none;
+            cursor: pointer;
+        }
+
+        .btn:hover {
+            background: #4f46e5;
+        }
+
+        /* === SLIDESHOW === */
+       .slideshow-container {
+    max-width: 100%;
+    height: 400px; /* Increase the height to show full ad */
+    overflow: hidden;
+    border-radius: 12px;
+    margin: 32px auto;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3)
+        }
+
+        .slides {
+            display: none;
+            width: 100%;
+        }
+
+        .slides img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        /* Next & previous buttons */
+        .prev, .next {
+            cursor: pointer;
+            position: absolute;
+            top: 50%;
+            padding: 8px 12px;
+            margin-top: -20px;
+            color: #fff;
+            font-weight: bold;
+            font-size: 20px;
+            border-radius: 50%;
+            background: rgba(0,0,0,0.5);
+            user-select: none;
+            transition: 0.3s;
+        }
+
+        .prev:hover, .next:hover {
+            background: rgba(6,182,212,0.8);
+        }
+
+        .prev { left: 12px; }
+        .next { right: 12px; }
+
+        /* === SEARCH BAR === */
+        .search-bar {
+            margin: 26px auto;
+            text-align: center;
+        }
+
+        .search-bar input,
+        .search-bar select {
+            padding: 10px;
+            border-radius: 10px;
+            border: none;
+            margin-right: 8px;
+            width: 180px;
+            max-width: 45vw;
+        }
+
+        /* === PRODUCTS SECTION === */
+        .products {
+            padding: 28px 0 48px;
+            text-align: center;
+        }
+
+        .product-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 18px;
+            margin-top: 18px;
+            align-items: start;
+        }
+
+        .product-card {
+            background: rgba(255, 255, 255, 0.06);
+            padding: 12px;
+            border-radius: 12px;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+            transition: transform 0.18s ease, box-shadow 0.18s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            min-height: 320px;
+        }
+
+        .product-card:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 12px 28px rgba(6, 182, 212, 0.16);
+        }
+
+        .product-thumb {
+            width: 100%;
+            height: 160px;
+            object-fit: cover;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            background: #0b1220;
+        }
+
+        .product-card h3 {
+            margin: 6px 0;
+            font-size: 1.05rem;
+            line-height: 1.15;
+            color: #fff;
+        }
+
+        .product-card p {
+            margin: 4px 0;
+            color: #cbd5e1;
+            font-size: 0.95rem;
+        }
+
+        .product-price {
+            margin-top: auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .price {
+            font-weight: 800;
+            color: #ffffff;
+        }
+
+        .small-btn {
+            padding: 8px 10px;
+            border-radius: 8px;
+            background: #06b6d4;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: 700;
+        }
+
+        .small-btn:hover {
+            background: #4f46e5;
+        }
+
+        footer {
+            background: rgba(0, 0, 0, 0.7);
+            text-align: center;
+            padding: 18px;
+            color: #cbd5e1;
+            font-size: 0.9rem;
+        }
+
+        /* === RESPONSIVE === */
+        @media (max-width: 900px) {
+            .page-container { max-width: 920px; padding: 0 12px; }
+            .product-grid { gap: 14px; }
+            .product-card { min-height: 300px; }
+        }
+
+        @media (max-width: 560px) {
+            header { padding: 10px 12px; }
+            .logo { font-size: 1.25rem; }
+            .hero h1 { font-size: 1.6rem; }
+            .product-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
+            .product-thumb { height: 120px; }
+            .search-bar input, .search-bar select { width: 140px; }
+            .slides img { height: 180px; }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="page-container">
+        <!-- Header -->
+        <header>
+            <div class="logo">MatrixMarket</div>
+            <nav>
+                <a href="index.html">Home</a>
+                <a href="shop.html">Shop</a>
+                <a href="seller-login.html">Sellers</a>
+                <a href="chat.html">Chat</a>
+                <a href="cart.html">Cart 🛒</a>
+                <div class="dropdown" id="accountDropdown">
+                    <a href="#">My Account ▼</a>
+                    <div class="dropdown-content" id="accountLinks"></div>
+                </div>
+                <span class="welcome-user" id="welcomeUser"></span>
+                <span class="balance-box" id="userBalance">Balance: 0.00 GMD</span>
+                <a href="confirm-payment.html" class="topup-btn">💰 Top Up</a>
+            </nav>
+        </header>
+
+        <!-- Hero -->
+        <section class="hero">
+            <h1>Welcome to MatrixMarket</h1>
+            <p>The futuristic marketplace where technology meets style.</p>
+            <a href="shop.html" class="btn">Start Shopping</a>
+        </section>
+
+        <!-- Slideshow -->
+        <div class="slideshow-container" id="slideshow">
+            <div class="slides fade"><img src="pic0.jpg" alt="Matrix Company Video"></div>
+            <div class="slides fade"><img src="pic1.jpg" alt="Mercedes Car"></div>
+            <div class="slides fade"><img src="pic2.jpg" alt="Ladies Dress"></div>
+            <div class="slides fade"><img src="pic3.jpg" alt="PS5 Console"></div>
+            <div class="slides fade"><img src="pic4.jpg" alt="Smart TV"></div>
+            <div class="slides fade"><img src="pic5.jpg" alt="iPhone, Headset and More"></div>
+            <div class="slides fade"><img src="pic6.jpg" alt="Content Creator's Chair"></div>
+            <div class="slides fade"><img src="pic8.jpg" alt="House for Sale"></div>
+            <a class="prev" onclick="plusSlides(-1)">❮</a>
+            <a class="next" onclick="plusSlides(1)">❯</a>
+        </div>
+
+        <!-- Search -->
+        <div class="search-bar">
+            <input type="text" id="searchInput" placeholder="🔍 Search products..." />
+            <select id="categoryFilter">
+                <option value="">All Categories</option>
+                <option value="electronics">Electronics</option>
+                <option value="fashion">Fashion</option>
+                <option value="gaming">Gaming</option>
+                <option value="home">Home & Living</option>
+            </select>
+            <button class="btn" onclick="filterProducts()">Filter</button>
+        </div>
+
+        <!-- Products -->
+        <section class="products">
+            <h2>🛍️ Latest Products</h2>
+            <div id="productList" class="product-grid" aria-live="polite"></div>
+        </section>
+
+        <footer>
+            <p>© 2025 MatrixMarket. All rights reserved.</p>
+        </footer>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
+        import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDFrctk2MZajP7OmECXe5npHAV0dODH9jk",
+            authDomain: "matrixmarketplace-1bd71.firebaseapp.com",
+            databaseURL: "https://matrixmarketplace-1bd71-default-rtdb.firebaseio.com",
+            projectId: "matrixmarketplace-1bd71",
+            storageBucket: "matrixmarketplace-1bd71.firebasestorage.app",
+            messagingSenderId: "10374416997",
+            appId: "1:10374416997:web:9626c569e845c14a87548c",
+            measurementId: "G-DTC2GM9L92"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getDatabase(app);
+
+        function updateUserInfoDisplay(user, balanceValue = 0) {
+            if (user) {
+                const formattedBalance = parseFloat(balanceValue).toFixed(2);
+                document.getElementById("welcomeUser").innerText = "👋 " + (user.displayName ? user.displayName : user.email);
+                document.getElementById("userBalance").innerText = "Balance: " + formattedBalance + " GMD";
+                document.getElementById("accountLinks").innerHTML = `
+                    <a href="buyers-orders.html">📦 My Orders</a>
+                    <a href="settings.html">⚙ Settings</a>
+                    <a href="#" onclick="window.logoutUser(event)">🚪 Logout</a>`;
+                let localUser = JSON.parse(localStorage.getItem("currentUser") || "{}");
+                if (localUser.uid === user.uid) { localUser.balance = parseFloat(balanceValue); localStorage.setItem("currentUser", JSON.stringify(localUser)); } 
+                else { localStorage.setItem("currentUser", JSON.stringify({ uid: user.uid, email: user.email, displayName: user.displayName, balance: parseFloat(balanceValue) })); }
+            } else {
+                document.getElementById("welcomeUser").innerText = "";
+                document.getElementById("userBalance").innerText = "Balance: 0.00 GMD";
+                document.getElementById("accountLinks").innerHTML = `
+                    <a href="login.html">🔑 Login</a>
+                    <a href="register.html">📝 Sign Up</a>`;
+                localStorage.removeItem("currentUser");
+            }
+        }
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                const userBalanceRef = ref(db, `users/${user.uid}/balance`);
+                onValue(userBalanceRef, (snapshot) => {
+                    const currentBalance = snapshot.val() || 0;
+                    updateUserInfoDisplay(user, parseFloat(currentBalance));
+                }, (error) => { console.error(error); updateUserInfoDisplay(user, 0); });
+            } else {
+                updateUserInfoDisplay(null);
+                if (!['/login.html','/register.html'].includes(window.location.pathname)) window.location.href = 'login.html';
+            }
+        });
+
+        function logoutUser(event) { event.preventDefault(); auth.signOut().then(()=>alert("✅ Logged out successfully!")).catch(e=>alert("❌ Error logging out.")); }
+        window.logoutUser = logoutUser;
+
+        function addToCart(product) {
+            let cart = JSON.parse(localStorage.getItem("cart") || "[]");
+            cart.push(product);
+            localStorage.setItem("cart", JSON.stringify(cart));
+            alert("🛒 " + product.name + " added to cart!");
+        }
+        window.addToCart = addToCart;
+
+        function filterProducts() {
+            const q = (document.getElementById('searchInput').value || '').toLowerCase().trim();
+            const cat = document.getElementById('categoryFilter').value;
+            renderProducts(q, cat);
+        }
+        window.filterProducts = filterProducts;
+
+        function renderProducts(filterText = '', filterCategory = '') {
+            const productList = document.getElementById("productList");
+            const products = JSON.parse(localStorage.getItem("products") || "[]");
+            const filtered = products.filter(p => (!filterText || (p.name && p.name.toLowerCase().includes(filterText)) || (p.category && p.category.toLowerCase().includes(filterText))) && (!filterCategory || p.category === filterCategory));
+            if (!filtered.length) { productList.innerHTML = "<p style='color:#cbd5e1;'>No products found.</p>"; return; }
+            productList.innerHTML = filtered.map(p=>`<div class="product-card" role="article">
+                <img class="product-thumb" src="${p.image||'https://via.placeholder.com/400x300?text=No+Image'}" alt="${p.name||''}" />
+                <h3>${p.name||''}</h3>
+                <p>${p.category||''}</p>
+                <div class="product-price">
+                <div class="price">${p.price||0} GMD</div>
+                <button class="small-btn" onclick='window.addToCart(${JSON.stringify(p)})'>Add</button>
+                </div></div>`).join('');
+        }
+        window.renderProducts = renderProducts;
+
+        // === SLIDESHOW SCRIPT ===
+        let slideIndex = 0;
+        function showSlides() {
+            const slides = document.getElementsByClassName("slides");
+            for (let i = 0; i < slides.length; i++) slides[i].style.display = "none";
+            slideIndex++;
+            if (slideIndex > slides.length) slideIndex = 1;
+            slides[slideIndex-1].style.display = "block";
+            setTimeout(showSlides, 4000); // Change slide every 4 seconds
+        }
+        function plusSlides(n) {
+            slideIndex += n-1; // adjust index to match next automatic slide
+            showSlides();
+        }
+
+        window.addEventListener('load', ()=>{
+            renderProducts();
+            showSlides();
+        });
+    </script>
+</body>
+</html>eva, Verdana, sans-serif;
         }
 
         /* === HEADER === */
@@ -344,3 +858,4 @@
     </script>
 </body>
 </html>
+
