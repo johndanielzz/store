@@ -2,275 +2,352 @@
 <html lang="en">
 
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MatrixMarket - Confirm Payment</title>
-  <style>
-    body {
-      font-family: "Poppins", sans-serif;
-      background: linear-gradient(135deg, #0f172a, #1e293b, #4f46e5, #06b6d4);
-      background-size: 400% 400%;
-      animation: gradientBG 15s ease infinite;
-      color: white;
-      margin: 0;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
-    }
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MatrixMarket - Confirm Payment</title>
+    <style>
+        body {
+            font-family: "Poppins", sans-serif;
+            background: linear-gradient(135deg, #0f172a, #1e293b, #4f46e5, #06b6d4);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+            color: white;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
 
-    @keyframes gradientBG {
-      0%, 100% { background-position: 0% 50%; }
-      50% { background-position: 100% 50%; }
-    }
+        @keyframes gradientBG {
 
-    .container {
-      width: 95%;
-      max-width: 520px;
-      background: rgba(255, 255, 255, 0.1);
-      padding: 30px;
-      border-radius: 20px;
-      box-shadow: 0 0 30px rgba(6, 182, 212, 0.4);
-      text-align: center;
-      backdrop-filter: blur(12px);
-    }
+            0%,
+            100% {
+                background-position: 0% 50%;
+            }
 
-    h1 { margin-bottom: 10px; text-shadow: 0 0 10px #06b6d4; font-size: 1.8rem; }
+            50% {
+                background-position: 100% 50%;
+            }
+        }
 
-    .user-info { margin-bottom: 25px; color: #cbd5e1; line-height: 1.6; }
+        .container {
+            width: 95%;
+            max-width: 520px;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 0 30px rgba(6, 182, 212, 0.4);
+            text-align: center;
+            backdrop-filter: blur(12px);
+        }
 
-    label { font-weight: 600; display: block; margin: 12px 0 6px; text-align: left; }
+        h1 {
+            margin-bottom: 10px;
+            text-shadow: 0 0 10px #06b6d4;
+            font-size: 1.8rem;
+        }
 
-    input, select, button {
-      width: 100%; padding: 12px; margin: 8px 0; border: none; border-radius: 12px; font-size: 1rem;
-    }
+        .user-info {
+            margin-bottom: 25px;
+            color: #cbd5e1;
+            line-height: 1.6;
+        }
 
-    input, select { background: rgba(255, 255, 255, 0.15); color: white; }
-    input::placeholder { color: #cbd5e1; }
+        label {
+            font-weight: 600;
+            display: block;
+            margin: 12px 0 6px;
+            text-align: left;
+        }
 
-    button {
-      background: linear-gradient(45deg, #06b6d4, #4f46e5);
-      color: white; font-weight: bold; cursor: pointer;
-      transition: 0.3s; box-shadow: 0 0 10px rgba(6, 182, 212, 0.5);
-    }
+        input,
+        select,
+        button {
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+        }
 
-    button:hover { transform: scale(1.05); background: linear-gradient(45deg, #4f46e5, #06b6d4); }
-    .back-btn { background: #ef4444; }
-    .back-btn:hover { background: #dc2626; }
+        input,
+        select {
+            background: rgba(255, 255, 255, 0.15);
+            color: white;
+        }
 
-    .toast {
-      margin-top: 15px; padding: 12px; border-radius: 10px;
-      display: none; opacity: 0; transition: opacity 0.4s ease-in-out;
-    }
+        input::placeholder {
+            color: #cbd5e1;
+        }
 
-    .toast.show { display: block; opacity: 1; }
+        button {
+            background: linear-gradient(45deg, #06b6d4, #4f46e5);
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.3s;
+            box-shadow: 0 0 10px rgba(6, 182, 212, 0.5);
+        }
 
-    .success { background: rgba(34, 197, 94, 0.2); color: #22c55e; }
-    .error { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+        button:hover {
+            transform: scale(1.05);
+            background: linear-gradient(45deg, #4f46e5, #06b6d4);
+        }
 
-    .loading { animation: pulse 1s infinite; }
-    @keyframes pulse { 0% { opacity: 0.6; } 50% { opacity: 1; } 100% { opacity: 0.6; } }
-  </style>
+        .back-btn {
+            background: #ef4444;
+        }
+
+        .back-btn:hover {
+            background: #dc2626;
+        }
+
+        .toast {
+            margin-top: 15px;
+            padding: 12px;
+            border-radius: 10px;
+            display: none;
+            opacity: 0;
+            transition: opacity 0.4s ease-in-out;
+        }
+
+        .toast.show {
+            display: block;
+            opacity: 1;
+        }
+
+        .success {
+            background: rgba(34, 197, 94, 0.2);
+            color: #22c55e;
+        }
+
+        .error {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
+
+        .loading {
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                opacity: 0.6;
+            }
+
+            50% {
+                opacity: 1;
+            }
+
+            100% {
+                opacity: 0.6;
+            }
+        }
+    </style>
 </head>
 
 <body>
-  <div class="container">
-    <h1>💳 Confirm Payment</h1>
-    <div class="user-info" id="userInfo">Loading user...</div>
+    <div class="container">
+        <h1>💳 Confirm Payment</h1>
+        <div class="user-info" id="userInfo">Loading user...</div>
 
-    <label for="method">Select Payment Method</label>
-    <select id="method">
-      <option value="">-- Choose Method --</option>
-      <option value="Wave">Wave (6785316)</option>
-      <option value="ComCash">ComCash (6785316)</option>
-      <option value="Wallet">Wallet</option>
-      <option value="Card">Card</option>
-    </select>
+        <label for="method">Select Payment Method</label>
+        <select id="method">
+            <option value="">-- Choose Method --</option>
+            <option value="Wave">Wave (6785316)</option>
+            <option value="ComCash">ComCash (6785316)</option>
+            <option value="Wallet">Wallet</option>
+            <option value="Card">Card</option>
+        </select>
 
-    <label for="amount">Enter Amount (GMD)</label>
-    <input type="number" id="amount" placeholder="Enter amount" min="1">
+        <label for="amount">Enter Amount (GMD)</label>
+        <input type="number" id="amount" placeholder="Enter amount" min="1">
 
-    <!-- Removed: Proof of Payment upload section -->
-    <!-- <label for="proof">Upload Proof of Payment (Image)</label> -->
-    <!-- <input type="file" id="proof" accept="image/*"> -->
+        <!-- Removed: Proof of Payment upload section -->
+        <!-- <label for="proof">Upload Proof of Payment (Image)</label> -->
+        <!-- <input type="file" id="proof" accept="image/*"> -->
 
-    <button type="button" id="submitBtn" disabled>📩 Submit Request</button>
-    <button class="back-btn" onclick="window.location.href='index.html'">⬅ Back</button>
+        <button type="button" id="submitBtn" disabled>📩 Submit Request</button>
+        <button class="back-btn" onclick="window.location.href='index.html'">⬅ Back</button>
+        <a href="https://wa.me/qr/FDKDUI5V625OE1"><button class="back-btn" >Submit proof of payment</button></a>
 
-    <div class="toast success" id="successMsg">✅ Payment submitted successfully!</div>
-    <div class="toast error" id="errorMsg">⚠️ Something went wrong. Try again.</div>
-  </div>
+        <div class="toast success" id="successMsg">✅ Payment submitted successfully!</div>
+        <div class="toast error" id="errorMsg">⚠️ Something went wrong. Try again.</div>
+    </div>
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
-    import { getDatabase, ref as dbRef, push, set } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
-    // Removed: Firebase Storage imports as proof of payment is no longer needed
-    // import { getStorage, ref as storageRef, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-storage.js";
-    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
+        import { getDatabase, ref as dbRef, push, set } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
+        // Removed: Firebase Storage imports as proof of payment is no longer needed
+        // import { getStorage, ref as storageRef, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-storage.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyDFrctk2MZajP7OmECXe5npHAV0dODH9jk",
-      authDomain: "matrixmarketplace-1bd71.firebaseapp.com",
-      databaseURL: "https://matrixmarketplace-1bd71-default-rtdb.firebaseio.com",
-      projectId: "matrixmarketplace-1bd71",
-      // Removed: storageBucket as it's no longer used on this page
-      // storageBucket: "matrixmarketplace-1bd71.appspot.com",
-      messagingSenderId: "10374416997",
-      appId: "1:10374416997:web:9626c569e845c14a87548c",
-      measurementId: "G-DTC2GM9L92"
-    };
+        const firebaseConfig = {
+            apiKey: "AIzaSyDFrctk2MZajP7OmECXe5npHAV0dODH9jk",
+            authDomain: "matrixmarketplace-1bd71.firebaseapp.com",
+            databaseURL: "https://matrixmarketplace-1bd71-default-rtdb.firebaseio.com",
+            projectId: "matrixmarketplace-1bd71",
+            // Removed: storageBucket as it's no longer used on this page
+            // storageBucket: "matrixmarketplace-1bd71.appspot.com",
+            messagingSenderId: "10374416997",
+            appId: "1:10374416997:web:9626c569e845c14a87548c",
+            measurementId: "G-DTC2GM9L92"
+        };
 
-    const app = initializeApp(firebaseConfig);
-    const db = getDatabase(app);
-    // Removed: storage initialization as it's no longer used
-    // const storage = getStorage(app);
-    const auth = getAuth(app);
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        // Removed: storage initialization as it's no longer used
+        // const storage = getStorage(app);
+        const auth = getAuth(app);
 
-    let firebaseUser = null;
+        let firebaseUser = null;
 
-    const submitBtn = document.getElementById("submitBtn");
-    const userInfoBox = document.getElementById("userInfo");
-    const methodSelect = document.getElementById("method");
-    const amountInput = document.getElementById("amount");
-    // Removed: proofInput as it's no longer needed
-    // const proofInput = document.getElementById("proof");
+        const submitBtn = document.getElementById("submitBtn");
+        const userInfoBox = document.getElementById("userInfo");
+        const methodSelect = document.getElementById("method");
+        const amountInput = document.getElementById("amount");
+        // Removed: proofInput as it's no longer needed
+        // const proofInput = document.getElementById("proof");
 
-    function showError(msg) {
-      const errorMsg = document.getElementById("errorMsg");
-      errorMsg.innerText = msg;
-      errorMsg.classList.add("show");
-      document.getElementById("successMsg").classList.remove("show");
-    }
+        function showError(msg) {
+            const errorMsg = document.getElementById("errorMsg");
+            errorMsg.innerText = msg;
+            errorMsg.classList.add("show");
+            document.getElementById("successMsg").classList.remove("show");
+        }
 
-    function hideMessages() {
-      document.getElementById("successMsg").classList.remove("show");
-      document.getElementById("errorMsg").classList.remove("show");
-    }
+        function hideMessages() {
+            document.getElementById("successMsg").classList.remove("show");
+            document.getElementById("errorMsg").classList.remove("show");
+        }
 
-    onAuthStateChanged(auth, (user) => {
-      firebaseUser = user;
-      hideMessages();
+        onAuthStateChanged(auth, (user) => {
+            firebaseUser = user;
+            hideMessages();
 
-      if (user) {
-        userInfoBox.innerHTML = `
+            if (user) {
+                userInfoBox.innerHTML = `
           👤 <b>${user.displayName || user.email || "User"}</b><br>
           📧 ${user.email}<br>
           <span style="color: #22c55e;">✅ Logged in to Firebase</span>
         `;
-        submitBtn.disabled = false;
-        submitBtn.innerText = "📩 Submit Request";
-      } else {
-        userInfoBox.innerHTML = "⚠️ You must be logged in to Firebase to submit a payment. Please log in.";
-        submitBtn.disabled = true;
-        submitBtn.innerText = "Please Log In";
-        showError("You are not logged in. Please log in to your account.");
-      }
-    });
-
-    submitBtn.addEventListener("click", submitPayment);
-
-    async function submitPayment() {
-      hideMessages();
-
-      if (!firebaseUser) {
-        return showError("⚠️ You are not logged in to Firebase. Please log in.");
-      }
-
-      const method = methodSelect.value;
-      const amount = parseFloat(amountInput.value);
-      // Removed: proofFile validation as proof of payment is no longer needed
-      // const proofFile = proofInput.files[0];
-
-      if (!method) return showError("⚠️ Select a payment method.");
-      if (!amount || amount <= 0) return showError("⚠️ Enter a valid amount.");
-      // Removed: proofFile validation
-      // if (!proofFile) return showError("⚠️ Please upload proof of payment.");
-      // if (proofFile.size > 5 * 1024 * 1024) return showError("⚠️ File must be under 5MB.");
-
-      submitBtn.disabled = true; // Disable button immediately
-
-      try {
-        // Removed: All Firebase Storage related code
-        // 1. Upload proof to Firebase Storage with progress tracking
-        // const proofRef = storageRef(storage, `payment_proofs/${firebaseUser.uid}/${Date.now()}_${proofFile.name}`);
-        // const uploadTask = uploadBytesResumable(proofRef, proofFile);
-        // await new Promise((resolve, reject) => {
-        //     uploadTask.on('state_changed',
-        //         (snapshot) => {
-        //             const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-        //             submitBtn.innerText = `⏳ Uploading... ${progress.toFixed(0)}%`;
-        //         },
-        //         (error) => {
-        //             console.error("Storage upload failed:", error);
-        //             let errorMessage = "⚠️ Error uploading proof. Please try again.";
-        //             if (error.code === 'storage/unauthorized') {
-        //                 errorMessage = "⚠️ Permission denied! Check Firebase Storage rules for 'payment_proofs'.";
-        //             } else if (error.code === 'storage/canceled') {
-        //                 errorMessage = "⚠️ Upload canceled.";
-        //             }
-        //             showError(errorMessage);
-        //             reject(error);
-        //         },
-        //         () => {
-        //             console.log('Proof upload complete!');
-        //             resolve();
-        //         }
-        //     );
-        // });
-        // 2. Removed: Get the download URL after successful upload
-        // const proofURL = await getDownloadURL(uploadTask.snapshot.ref);
-
-        // 3. Save payment request to Realtime Database
-        submitBtn.innerText = "💾 Saving data..."; // Update button text for next step
-        const newPaymentRef = push(dbRef(db, "pendingRequests"));
-        await set(newPaymentRef, {
-          userId: firebaseUser.uid,
-          name: firebaseUser.displayName || firebaseUser.email || "Unknown",
-          email: firebaseUser.email,
-          method,
-          amount,
-          // Removed: proofURL as proof of payment is no longer needed
-          // proofURL,
-          status: "Pending", // Status will still be pending for admin review
-          date: new Date().toLocaleString()
+                submitBtn.disabled = false;
+                submitBtn.innerText = "📩 Submit Request";
+            } else {
+                userInfoBox.innerHTML = "⚠️ You must be logged in to Firebase to submit a payment. Please log in.";
+                submitBtn.disabled = true;
+                submitBtn.innerText = "Please Log In";
+                showError("You are not logged in. Please log in to your account.");
+            }
         });
 
-        document.getElementById("successMsg").classList.add("show");
-        submitBtn.innerText = "✅ Submitted"; // Final success message
+        submitBtn.addEventListener("click", submitPayment);
 
-        // Clear form fields after successful submission
-        methodSelect.value = "";
-        amountInput.value = "";
-        // Removed: Clear file input
-        // proofInput.value = "";
+        async function submitPayment() {
+            hideMessages();
 
-        setTimeout(() => window.location.href = "payment-status.html", 2000);
+            if (!firebaseUser) {
+                return showError("⚠️ You are not logged in to Firebase. Please log in.");
+            }
 
-      } catch (err) {
-        console.error("Payment submission error:", err);
-        // Removed: Storage-specific error handling
-        // if (err.code && err.code.startsWith('storage/')) {
-        //     // Error message already set by the uploadTask.on error handler
-        // } else
-        if (err.message.includes("auth.currentUser is null") || err.message.includes("no-auth")) {
-            showError("⚠️ You must be logged in to Firebase to submit a payment.");
-        } else if (err.message) {
-            showError(`⚠️ Error: ${err.message}`);
+            const method = methodSelect.value;
+            const amount = parseFloat(amountInput.value);
+            // Removed: proofFile validation as proof of payment is no longer needed
+            // const proofFile = proofInput.files[0];
+
+            if (!method) return showError("⚠️ Select a payment method.");
+            if (!amount || amount <= 0) return showError("⚠️ Enter a valid amount.");
+            // Removed: proofFile validation
+            // if (!proofFile) return showError("⚠️ Please upload proof of payment.");
+            // if (proofFile.size > 5 * 1024 * 1024) return showError("⚠️ File must be under 5MB.");
+
+            submitBtn.disabled = true; // Disable button immediately
+
+            try {
+                // Removed: All Firebase Storage related code
+                // 1. Upload proof to Firebase Storage with progress tracking
+                // const proofRef = storageRef(storage, `payment_proofs/${firebaseUser.uid}/${Date.now()}_${proofFile.name}`);
+                // const uploadTask = uploadBytesResumable(proofRef, proofFile);
+                // await new Promise((resolve, reject) => {
+                //     uploadTask.on('state_changed',
+                //         (snapshot) => {
+                //             const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                //             submitBtn.innerText = `⏳ Uploading... ${progress.toFixed(0)}%`;
+                //         },
+                //         (error) => {
+                //             console.error("Storage upload failed:", error);
+                //             let errorMessage = "⚠️ Error uploading proof. Please try again.";
+                //             if (error.code === 'storage/unauthorized') {
+                //                 errorMessage = "⚠️ Permission denied! Check Firebase Storage rules for 'payment_proofs'.";
+                //             } else if (error.code === 'storage/canceled') {
+                //                 errorMessage = "⚠️ Upload canceled.";
+                //             }
+                //             showError(errorMessage);
+                //             reject(error);
+                //         },
+                //         () => {
+                //             console.log('Proof upload complete!');
+                //             resolve();
+                //         }
+                //     );
+                // });
+                // 2. Removed: Get the download URL after successful upload
+                // const proofURL = await getDownloadURL(uploadTask.snapshot.ref);
+
+                // 3. Save payment request to Realtime Database
+                submitBtn.innerText = "💾 Saving data..."; // Update button text for next step
+                const newPaymentRef = push(dbRef(db, "pendingRequests"));
+                await set(newPaymentRef, {
+                    userId: firebaseUser.uid,
+                    name: firebaseUser.displayName || firebaseUser.email || "Unknown",
+                    email: firebaseUser.email,
+                    method,
+                    amount,
+                    // Removed: proofURL as proof of payment is no longer needed
+                    // proofURL,
+                    status: "Pending", // Status will still be pending for admin review
+                    date: new Date().toLocaleString()
+                });
+
+                document.getElementById("successMsg").classList.add("show");
+                submitBtn.innerText = "✅ Submitted"; // Final success message
+
+                // Clear form fields after successful submission
+                methodSelect.value = "";
+                amountInput.value = "";
+                // Removed: Clear file input
+                // proofInput.value = "";
+
+                setTimeout(() => window.location.href = "payment-status.html", 2000);
+
+            } catch (err) {
+                console.error("Payment submission error:", err);
+                // Removed: Storage-specific error handling
+                // if (err.code && err.code.startsWith('storage/')) {
+                //     // Error message already set by the uploadTask.on error handler
+                // } else
+                if (err.message.includes("auth.currentUser is null") || err.message.includes("no-auth")) {
+                    showError("⚠️ You must be logged in to Firebase to submit a payment.");
+                } else if (err.message) {
+                    showError(`⚠️ Error: ${err.message}`);
+                }
+                else {
+                    showError("⚠️ An unexpected error occurred during submission. Please try again.");
+                }
+                submitBtn.innerText = "📩 Submit Request"; // Reset button text on error
+            } finally {
+                // Re-enable button ONLY if user is logged in
+                if (firebaseUser) {
+                    submitBtn.disabled = false;
+                } else {
+                    submitBtn.disabled = true; // Keep disabled if user is not logged in
+                    submitBtn.innerText = "Please Log In";
+                }
+            }
         }
-        else {
-            showError("⚠️ An unexpected error occurred during submission. Please try again.");
-        }
-        submitBtn.innerText = "📩 Submit Request"; // Reset button text on error
-      } finally {
-        // Re-enable button ONLY if user is logged in
-        if (firebaseUser) {
-            submitBtn.disabled = false;
-        } else {
-            submitBtn.disabled = true; // Keep disabled if user is not logged in
-            submitBtn.innerText = "Please Log In";
-        }
-      }
-    }
-  </script>
+    </script>
 </body>
+
 </html>
