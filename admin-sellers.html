@@ -1,353 +1,236 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-  <meta charset="UTF="8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MatrixMarket - Admin Seller Payment Control</title> <!-- Title updated -->
-  <style>
-    body {
-      font-family: "Poppins", sans-serif;
-      background: linear-gradient(135deg, #0f172a, #1e293b, #4f46e5, #06b6d4);
-      background-size: 400% 400%;
-      animation: bgMove 15s ease infinite;
-      color: white;
-      margin: 0;
-      padding: 0;
-    }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MatrixMarket - Admin Seller Payments</title>
+<style>
+  /* --- Body & Gradient --- */
+  body {
+    font-family:"Poppins",sans-serif;
+    background:linear-gradient(135deg,#0f172a,#1e293b,#4f46e5,#06b6d4);
+    background-size:400% 400%;
+    animation:bgMove 15s ease infinite;
+    color:white;
+    margin:0; padding:0;
+  }
+  @keyframes bgMove{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
 
-    @keyframes bgMove {
-      0%, 100% { background-position: 0% 50%; }
-      50% { background-position: 100% 50%; }
-    }
+  /* --- Header --- */
+  header {
+    background: rgba(0,0,0,0.4);
+    padding: 15px 30px;
+    display:flex; justify-content:space-between; align-items:center;
+    backdrop-filter: blur(10px);
+  }
+  header .logo { font-size:1.6rem; color:#06b6d4; font-weight:bold; text-shadow:0 0 10px #06b6d4; }
+  nav a { color:white; text-decoration:none; margin-left:15px; font-weight:500; transition:.3s; }
+  nav a:hover { color:#06b6d4; }
 
-    header {
-      background: rgba(0, 0, 0, 0.4);
-      padding: 15px 30px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      backdrop-filter: blur(10px);
-    }
+  /* --- Container --- */
+  .container {
+    max-width: 1200px; margin:40px auto;
+    background: rgba(255,255,255,0.08); padding:30px; border-radius:20px;
+    box-shadow:0 0 20px rgba(6,182,212,0.5); overflow-x:auto;
+  }
 
-    header .logo {
-      font-size: 1.6rem;
-      color: #06b6d4;
-      font-weight: bold;
-      text-shadow: 0 0 10px #06b6d4;
-    }
+  h1 { text-align:center; margin-bottom:20px; text-shadow:0 0 12px #06b6d4; }
 
-    nav a {
-      color: white;
-      text-decoration: none;
-      margin-left: 15px;
-      font-weight: 500;
-      transition: 0.3s;
-    }
+  /* --- Search & CSV --- */
+  .controls { display:flex; justify-content:space-between; flex-wrap:wrap; margin-bottom:15px; }
+  .controls input[type="text"] { flex:1; min-width:250px; padding:10px; border:none; border-radius:10px; background: rgba(255,255,255,0.1); color:white; margin-bottom:10px;}
+  .controls button { background:#06b6d4; color:white; border:none; padding:10px 15px; border-radius:10px; cursor:pointer; margin-left:10px; transition:.2s; }
+  .controls button:hover { background:#0891b2; }
 
-    nav a:hover { color: #06b6d4; }
+  /* --- Table --- */
+  table { width:100%; border-collapse:collapse; min-width:900px; }
+  th,td { border:1px solid rgba(255,255,255,0.2); padding:10px; text-align:center; vertical-align:middle; font-size:.95rem; }
+  th { background: rgba(6,182,212,0.3); position:sticky; top:0; z-index:1; }
+  tr:hover { background: rgba(255,255,255,0.05); }
 
-    .container {
-      max-width: 1200px;
-      margin: 40px auto;
-      background: rgba(255, 255, 255, 0.08);
-      padding: 30px;
-      border-radius: 20px;
-      box-shadow: 0 0 20px rgba(6, 182, 212, 0.5);
-      overflow-x: auto; /* Added for responsiveness */
-    }
+  /* --- Buttons --- */
+  .btn { padding:6px 12px; border:none; border-radius:8px; cursor:pointer; color:white; margin:2px; font-weight:500; transition:0.2s ease-in-out; }
+  .approve { background:#06b6d4; } .approve:hover { background:#0891b2; transform:translateY(-1px);}
+  .decline { background:#ef4444; } .decline:hover { background:#b91c1c; transform:translateY(-1px);}
+  .bulk { background:#8b5cf6; } .bulk:hover { background:#7c3aed; }
 
-    h1 {
-      text-align: center;
-      text-shadow: 0 0 10px #06b6d4;
-    }
+  /* --- Status --- */
+  .status-badge { padding:5px 10px; border-radius:8px; font-weight:bold; white-space:nowrap; }
+  .status-pending { background: rgba(245,158,11,0.2); color:#f59e0b; }
+  .status-approved { background: rgba(34,197,94,0.2); color:#22c55e; }
+  .status-declined { background: rgba(239,68,68,0.2); color:#ef4444; }
+  .status-proof-submitted { background: rgba(59,130,246,0.2); color:#3b82f6; }
+  .status-confirmed-by-seller { background: rgba(139,92,246,0.2); color:#8b5cf6; }
 
-    input[type="text"] {
-      width: 100%;
-      padding: 10px;
-      border: none;
-      border-radius: 10px;
-      background: rgba(255, 255, 255, 0.1);
-      color: white;
-      margin-bottom: 15px;
-    }
+  /* --- Footer --- */
+  footer { text-align:center; padding:15px; background: rgba(255,255,255,0.08); border-top:1px solid rgba(255,255,255,0.1); margin-top:40px; }
 
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 10px;
-      min-width: 800px; /* Ensure table doesn't get too small */
-    }
-
-    th, td {
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      padding: 10px;
-      text-align: center;
-      vertical-align: middle;
-      font-size: 0.9rem; /* Smaller font for more content */
-    }
-
-    th { background: rgba(6, 182, 212, 0.3); }
-
-    .btn {
-      padding: 6px 12px;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      color: white;
-      margin: 2px;
-      font-weight: 500;
-      transition: 0.2s ease-in-out;
-    }
-
-    .approve { background: #06b6d4; }
-    .approve:hover { background: #0891b2; transform: translateY(-1px); }
-
-    .decline { background: #ef4444; }
-    .decline:hover { background: #b91c1c; transform: translateY(-1px); }
-
-    .status-badge { /* Renamed for clarity */
-      padding: 5px 10px;
-      border-radius: 8px;
-      font-weight: bold;
-      white-space: nowrap; /* Prevent status text from wrapping */
-    }
-
-    .status-pending { background: rgba(245, 158, 11, 0.2); color: #f59e0b; }
-    .status-approved { background: rgba(34, 197, 94, 0.2); color: #22c55e; }
-    .status-declined { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
-    .status-proof-submitted { background: rgba(59, 130, 246, 0.2); color: #3b82f6; } /* For seller payments */
-    .status-confirmed-by-seller { background: rgba(139, 92, 246, 0.2); color: #8b5cf6; } /* For seller payments */
-
-
-    footer {
-      text-align: center;
-      padding: 15px;
-      background: rgba(255, 255, 255, 0.08);
-      border-top: 1px solid rgba(255, 255, 255, 0.1);
-      margin-top: 40px;
-    }
-
-    .proof-link {
-        color: #06b6d4;
-        text-decoration: underline;
-        cursor: pointer;
-    }
-  </style>
+  .proof-link { color:#06b6d4; text-decoration:underline; cursor:pointer; }
+</style>
 </head>
 
 <body>
-  <header>
-    <div class="logo">MatrixMarket Admin</div>
-    <nav>
-      <a href="dashboard-admin.html">Dashboard</a>
-      <a href="admin-sellers.html">Sellers</a>
-      <a href="admin-users.html">Users</a>
-      <a href="admin-payments.html">Seller Payments</a> <!-- Nav link updated -->
-    </nav>
-  </header>
+<header>
+  <div class="logo">MatrixMarket Admin</div>
+  <nav>
+    <a href="dashboard-admin.html">Dashboard</a>
+    <a href="admin-sellers.html">Sellers</a>
+    <a href="admin-users.html">Users</a>
+    <a href="admin-payments.html" style="font-weight:bold;color:#06b6d4;">Seller Payments</a>
+  </nav>
+</header>
 
-  <div class="container">
-    <h1>💸 Manage Seller Subscription Requests</h1> <!-- H1 updated -->
-    <input type="text" id="searchBox" placeholder="Search by seller email, store, or plan..." onkeyup="window.handleSearch()">
-    <table id="paymentRequestTable"></table>
+<div class="container">
+  <h1>💸 Manage Seller Subscription Requests</h1>
+
+  <div class="controls">
+    <input type="text" id="searchBox" placeholder="Search by seller email, store, or plan..." onkeyup="handleSearch()">
+    <div>
+      <button onclick="approveSelected()" class="bulk">Approve Selected</button>
+      <button onclick="declineSelected()" class="bulk">Decline Selected</button>
+      <button onclick="exportCSV()">Download CSV</button>
+    </div>
   </div>
 
-  <footer>© 2025 MatrixMarket | Admin Seller Payment Control</footer> <!-- Footer updated -->
+  <table id="paymentRequestTable"></table>
+</div>
 
-  <!-- Firebase Modular SDK -->
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
-    import { getDatabase, ref, get, update, onValue, runTransaction } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
-    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js"; 
+<footer>© 2025 MatrixMarket | Admin Seller Payment Control</footer>
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyDFrctk2MZajP7OmECXe5npHAV0dODH9jk",
-  authDomain: "matrixmarketplace-1bd71.firebaseapp.com",
-  databaseURL: "https://matrixmarketplace-1bd71-default-rtdb.firebaseio.com",
-  projectId: "matrixmarketplace-1bd71",
-  storageBucket: "matrixmarketplace-1bd71.firebasestorage.app",
-  messagingSenderId: "10374416997",
-  appId: "1:10374416997:web:9626c569e845c14a87548c",
-  measurementId: "G-DTC2GM9L92"
-    };
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
+import { getDatabase, ref, onValue, update } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
 
-    const app = initializeApp(firebaseConfig);
-    const db = getDatabase(app);
-    const auth = getAuth(app); 
+const firebaseConfig = {
+  apiKey:"AIzaSyDFrctk2MZajP7OmECXe5npHAV0dODH9jk",
+  authDomain:"matrixmarketplace-1bd71.firebaseapp.com",
+  databaseURL:"https://matrixmarketplace-1bd71-default-rtdb.firebaseio.com",
+  projectId:"matrixmarketplace-1bd71",
+  storageBucket:"matrixmarketplace-1bd71.firebasestorage.app",
+  messagingSenderId:"10374416997",
+  appId:"1:10374416997:web:9626c569e845c14a87548c",
+  measurementId:"G-DTC2GM9L92"
+};
 
-    let sellerPaymentRequests = {}; // Local cache for only seller requests
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+const auth = getAuth(app);
 
-    /**
-     * Renders all seller payment requests in the table.
-     */
-    async function renderPaymentRequests() {
-      const search = document.getElementById("searchBox").value.toLowerCase();
-      const table = document.getElementById("paymentRequestTable");
+let sellerPaymentRequests = {};
+let selectedRequests = new Set();
 
-      table.innerHTML = `
-        <tr>
-          <th>Email</th>
-          <th>Store</th>
-          <th>Plan</th>
-          <th>Amount</th>
-          <th>Status</th>
-          <th>Submitted On</th>
-          <th>Proof</th>
-          <th>Action</th>
-        </tr>
-      `;
+// --- Render Table ---
+function renderTable() {
+  const table = document.getElementById("paymentRequestTable");
+  const search = document.getElementById("searchBox").value.toLowerCase();
 
-      const filtered = Object.values(sellerPaymentRequests).filter(request => {
-        return (request.email?.toLowerCase().includes(search) ||
-                request.storeName?.toLowerCase().includes(search) ||
-                request.plan?.toLowerCase().includes(search) ||
-                request.status?.toLowerCase().includes(search));
-      });
+  table.innerHTML = `<tr>
+    <th><input type="checkbox" id="selectAll" onclick="toggleSelectAll(this)"/></th>
+    <th>Email</th><th>Store</th><th>Plan</th><th>Amount</th><th>Status</th><th>Submitted On</th><th>Proof</th><th>Action</th>
+  </tr>`;
 
-      if (!filtered.length) {
-        table.innerHTML += `<tr><td colspan="8">No seller payment requests found matching your search.</td></tr>`;
-        return;
-      }
+  const filtered = Object.values(sellerPaymentRequests).filter(req => 
+    req.email?.toLowerCase().includes(search) ||
+    req.storeName?.toLowerCase().includes(search) ||
+    req.plan?.toLowerCase().includes(search) ||
+    req.status?.toLowerCase().includes(search)
+  );
 
-      // Sort requests to show pending ones first
-      filtered.sort((a, b) => {
-          const statusA = a.status || "Pending";
-          const statusB = b.status || "Pending";
-          if (statusA === "Pending" || statusA === "Payment Confirmed by Seller" || statusA === "Payment Proof Submitted") return -1;
-          if (statusB === "Pending" || statusB === "Payment Confirmed by Seller" || statusB === "Payment Proof Submitted") return 1;
-          return 0;
-      });
+  if(!filtered.length){
+    table.innerHTML += `<tr><td colspan="9">No seller payment requests found.</td></tr>`;
+    return;
+  }
 
-
-      filtered.forEach(req => {
-        let statusClass = "status-pending"; // Default
-        switch (req.status) {
-            case "Approved": statusClass = "status-approved"; break;
-            case "Declined": statusClass = "status-declined"; break;
-            case "Proof Submitted": statusClass = "status-proof-submitted"; break;
-            case "Payment Confirmed by Seller": statusClass = "status-confirmed-by-seller"; break;
-            default: statusClass = "status-pending"; break;
-        }
-
-        const proofContent = req.receiptURL 
-                             ? `<a href="${req.receiptURL}" target="_blank" class="proof-link">View Proof</a>`
-                             : "N/A";
-
-        const amount = parseFloat(req.amount).toFixed(2);
-        const submittedDate = req.submittedAt ? new Date(req.submittedAt).toLocaleString() : (req.requestDate || "N/A");
-
-
-        table.innerHTML += `
-          <tr>
-            <td>${req.email || "N/A"}</td>
-            <td>${req.storeName || "N/A"}</td>
-            <td>${req.plan || "N/A"}</td>
-            <td>${amount} GMD</td>
-            <td><span class="status-badge ${statusClass}">${req.status}</span></td>
-            <td>${submittedDate}</td>
-            <td>${proofContent}</td>
-            <td>
-              <button class="btn approve" onclick="window.updateSellerPayment('${req.id}', 'Approved', '${req.userId}', ${amount})">Approve</button>
-              <button class="btn decline" onclick="window.updateSellerPayment('${req.id}', 'Declined', '${req.userId}', ${amount})">Decline</button>
-            </td>
-          </tr>
-        `;
-      });
+  filtered.forEach(req => {
+    let statusClass = "status-pending";
+    switch(req.status){
+      case "Approved": statusClass="status-approved"; break;
+      case "Declined": statusClass="status-declined"; break;
+      case "Proof Submitted": statusClass="status-proof-submitted"; break;
+      case "Payment Confirmed by Seller": statusClass="status-confirmed-by-seller"; break;
     }
 
-    /**
-     * Updates a seller payment request's status and the associated seller's status.
-     * @param {string} requestId The ID of the payment request.
-     * @param {string} action 'Approved' or 'Declined'.
-     * @param {string} sellerUid The Firebase UID of the seller.
-     */
-    async function updateSellerPayment(requestId, action, sellerUid) {
-      if (!confirm(`Are you sure you want to ${action} this seller's subscription payment?`)) {
-        return;
-      }
+    const proofLink = req.receiptURL ? `<a href="${req.receiptURL}" target="_blank" class="proof-link">View</a>` : "N/A";
+    const amount = parseFloat(req.amount).toFixed(2);
+    const date = req.submittedAt ? new Date(req.submittedAt).toLocaleString() : "N/A";
 
-      try {
-        const paymentPath = `pendingSellerPayments/${requestId}`;
-        const sellerPath = `sellers/${sellerUid}`;
+    table.innerHTML += `<tr>
+      <td><input type="checkbox" class="rowCheckbox" data-id="${req.id}" onchange="toggleSelect('${req.id}', this)"/></td>
+      <td>${req.email}</td>
+      <td>${req.storeName || 'N/A'}</td>
+      <td>${req.plan || 'N/A'}</td>
+      <td>${amount} GMD</td>
+      <td><span class="status-badge ${statusClass}">${req.status}</span></td>
+      <td>${date}</td>
+      <td>${proofLink}</td>
+      <td>
+        <button class="btn approve" onclick="updateRequest('${req.id}','Approved','${req.userId}')">Approve</button>
+        <button class="btn decline" onclick="updateRequest('${req.id}','Declined','${req.userId}')">Decline</button>
+      </td>
+    </tr>`;
+  });
+}
 
-        let updates = {
-          status: action,
-          adminActionDate: new Date().toLocaleString()
-        };
+// --- Toggle Select ---
+function toggleSelect(id, checkbox){
+  if(checkbox.checked) selectedRequests.add(id);
+  else selectedRequests.delete(id);
+}
+function toggleSelectAll(master){
+  const checkboxes = document.querySelectorAll(".rowCheckbox");
+  checkboxes.forEach(cb => { cb.checked = master.checked; toggleSelect(cb.dataset.id, cb); });
+}
 
-        if (action === 'Approved') {
-            // Update seller's main record and payment request status
-            await update(ref(db, sellerPath), {
-                status: "Approved",
-                subscription: "Active"
-            });
-            await update(ref(db, paymentPath), updates);
-            alert(`✅ Seller subscription request ${action.toLowerCase()} and seller status updated!`);
-        } else { // Declined
-            await update(ref(db, sellerPath), {
-                status: "Declined",
-                subscription: "Inactive"
-            });
-            await update(ref(db, paymentPath), updates);
-            alert(`❌ Seller subscription request ${action.toLowerCase()}!`);
-        }
-        
-        // Re-render table to reflect changes (onValue listener will usually do this, but force it)
-        // renderPaymentRequests(); // This line is technically redundant due to onValue, but ensures immediate UI update
-                               // Keeping it commented for now as onValue is more efficient
-      } catch (error) {
-        console.error("Error updating seller payment or status:", error);
-        alert("⚠️ An error occurred while processing the request. Check console for details.");
-      }
+// --- Bulk Actions ---
+async function approveSelected(){ for(const id of selectedRequests){ await updateRequest(id,'Approved'); } selectedRequests.clear(); }
+async function declineSelected(){ for(const id of selectedRequests){ await updateRequest(id,'Declined'); } selectedRequests.clear(); }
+
+// --- Update Request ---
+async function updateRequest(id, action, userId){
+  if(!confirm(`Are you sure you want to ${action} this request?`)) return;
+  try{
+    await update(ref(db,'pendingSellerPayments/'+id), { status:action, adminActionDate:new Date().toLocaleString() });
+    if(userId && action==='Approved'){
+      await update(ref(db,'sellers/'+userId), { status:'Approved', subscription:'Active' });
+    } else if(userId && action==='Declined'){
+      await update(ref(db,'sellers/'+userId), { status:'Declined', subscription:'Inactive' });
     }
+    alert(`${action} successful!`);
+  } catch(e){ console.error(e); alert("Error updating request."); }
+}
 
-    // --- Admin Authentication Check ---
-    onAuthStateChanged(auth, async (user) => {
-        if (user) {
-            // IMPORTANT: Placeholder for real admin role check.
-            // In a real app, you would check if this user's UID corresponds to an admin role
-            // e.g., by fetching data from a '/admins' node or checking custom claims.
-            const isAdmin = true; // For now, we assume any logged-in user is an admin for testing
+// --- Export CSV ---
+function exportCSV(){
+  let csv = "Email,Store,Plan,Amount,Status,Submitted On\n";
+  Object.values(sellerPaymentRequests).forEach(r => {
+    const date = r.submittedAt ? new Date(r.submittedAt).toLocaleString() : "N/A";
+    csv += `${r.email},${r.storeName || ''},${r.plan || ''},${r.amount},${r.status},${date}\n`;
+  });
+  const blob = new Blob([csv],{type:'text/csv'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download='seller_payments.csv'; a.click(); URL.revokeObjectURL(url);
+}
 
-            if (isAdmin) {
-                console.log("Admin user logged in:", user.email, "UID:", user.uid);
-                // Set up real-time listener ONLY for seller payment requests
-                const sellerPaymentsRef = ref(db, 'pendingSellerPayments');
+// --- Debounced Search ---
+let searchTimeout;
+function handleSearch(){
+  clearTimeout(searchTimeout);
+  searchTimeout = setTimeout(renderTable,300);
+}
 
-                onValue(sellerPaymentsRef, (snapshot) => {
-                    sellerPaymentRequests = {}; // Clear previous data
-                    const payments = snapshot.val() || {};
-                    Object.keys(payments).forEach(key => {
-                        sellerPaymentRequests[key] = { id: key, type: "Seller Subscription", ...payments[key] };
-                    });
-                    renderPaymentRequests();
-                }, (error) => console.error("Error fetching seller payments:", error));
-
-            } else {
-                console.warn("Unauthorized access attempt by:", user.email);
-                alert("You are not authorized to view this page. Redirecting to home.");
-                window.location.href = "index.html"; // Redirect unauthorized users
-            }
-        } else {
-            // No user logged in, redirect to login page
-            alert("You must be logged in to access the admin panel.");
-            window.location.href = "admin-login.html"; // Ensure you have an admin-login.html
-        }
-    });
-
-    // --- Expose functions to the global window object for HTML onclick attributes ---
-    window.updateSellerPayment = updateSellerPayment; // Renamed for clarity
-    // Debounced search handler for better performance on keyup
-    let searchTimeout;
-    window.handleSearch = () => {
-      clearTimeout(searchTimeout);
-      searchTimeout = setTimeout(() => {
-        renderPaymentRequests();
-      }, 300); // Wait 300ms after the last keypress before searching
-    };
-  </script>
+// --- Firebase Listener ---
+onAuthStateChanged(auth,user=>{
+  if(!user){ alert("Login required."); window.location.href="admin-login.html"; return; }
+  const sellerPaymentsRef = ref(db,'pendingSellerPayments');
+  onValue(sellerPaymentsRef,snapshot=>{
+    sellerPaymentRequests={};
+    const data = snapshot.val() || {};
+    Object.keys(data).forEach(k=>sellerPaymentRequests[k]={ id:k,...data[k] });
+    renderTable();
+  });
+});
+</script>
 </body>
 </html>
-
-
