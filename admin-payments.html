@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MatrixMarket - Admin Payments</title>
+<link rel="stylesheet" href="style.css">
+<style>
+body { font-family:"Poppins",sans-serif; margin:0; background:linear-gradient(135deg,#0f172a,#1e293b,#4f46e5,#06b6d4); background-size:400% 400%; animation:bgMove 15s ease infinite; color:white; }
+@keyframes bgMove{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
+header{display:flex;justify-content:space-between;align-items:center;padding:15px 30px;background:rgba(0,0,0,0.4);backdrop-filter:blur(10px);}
+header .logo{font-size:1.6rem;color:#06b6d4;font-weight:bold;}
+nav a{color:white;text-decoration:none;margin-left:15px;font-weight:500;transition:0.3s;}
+nav a:hover{color:#06b6d4;}
+.container{max-width:1200px;margin:50px auto;background:rgba(255,255,255,0.08);padding:30px;border-radius:20px;box-shadow:0 0 20px rgba(6,182,212,0.5);overflow-x:auto;}
+h1{text-align:center;margin-bottom:20px;text-shadow:0 0 12px #06b6d4;}
+input[type="text"]{width:100%;padding:10px;margin-bottom:15px;border:none;border-radius:10px;background:rgba(255,255,255,0.1);color:white;}
+table{width:100%;border-collapse:collapse;min-width:900px;}
+th,td{border:1px solid rgba(255,255,255,0.2);padding:10px;text-align:center;vertical-align:middle;font-size:0.95rem;}
+th{background:rgba(6,182,212,0.3);}
+button{padding:6px 12px;border:none;border-radius:8px;cursor:pointer;color:white;margin:2px;font-weight:500;transition:0.2s;}
+button.approve{background:#06b6d4;}
+button.approve:hover{background:#0891b2;transform:translateY(-1px);}
+button.decline{background:#ef4444;}
+button.decline:hover{background:#b91c1c;transform:translateY(-1px);}
+.status-badge{padding:5px 10px;border-radius:8px;font-weight:bold;white-space:nowrap;}
+.status-pending{background:rgba(245,158,11,0.2);color:#f59e0b;}
+.status-approved{background:rgba(34,197,94,0.2);color:#22c55e;}
+.status-declined{background:rgba(239,68,68,0.2);color:#ef4444;}
+footer{text-align:center;padding:15px;background:rgba(255,255,255,0.08);border-top:1px solid rgba(255,255,255,0.1);margin-top:40px;}
+.proof-link{color:#06b6d4;text-decoration:underline;cursor:pointer;}
+</style>
+</head>
+<body>
+
+<header>
+<div class="logo">MatrixMarket Admin</div>
+<nav>
+<a href="dashboard-admin.html">Dashboard</a>
+<a href="admin-sellers.html">Sellers</a>
+<a href="admin-users.html">Users</a>
+<a href="admin-payment.html">Payments</a>
+<a href="#" id="logoutBtn">Logout</a>
+</nav>
+</header>
+
+<div class="container">
+<h1>💸 Withdrawal Requests</h1>
+<input type="text" id="searchBox" placeholder="Search by email, amount, or status..." onkeyup="handleSearch()">
+<table id="withdrawTable"></table>
+<button onclick="exportCSV()">📥 Export CSV</button>
+</div>
+
+<footer>© 2025 MatrixMarket | Admin Payment Control</footer>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
+import { getDatabase, ref, onValue, update, runTransaction } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
+import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDFrctk2MZajP7OmECXe5npHAV0dODH9jk",
+  authDomain: "matrixmarketplace-1bd71.firebaseapp.com",
+  databaseURL: "https://matrixmarketplace-1bd71-default-rtdb.firebaseio.com",
+  projectId: "matrixmarketplace-1bd71",
+  appId: "1:10374416997:web:068ef937272b3de687548c"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+const auth = getAuth(app);
+
+let allWithdrawals = {};
+
+onAuthStateChanged(auth, user => {
+  if(!user){ alert("Login required"); window.location.href="admin-login.html"; return; }
+  // Add admin check here if needed
+});
+
+const withdrawRef = ref(db, 'withdrawals');
+onValue(withdrawRef, snapshot => {
+  const data = snapshot.val() || {};
+  allWithdrawals = {};
+  Object.keys(data).forEach(key=>{
+    allWithdrawals[key] = { id:key, ...data[key] };
+  });
+  renderTable();
+});
+
+function renderTable(){
+  const table = document.getElementById('withdrawTable');
+  const search = document.getElementById('searchBox').value.toLowerCase();
+  table.innerHTML = `<tr>
+    <th>Email</th><th>Amount</th><th>Method</th><th>Status</th><th>Date</th><th>Proof</th><th>Action</th>
+  </tr>`;
+  
+  const filtered = Object.values(allWithdrawals).filter(w=>{
+    return (w.email?.toLowerCase().includes(search) ||
+            String(w.amount).includes(search) ||
+            w.status?.toLowerCase().includes(search) ||
+            w.method?.toLowerCase().includes(search));
+  });
+  
+  if(!filtered.length){ table.innerHTML+=`<tr><td colspan="7">No withdrawal requests found.</td></tr>`; return; }
+  
+  filtered.sort((a,b)=> (a.status==='Pending'? -1:1) - (b.status==='Pending'? -1:1));
+
+  filtered.forEach(w=>{
+    const statusClass = w.status==='Approved'?'status-approved':w.status==='Declined'?'status-declined':'status-pending';
+    const proof = w.proofURL?`<a href="${w.proofURL}" target="_blank" class="proof-link">View</a>`:'N/A';
+    table.innerHTML += `<tr>
+      <td>${w.email}</td>
+      <td>${parseFloat(w.amount).toFixed(2)}</td>
+      <td>${w.method || "N/A"}</td>
+      <td><span class="status-badge ${statusClass}">${w.status}</span></td>
+      <td>${w.date || "N/A"}</td>
+      <td>${proof}</td>
+      <td>
+        <button class="approve" onclick="updateWithdraw('${w.id}','Approved',${parseFloat(w.amount)})">Approve</button>
+        <button class="decline" onclick="updateWithdraw('${w.id}','Declined',0)">Decline</button>
+      </td>
+    </tr>`;
+  });
+}
+
+window.handleSearch = ()=>{ setTimeout(renderTable, 200); }
+
+async function updateWithdraw(id, action, amount){
+  if(!confirm(`Are you sure you want to ${action} this request?`)) return;
+  const wRef = ref(db, 'withdrawals/'+id);
+  try{
+    await update(wRef, { status:action, adminActionDate:new Date().toLocaleString() });
+    if(action==='Approved'){
+      // deduct from user's balance if needed
+      const userRef = ref(db, 'users/'+allWithdrawals[id].userId+'/balance');
+      await runTransaction(userRef,current=> (parseFloat(current||0)-amount));
+    }
+    alert(`✅ Withdrawal ${action}`);
+  }catch(e){ console.error(e); alert("Error updating withdrawal."); }
+}
+
+// Export CSV
+window.exportCSV = ()=>{
+  let csv='Email,Amount,Method,Status,Date\n';
+  Object.values(allWithdrawals).forEach(w=>{
+    csv+=`${w.email},${w.amount},${w.method||''},${w.status},${w.date||''}\n`;
+  });
+  const blob = new Blob([csv],{type:'text/csv'});
+  const url = URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download='withdrawals.csv'; a.click(); URL.revokeObjectURL(url);
+}
+
+// Logout
+document.getElementById('logoutBtn').addEventListener('click', async ()=>{
+  await signOut(auth); window.location.href="admin-login.html";
+});
+</script>
+
+</body>
+</html>
