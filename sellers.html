@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MatrixMarket - Seller Dashboard</title>
+    <script type="module" src="https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js"></script>
+    <script type="module" src="https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js"></script>
+    <script type="module" src="https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js"></script>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body {
+            font-family: "Poppins", sans-serif;
+            margin: 0;
+            background: linear-gradient(-45deg, #0f172a, #1e293b, #4f46e5, #06b6d4);
+            color: white;
+            min-height: 100vh;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 30px;
+            background: rgba(0, 0, 0, 0.5);
+        }
+
+        header .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #06b6d4;
+        }
+
+        nav a {
+            color: white;
+            text-decoration: none;
+            margin-left: 15px;
+            font-weight: 500;
+        }
+
+        nav a:hover {
+            color: #06b6d4;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 40px auto;
+            background: rgba(255, 255, 255, 0.08);
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 0 20px rgba(6, 182, 212, 0.5);
+            overflow-x: auto;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+            text-shadow: 0 0 10px #06b6d4;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 10px;
+            text-align: center;
+            font-size: 0.9rem;
+        }
+
+        th {
+            background: rgba(6, 182, 212, 0.3);
+        }
+
+        input,
+        select {
+            padding: 6px 10px;
+            border-radius: 6px;
+            border: none;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+
+        button {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 2px;
+            font-weight: 500;
+        }
+
+        .approve {
+            background: #06b6d4;
+        }
+
+        .decline {
+            background: #ef4444;
+        }
+
+        .approve:hover {
+            background: #0891b2;
+        }
+
+        .decline:hover {
+            background: #b91c1c;
+        }
+
+        @media(max-width:768px) {
+
+            table,
+            th,
+            td {
+                font-size: 0.8rem;
+                padding: 6px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <div class="logo">MatrixMarket Seller</div>
+        <nav>
+            <a href="seller-dashboard.html">Dashboard</a>
+            <a href="#" id="logoutBtn">Logout</a>
+        </nav>
+    </header>
+
+    <div class="container">
+        <h1>📦 Your Orders</h1>
+        <input type="text" id="searchBox" placeholder="Search by buyer email or product..." onkeyup="filterOrders()">
+        <table id="ordersTable">
+            <tr>
+                <th>Order ID</th>
+                <th>Buyer Email</th>
+                <th>Product</th>
+                <th>Amount</th>
+                <th>Status</th>
+                <th>Delivery Date</th>
+                <th>Delivery Time</th>
+                <th>Notes</th>
+                <th>Action</th>
+            </tr>
+        </table>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
+        import { getDatabase, ref, onValue, update } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
+        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDFrctk2MZajP7OmECXe5npHAV0dODH9jk",
+            authDomain: "matrixmarketplace-1bd71.firebaseapp.com",
+            databaseURL: "https://matrixmarketplace-1bd71-default-rtdb.firebaseio.com",
+            projectId: "matrixmarketplace-1bd71",
+            appId: "1:10374416997:web:068ef937272b3de687548c"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        const auth = getAuth(app);
+
+        let currentSeller = localStorage.getItem("currentSeller");
+        if (!currentSeller) {
+            alert("You must log in first.");
+            window.location.href = "seller-login.html";
+        }
+
+        // Load seller orders
+        const ordersTable = document.getElementById("ordersTable");
+        let allOrders = [];
+
+        function loadOrders() {
+            const ordersRef = ref(db, "orders");
+            onValue(ordersRef, snapshot => {
+                allOrders = [];
+                ordersTable.innerHTML = `
+          <tr>
+            <th>Order ID</th>
+            <th>Buyer Email</th>
+            <th>Product</th>
+            <th>Amount</th>
+            <th>Status</th>
+            <th>Delivery Date</th>
+            <th>Delivery Time</th>
+            <th>Notes</th>
+            <th>Action</th>
+          </tr>
+        `;
+                const data = snapshot.val() || {};
+                Object.keys(data).forEach(key => {
+                    const order = data[key];
+                    if (order.sellerCode === currentSeller) {
+                        order.id = key;
+                        allOrders.push(order);
+                        addOrderRow(order);
+                    }
+                });
+            });
+        }
+
+        function addOrderRow(order) {
+            const row = ordersTable.insertRow();
+            row.innerHTML = `
+        <td>${order.id}</td>
+        <td>${order.buyerEmail}</td>
+        <td>${order.productName}</td>
+        <td>${parseFloat(order.amount).toFixed(2)} GMD</td>
+        <td>
+            <select id="status-${order.id}">
+                <option ${order.status === 'Pending' ? 'selected' : ''}>Pending</option>
+                <option ${order.status === 'Approved' ? 'selected' : ''}>Approved</option>
+                <option ${order.status === 'Delivered' ? 'selected' : ''}>Delivered</option>
+                <option ${order.status === 'Cancelled' ? 'selected' : ''}>Cancelled</option>
+            </select>
+        </td>
+        <td><input type="date" id="date-${order.id}" value="${order.deliveryDate || ''}"></td>
+        <td><input type="time" id="time-${order.id}" value="${order.deliveryTime || ''}"></td>
+        <td><input type="text" id="notes-${order.id}" value="${order.notes || ''}" placeholder="Add notes..."></td>
+        <td>
+            <button class="approve" onclick="updateOrder('${order.id}')">Update</button>
+        </td>
+    `;
+        }
+
+        // Update order in Firebase
+        window.updateOrder = async function (orderId) {
+            const status = document.getElementById(`status-${orderId}`).value;
+            const date = document.getElementById(`date-${orderId}`).value;
+            const time = document.getElementById(`time-${orderId}`).value;
+            const notes = document.getElementById(`notes-${orderId}`).value;
+
+            if (!confirm(`Are you sure you want to update order ${orderId}?`)) return;
+
+            try {
+                await update(ref(db, `orders/${orderId}`), { status, deliveryDate: date, deliveryTime: time, notes });
+                alert("✅ Order updated successfully!");
+            } catch (e) {
+                console.error(e);
+                alert("❌ Failed to update order!");
+            }
+        }
+
+        // Filter orders by search box
+        window.filterOrders = function () {
+            const search = document.getElementById("searchBox").value.toLowerCase();
+            ordersTable.querySelectorAll("tr:not(:first-child)").forEach(row => {
+                const match = Array.from(row.cells).some(td => td.textContent.toLowerCase().includes(search));
+                row.style.display = match ? "" : "none";
+            });
+        }
+
+        // Logout
+        document.getElementById("logoutBtn").addEventListener("click", async () => {
+            localStorage.removeItem("currentSeller");
+            alert("Logged out.");
+            window.location.href = "seller-login.html";
+        });
+
+        loadOrders();
+    </script>
+</body>
+
+</html>
