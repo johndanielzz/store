@@ -6,50 +6,29 @@
     <title>Admin Analytics | Matrix Marketplace</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <!-- Firebase Modular SDK Imports (Corrected paths for v12.4.0) -->
-    <script type="module" src="https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js"></script>
-    <script type="module" src="https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js"></script>
-    <script type="module" src="https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js"></script>
-
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <style>
         body {
             font-family: "Poppins", sans-serif;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
             background: linear-gradient(135deg, #0f172a, #1e293b, #4f46e5, #06b6d4);
             background-size: 400% 400%;
             animation: bgMove 12s ease infinite;
             color: #fff;
-            margin: 0;
-            padding: 20px;
-            min-height: 100vh;
             display: flex;
             flex-direction: column;
         }
 
         @keyframes bgMove {
-            0% {
-                background-position: 0% 50%;
-            }
-
-            50% {
-                background-position: 100% 50%;
-            }
-
-            100% {
-                background-position: 0% 50%;
-            }
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
         }
 
-        h1 {
-            text-align: center;
-            color: #06b6d4;
-            margin-bottom: 25px;
-            text-shadow: 0 0 10px #06b6d4, 0 0 20px #4f46e5;
-        }
-
-        /* Admin Header/Nav styling (from dashboard-admin.html for consistency) */
         header {
             background: rgba(0, 0, 0, 0.4);
             padding: 15px 30px;
@@ -57,15 +36,17 @@
             justify-content: space-between;
             align-items: center;
             backdrop-filter: blur(10px);
-            margin-bottom: 20px; /* Added margin for separation */
-            border-radius: 10px; /* Added for aesthetic */
+            margin-bottom: 20px;
+            border-radius: 10px;
         }
+
         header .logo {
             font-size: 1.6rem;
             color: #06b6d4;
             font-weight: bold;
             text-shadow: 0 0 10px #06b6d4;
         }
+
         nav { display: flex; align-items: center; }
         nav a {
             color: white;
@@ -87,6 +68,12 @@
         }
         .logout-btn:hover { background-color: #dc2626; }
 
+        h1 {
+            text-align: center;
+            color: #06b6d4;
+            margin-bottom: 25px;
+            text-shadow: 0 0 10px #06b6d4, 0 0 20px #4f46e5;
+        }
 
         .stats-container {
             display: flex;
@@ -105,10 +92,7 @@
             box-shadow: 0 5px 20px rgba(0, 0, 0, 0.6);
         }
 
-        .stat-box h2 {
-            margin: 5px 0;
-            color: #06b6d4;
-        }
+        .stat-box h2 { margin: 5px 0; color: #06b6d4; }
 
         .chart-section {
             background: rgba(30, 41, 59, 0.85);
@@ -117,21 +101,16 @@
             padding: 20px;
             max-width: 1000px;
             margin: 0 auto;
-            flex-grow: 1; /* Allow chart section to grow */
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
+            flex-grow: 1;
         }
-        canvas {
-            max-height: 400px; /* Limit chart height */
-        }
+
+        canvas { max-height: 400px; }
+
         .loading-overlay {
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.7);
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7);
             display: flex;
             justify-content: center;
             align-items: center;
@@ -143,9 +122,7 @@
 </head>
 
 <body>
-    <div id="loadingOverlay" class="loading-overlay">
-        Checking admin access...
-    </div>
+    <div id="loadingOverlay" class="loading-overlay">Checking admin access...</div>
 
     <header>
         <div class="logo">MatrixMarket Admin</div>
@@ -185,14 +162,11 @@
         <canvas id="userGrowthChart"></canvas>
     </div>
 
-    <!-- Script tag for Firebase and Chart.js logic -->
     <script type="module">
-        // Modular Firebase SDK Imports
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
         import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
 
-        // Firebase Config
         const firebaseConfig = {
             apiKey: "AIzaSyDFrctk2MZajP7OmECXe5npHAV0dODH9jk",
             authDomain: "matrixmarketplace-1bd71.firebaseapp.com",
@@ -201,171 +175,103 @@
             storageBucket: "matrixmarketplace-1bd71.firebasestorage.app",
             messagingSenderId: "10374416997",
             appId: "1:10374416997:web:068ef937272b3de687548c",
-            measurementId: "G-EH1NNVS55W" // Ensure this matches your project's Measurement ID
+            measurementId: "G-EH1NNVS55W"
         };
 
-        // Initialize Firebase
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
         const auth = getAuth(app);
 
-        // DOM Elements
         const totalUsersEl = document.getElementById('totalUsers');
         const totalSellersEl = document.getElementById('totalSellers');
         const totalDepositsEl = document.getElementById('totalDeposits');
         const totalWithdrawalsEl = document.getElementById('totalWithdrawals');
         const loadingOverlay = document.getElementById('loadingOverlay');
 
-        // Chart Setup (moved into a function to be called after data is ready)
-        let userGrowthChart; // Declare outside to make it accessible for updates
+        let userGrowthChart;
 
         function initializeChart() {
             const ctx = document.getElementById('userGrowthChart').getContext('2d');
             userGrowthChart = new Chart(ctx, {
                 type: 'bar',
-                data: {
-                    labels: [],
-                    datasets: [
-                        {
-                            label: 'New Users',
-                            backgroundColor: '#06b6d4',
-                            borderColor: '#4f46e5',
-                            borderWidth: 2,
-                            data: []
-                        },
-                        {
-                            label: 'New Sellers',
-                            backgroundColor: '#4f46e5',
-                            borderColor: '#06b6d4',
-                            borderWidth: 2,
-                            data: []
-                        }
-                    ]
-                },
+                data: { labels: [], datasets: [
+                    { label: 'New Users', backgroundColor: '#06b6d4', data: [] },
+                    { label: 'New Sellers', backgroundColor: '#4f46e5', data: [] }
+                ]},
                 options: {
-                    responsive: true,
-                    maintainAspectRatio: false, // Allow canvas to resize freely within chart-section
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: { color: '#fff' },
-                            grid: { color: 'rgba(255,255,255,0.1)' }
-                        },
-                        x: {
-                            ticks: { color: '#fff' },
-                            grid: { color: 'rgba(255,255,255,0.1)' }
-                        }
-                    },
-                    plugins: {
-                        legend: {
-                            labels: { color: '#fff' }
-                        }
-                    }
+                    responsive:true, maintainAspectRatio:false,
+                    scales:{ y:{beginAtZero:true,ticks:{color:'#fff'},grid:{color:'rgba(255,255,255,0.1)'}},
+                             x:{ticks:{color:'#fff'},grid:{color:'rgba(255,255,255,0.1)'}}},
+                    plugins:{ legend:{labels:{color:'#fff'}} }
                 }
             });
         }
 
-
-        // --- Fetch Data from Firebase (Modular SDK) ---
         function fetchDataAndRenderAnalytics() {
-            // Users data
-            onValue(ref(db, 'users'), (snapshot) => {
-                const users = snapshot.val() || {};
+            onValue(ref(db,'users'), snapshot=>{
+                const users = snapshot.val()||{};
                 const totalUsers = Object.keys(users).length;
-                
-                // Filter sellers based on a 'isSeller' flag or 'accountType'
-                // Assuming `u.accountType === 'seller'` is present in your user objects
-                const sellers = Object.values(users).filter(u => u.accountType === 'seller');
+                const sellers = Object.values(users).filter(u=>u.accountType==='seller');
                 const totalSellers = sellers.length;
 
                 totalUsersEl.innerText = totalUsers;
                 totalSellersEl.innerText = totalSellers;
 
-                // Group by Date for User/Seller Growth Chart
                 const userGrowth = {};
-                Object.values(users).forEach(u => {
-                    // Assuming 'createdAt' is a string like "2023-10-26T10:00:00Z"
+                Object.values(users).forEach(u=>{
                     const dateKey = u.createdAt ? new Date(u.createdAt).toISOString().split('T')[0] : 'Unknown';
-                    if (!userGrowth[dateKey]) userGrowth[dateKey] = { newUsers: 0, newSellers: 0 };
+                    if(!userGrowth[dateKey]) userGrowth[dateKey] = {newUsers:0,newSellers:0};
                     userGrowth[dateKey].newUsers++;
-                    if (u.accountType === 'seller') {
-                        userGrowth[dateKey].newSellers++;
-                    }
+                    if(u.accountType==='seller') userGrowth[dateKey].newSellers++;
                 });
 
-                // Sort dates for the chart
                 const sortedDates = Object.keys(userGrowth).sort();
-
                 userGrowthChart.data.labels = sortedDates;
-                userGrowthChart.data.datasets[0].data = sortedDates.map(d => userGrowth[d].newUsers);
-                userGrowthChart.data.datasets[1].data = sortedDates.map(d => userGrowth[d].newSellers);
+                userGrowthChart.data.datasets[0].data = sortedDates.map(d=>userGrowth[d].newUsers);
+                userGrowthChart.data.datasets[1].data = sortedDates.map(d=>userGrowth[d].newSellers);
                 userGrowthChart.update();
-            }, (error) => console.error("Error fetching users data:", error));
+            });
 
-
-            // Transactions data (deposits/withdrawals)
-            // Assuming your transactions are stored under a 'transactions' node
-            // and have 'type' ('deposit' or 'withdrawal') and 'amount' fields.
-            onValue(ref(db, 'transactions'), (snapshot) => {
-                const txs = snapshot.val() || {};
-                let deposits = 0;
-                let withdrawals = 0;
-
-                Object.values(txs).forEach(tx => {
-                    if (tx.type === 'deposit') deposits += parseFloat(tx.amount || 0);
-                    if (tx.type === 'withdrawal') withdrawals += parseFloat(tx.amount || 0);
+            onValue(ref(db,'transactions'), snapshot=>{
+                const txs = snapshot.val()||{};
+                let deposits=0, withdrawals=0;
+                Object.values(txs).forEach(tx=>{
+                    if(tx.type==='deposit') deposits+=parseFloat(tx.amount||0);
+                    if(tx.type==='withdrawal') withdrawals+=parseFloat(tx.amount||0);
                 });
-
-                totalDepositsEl.innerText = deposits.toFixed(2); // Display with 2 decimal places
+                totalDepositsEl.innerText = deposits.toFixed(2);
                 totalWithdrawalsEl.innerText = withdrawals.toFixed(2);
-            }, (error) => console.error("Error fetching transactions data:", error));
+            });
         }
 
-        // --- Admin Authentication Check ---
         function checkAdminAuth() {
-            onAuthStateChanged(auth, (user) => {
-                if (user) {
-                    const ADMIN_EMAIL = "admin@matrixmarket.com"; // Set your actual admin email here
-
-                    if (user.email === ADMIN_EMAIL) {
-                        console.log("SUCCESS: Firebase Admin user authenticated:", user.email);
-                        loadingOverlay.style.display = 'none'; // Hide loading overlay
-                        initializeChart(); // Initialize chart after auth and before data fetch
-                        fetchDataAndRenderAnalytics(); // Fetch data and render analytics
+            onAuthStateChanged(auth,user=>{
+                if(user){
+                    const ADMIN_EMAIL = "admin@matrixmarket.com";
+                    if(user.email === ADMIN_EMAIL){
+                        loadingOverlay.style.display='none';
+                        initializeChart();
+                        fetchDataAndRenderAnalytics();
                     } else {
-                        console.warn("FAILED: Authenticated user is not the designated admin. User:", user.email);
-                        alert("You do not have administrative privileges to access this panel.");
-                        window.location.href = "admin-login.html";
+                        alert("You do not have administrative privileges.");
+                        window.location.href="admin-login.html";
                     }
                 } else {
-                    console.warn("FAILED: No user signed in to Firebase Authentication.");
-                    alert("You must be logged in as an admin to access this panel.");
-                    window.location.href = "admin-login.html";
+                    alert("You must be logged in as an admin.");
+                    window.location.href="admin-login.html";
                 }
             });
         }
 
-        // Firebase Logout Function
-        async function firebaseLogout() {
-            try {
-                await signOut(auth);
-                console.log("User signed out successfully.");
-                window.location.href = "admin-login.html";
-            } catch (error) {
-                console.error("Error signing out:", error);
-                alert("Failed to log out. Please try again.");
-            }
+        async function firebaseLogout(){
+            try { await signOut(auth); window.location.href="admin-login.html"; }
+            catch(e){ console.error(e); alert("Logout failed"); }
         }
 
-        // Attach event listener for logout button
-        document.addEventListener('DOMContentLoaded', () => {
-            const logoutButton = document.getElementById('logoutBtn');
-            if (logoutButton) {
-                logoutButton.addEventListener('click', firebaseLogout);
-            }
-            checkAdminAuth(); // Initiate authentication check on page load
+        document.addEventListener('DOMContentLoaded', ()=>{
+            document.getElementById('logoutBtn').addEventListener('click',firebaseLogout);
+            checkAdminAuth();
         });
     </script>
 </body>
-
 </html>
