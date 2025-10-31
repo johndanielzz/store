@@ -4,91 +4,41 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>MatrixMarket - Seller Withdraw</title>
+<script src="https://cdn.tailwindcss.com"></script>
 <style>
-  body {
-    font-family:"Poppins",sans-serif;
-    background:linear-gradient(-45deg,#0f172a,#1e293b,#4f46e5,#06b6d4);
-    background-size:400% 400%;
-    animation:bgMove 12s ease infinite;
-    color:white;
-    margin:0; padding:0;
-  }
-  @keyframes bgMove{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
-  
-  header {
-    background: rgba(0,0,0,0.4);
-    padding: 15px 30px;
-    display:flex; justify-content:space-between; align-items:center;
-    backdrop-filter: blur(10px);
-  }
+  body { font-family:"Poppins",sans-serif; background:linear-gradient(135deg,#0f172a,#1e293b,#4f46e5,#06b6d4); color:white; margin:0; padding:0; }
+  header { background: rgba(0,0,0,0.4); padding:15px 30px; display:flex; justify-content:space-between; align-items:center; backdrop-filter:blur(10px);}
   header .logo { font-size:1.6rem; color:#06b6d4; font-weight:bold; }
-  nav a { color:white; text-decoration:none; margin-left:15px; font-weight:500; }
-  nav a:hover { color:#06b6d4; }
-
-  .container { max-width:800px; margin:40px auto; background: rgba(255,255,255,0.08); padding:30px; border-radius:20px; box-shadow:0 0 20px rgba(6,182,212,0.5); }
-
-  h1 { text-align:center; margin-bottom:20px; text-shadow:0 0 10px #06b6d4; }
-  
-  .withdraw-form { display:flex; flex-direction:column; gap:15px; margin-bottom:30px; }
-  .withdraw-form input { padding:12px; border-radius:10px; border:none; background: rgba(255,255,255,0.1); color:white; font-size:1rem; }
-  .withdraw-form input:focus { outline:none; box-shadow:0 0 12px #06b6d4; }
-  
-  .withdraw-form button { padding:12px; border:none; border-radius:12px; background:linear-gradient(90deg,#06b6d4,#4f46e5); color:white; font-weight:bold; cursor:pointer; transition:.3s; }
-  .withdraw-form button:hover { transform:scale(1.05); box-shadow:0 0 20px #06b6d4; }
-  
-  .info { font-size:0.95rem; margin-top:5px; color:#f0f0f0; }
-  
-  table { width:100%; border-collapse:collapse; margin-top:20px; overflow-x:auto; }
-  th,td { border:1px solid rgba(255,255,255,0.2); padding:10px; text-align:center; }
-  th { background: rgba(6,182,212,0.3); }
-  tr:hover { background: rgba(255,255,255,0.05); }
-  
-  .status { padding:4px 10px; border-radius:6px; font-weight:bold; }
-  .status-pending { background: rgba(245,158,11,0.2); color:#f59e0b; }
-  .status-approved { background: rgba(34,197,94,0.2); color:#22c55e; }
-  .status-declined { background: rgba(239,68,68,0.2); color:#ef4444; }
-
-  footer { text-align:center; padding:15px; background: rgba(255,255,255,0.08); border-top:1px solid rgba(255,255,255,0.1); margin-top:40px; }
+  .container { max-width:600px; margin:60px auto; background: rgba(255,255,255,0.08); padding:30px; border-radius:20px; box-shadow:0 0 20px rgba(6,182,212,0.5); }
+  input, button { width:100%; padding:12px; margin:10px 0; border-radius:10px; border:none; font-size:1rem; }
+  input { background: rgba(255,255,255,0.1); color:white; }
+  button { background:#06b6d4; color:white; font-weight:bold; cursor:pointer; }
+  button:hover { background:#0891b2; }
+  .info { margin-top:10px; font-size:0.95rem; }
+  .warning { color:#f59e0b; font-weight:bold; }
 </style>
 </head>
 <body>
-
 <header>
   <div class="logo">MatrixMarket Seller</div>
-  <nav>
-    <a href="seller-dashboard.html">Dashboard</a>
-    <a href="seller-products.html">Products</a>
-    <a href="seller-withdraw.html" style="font-weight:bold;color:#06b6d4;">Withdraw</a>
-  </nav>
 </header>
 
 <div class="container">
-  <h1>💰 Withdraw Earnings</h1>
+  <h1 class="text-center text-2xl mb-4">💰 Request Withdrawal</h1>
+  <p class="info">Minimum withdraw: 100 GMD, Maximum: 3,000,000 GMD. Charges: 2% per 100 GMD withdrawn.</p>
 
-  <div class="withdraw-form">
-    <input type="number" id="withdrawAmount" placeholder="Enter amount (GMD 100 - 3,000,000)" min="100" max="3000000" oninput="calculateNet()">
-    <div class="info" id="chargeInfo">Charge: GMD 2 per 100 withdrawn. Net amount will be displayed below.</div>
-    <div class="info" id="netAmount">Net Amount: GMD 0</div>
-    <button onclick="submitWithdraw()">Submit Withdraw Request</button>
+  <input type="number" id="withdrawAmount" placeholder="Enter amount to withdraw">
+  <div class="info">
+    <p>Charge: <span id="charge">0</span> GMD</p>
+    <p>Net you will receive: <span id="net">0</span> GMD</p>
+    <p id="warning" class="warning"></p>
   </div>
-
-  <h2>Previous Withdrawals</h2>
-  <table id="withdrawTable">
-    <tr>
-      <th>Amount Requested (GMD)</th>
-      <th>Charge (GMD)</th>
-      <th>Net Received (GMD)</th>
-      <th>Status</th>
-      <th>Requested On</th>
-    </tr>
-  </table>
+  <button onclick="submitWithdrawal()">Request Withdraw</button>
 </div>
-
-<footer>© 2025 MatrixMarket | Seller Withdrawals</footer>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
-import { getDatabase, ref, push, onValue } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
+import { getDatabase, ref, push, get } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
 
 const firebaseConfig = {
@@ -106,70 +56,61 @@ const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 const auth = getAuth(app);
 
-let currentUser = null;
+let user = null;
+let balance = 0;
 
-onAuthStateChanged(auth,user=>{
-  if(!user){ alert("Login required."); window.location.href="login.html"; return; }
-  currentUser = user;
-  loadWithdrawals();
+// Auth check
+onAuthStateChanged(auth, async u => {
+  if(!u) { alert("Login required"); window.location.href="login.html"; return; }
+  user = u;
+  const snap = await get(ref(db, `sellers/${user.uid}`));
+  balance = parseFloat(snap.val()?.balance || 0);
 });
 
-function calculateNet(){
-  const amount = parseInt(document.getElementById('withdrawAmount').value)||0;
-  if(amount<100 || amount>3000000){ document.getElementById('netAmount').innerText="Net Amount: GMD 0"; return; }
-  const charge = Math.floor(amount/100)*2;
-  const net = amount - charge;
-  document.getElementById('netAmount').innerText = `Net Amount: GMD ${net} (Charge: GMD ${charge})`;
-}
+// Calculate charge & net
+const amountInput = document.getElementById("withdrawAmount");
+const chargeEl = document.getElementById("charge");
+const netEl = document.getElementById("net");
+const warningEl = document.getElementById("warning");
 
-async function submitWithdraw(){
-  const amount = parseInt(document.getElementById('withdrawAmount').value)||0;
-  if(amount<100 || amount>3000000){ alert("Amount must be between 100 and 3,000,000 GMD."); return; }
-  const charge = Math.floor(amount/100)*2;
-  const net = amount - charge;
+amountInput.addEventListener("input", () => {
+  const amount = parseFloat(amountInput.value) || 0;
+  if(amount < 100 || amount > 3000000){
+    warningEl.textContent = "Amount must be between 100 and 3,000,000 GMD";
+  } else if(amount > balance){
+    warningEl.textContent = `Insufficient balance. Your current balance: ${balance.toFixed(2)} GMD`;
+  } else {
+    warningEl.textContent = "";
+  }
 
-  const data = {
-    amount: amount,
-    charge: charge,
-    net: net,
+  const charge = parseFloat((amount * 0.02).toFixed(2));
+  const net = parseFloat((amount - charge).toFixed(2));
+  chargeEl.textContent = charge.toFixed(2);
+  netEl.textContent = net.toFixed(2);
+});
+
+// Submit withdrawal
+async function submitWithdrawal(){
+  const amount = parseFloat(amountInput.value);
+  if(amount < 100 || amount > 3000000 || amount > balance) return alert("Invalid amount. Please check warnings above.");
+  const charge = parseFloat((amount * 0.02).toFixed(2));
+  const net = parseFloat((amount - charge).toFixed(2));
+
+  await push(ref(db,'sellerWithdrawals'),{
+    userId: user.uid,
+    email: user.email,
+    amount: amount.toFixed(2),
+    charge: charge.toFixed(2),
+    net: net.toFixed(2),
     status: "Pending",
-    requestedAt: new Date().toISOString(),
-    userId: currentUser.uid
-  };
-
-  try{
-    await push(ref(db,'sellerWithdrawals'), data);
-    alert(`Withdrawal request submitted! Net amount you will receive: GMD ${net}`);
-    document.getElementById('withdrawAmount').value="";
-    document.getElementById('netAmount').innerText="Net Amount: GMD 0";
-  }catch(e){ console.error(e); alert("Error submitting withdrawal request."); }
-}
-
-function loadWithdrawals(){
-  const table = document.getElementById('withdrawTable');
-  const withdrawalsRef = ref(db,'sellerWithdrawals');
-  onValue(withdrawalsRef,snapshot=>{
-    table.innerHTML=`<tr>
-      <th>Amount Requested (GMD)</th>
-      <th>Charge (GMD)</th>
-      <th>Net Received (GMD)</th>
-      <th>Status</th>
-      <th>Requested On</th>
-    </tr>`;
-    const data = snapshot.val()||{};
-    Object.keys(data).forEach(key=>{
-      const w = data[key];
-      if(w.userId!==currentUser.uid) return; // Only show current user's withdrawals
-      const date = w.requestedAt ? new Date(w.requestedAt).toLocaleString() : "N/A";
-      table.innerHTML += `<tr>
-        <td>${w.amount}</td>
-        <td>${w.charge}</td>
-        <td>${w.net}</td>
-        <td><span class="status status-${w.status.toLowerCase()}">${w.status}</span></td>
-        <td>${date}</td>
-      </tr>`;
-    });
+    requestedAt: new Date().toISOString()
   });
+
+  alert(`Withdrawal request submitted!\nAmount: ${amount.toFixed(2)} GMD\nCharge: ${charge.toFixed(2)} GMD\nNet: ${net.toFixed(2)} GMD`);
+  amountInput.value = "";
+  chargeEl.textContent = "0";
+  netEl.textContent = "0";
+  warningEl.textContent = "";
 }
 </script>
 </body>
