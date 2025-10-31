@@ -6,12 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MatrixMarket - Seller Login</title>
     <link rel="stylesheet" href="style.css">
-    <script src="https://www.gstatic.com/firebasejs/9.24.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.24.0/firebase-database-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.24.0/firebase-auth-compat.js"></script>
-    <script src="https://kit.fontawesome.com/5c4b4f8d4f.js" crossorigin="anonymous"></script>
-
     <style>
+        /* Keep all your previous styling */
         body {
             margin: 0;
             font-family: "Poppins", sans-serif;
@@ -170,49 +166,7 @@
         }
     </style>
 
-    <script>
-        // Firebase config
-        const firebaseConfig = {
-           const firebaseConfig = {
-  apiKey: "AIzaSyDFrctk2MZajP7OmECXe5npHAV0dODH9jk",
-  authDomain: "matrixmarketplace-1bd71.firebaseapp.com",
-  databaseURL: "https://matrixmarketplace-1bd71-default-rtdb.firebaseio.com",
-  projectId: "matrixmarketplace-1bd71",
-  storageBucket: "matrixmarketplace-1bd71.firebasestorage.app",
-  messagingSenderId: "10374416997",
-  appId: "1:10374416997:web:9626c569e845c14a87548c",
-  measurementId: "G-DTC2GM9L92"
-};
-        };
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.database();
-
-        function sellerLogin(event) {
-            event.preventDefault();
-            const email = document.getElementById("sellerCode").value.trim();
-            const pass = document.getElementById("sellerPass").value.trim();
-
-            if (!email || !pass) { alert("⚠️ Fill all fields!"); return; }
-
-            db.ref("sellers").orderByChild("email").equalTo(email).once("value")
-                .then(snapshot => {
-                    const data = snapshot.val();
-                    if (data) {
-                        const key = Object.keys(data)[0];
-                        const seller = data[key];
-                        if (seller.password === pass) {
-                            alert("✅ Seller login successful!");
-                            localStorage.setItem("currentSeller", JSON.stringify(seller));
-                            window.location.href = "seller-dashboard.html";
-                        } else {
-                            alert("❌ Invalid password!");
-                        }
-                    } else {
-                        alert("❌ Seller not found!");
-                    }
-                }).catch(err => console.error(err));
-        }
-    </script>
+    <script src="https://kit.fontawesome.com/5c4b4f8d4f.js" crossorigin="anonymous"></script>
 </head>
 
 <body>
@@ -233,14 +187,14 @@
     <div class="seller-container">
         <div class="seller-card">
             <h1>🔑 Seller Portal</h1>
-            <form onsubmit="sellerLogin(event)">
+            <form id="sellerLoginForm">
                 <div class="input-group">
-                    <i class="fas fa-envelope"></i>
-                    <input type="email" id="sellerCode" placeholder="Enter Seller Email" required>
+                    <i class="fas fa-key"></i>
+                    <input type="text" id="subscriptionCode" placeholder="Enter Subscription Code" required>
                 </div>
                 <div class="input-group">
                     <i class="fas fa-lock"></i>
-                    <input type="password" id="sellerPass" placeholder="Enter Password" required>
+                    <input type="password" id="subscriptionPass" placeholder="Enter Password" required>
                 </div>
                 <button type="submit">Login</button>
             </form>
@@ -257,8 +211,28 @@
         style="text-align:center; padding:20px; background:rgba(255,255,255,0.08); border-top:1px solid rgba(255,255,255,0.1);">
         <p>© 2025 MatrixMarket | Secure Seller Login</p>
     </footer>
+
+    <script>
+        // Handle Seller login with subscription code
+        document.getElementById("sellerLoginForm").addEventListener("submit", function (e) {
+            e.preventDefault();
+            const code = document.getElementById("subscriptionCode").value.trim();
+            const pass = document.getElementById("subscriptionPass").value.trim();
+
+            // Get subscription codes from localStorage
+            let subscriptions = JSON.parse(localStorage.getItem("subscriptions")) || [];
+
+            // Check if the code & password exist
+            let subscriber = subscriptions.find(s => s.code === code && s.password === pass);
+            if (subscriber) {
+                alert("✅ Login successful!");
+                localStorage.setItem("currentSeller", subscriber.code); // Save seller session
+                window.location.href = "sellers.html"; // Redirect to dashboard
+            } else {
+                alert("❌ Invalid subscription code or password!");
+            }
+        });
+    </script>
 </body>
 
-
 </html>
-
